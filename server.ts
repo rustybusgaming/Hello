@@ -1,10 +1,11 @@
 import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
-import { exec } from 'child_process';
 import dotenv from 'dotenv';
 import fs from 'fs';
 import multer from 'multer';
+import { syncGamesLibrary } from './sync-games';
+import { CURATED_FLASH_COLLECTIONS } from './src/data/flashArchives';
 
 dotenv.config();
 
@@ -20,24 +21,22 @@ if (!fs.existsSync(customGamesDir)) {
 let isSyncing = false;
 let syncProgressMessage = 'Idle';
 
-function runSync() {
+async function runSync() {
   if (isSyncing) return;
   isSyncing = true;
   syncProgressMessage = 'Syncing games repository in background...';
   console.log(syncProgressMessage);
 
-  const scriptPath = path.join(process.cwd(), 'sync-games.sh');
-  exec(`bash "${scriptPath}"`, (error, stdout, stderr) => {
-    isSyncing = false;
-    if (error) {
-      syncProgressMessage = `Sync failed: ${error.message}`;
-      console.error(`Sync error: ${error}`);
-      return;
-    }
+  try {
+    await syncGamesLibrary();
     syncProgressMessage = 'Games synchronized successfully!';
-    console.log(`Sync stdout: ${stdout}`);
-    if (stderr) console.warn(`Sync stderr: ${stderr}`);
-  });
+    console.log(syncProgressMessage);
+  } catch (error: any) {
+    syncProgressMessage = `Sync failed: ${error.message || error}`;
+    console.error(`Sync error: ${error.message || error}`);
+  } finally {
+    isSyncing = false;
+  }
 }
 
 // Ensure assets are downloaded in the background if they were wiped
@@ -81,109 +80,6 @@ const MOCK_GAMES = [
   }
 ];
 
-// Fallback iconic flash games for when archive.org times out or is unreachable
-const FALLBACK_ARCHIVE_GAMES = [
-  {
-    id: 'alienhominid',
-    title: 'Alien Hominid',
-    thumbnail: 'https://archive.org/services/img/alienhominid',
-    rating: 4.9,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/alienhominid',
-    genres: ['Action', 'Shooter', 'Flash']
-  },
-  {
-    id: 'super-smash-flash-2',
-    title: 'Super Smash Flash 2',
-    thumbnail: 'https://archive.org/services/img/super-smash-flash-2',
-    rating: 5.0,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/super-smash-flash-2',
-    genres: ['Fighting', 'Action', 'Flash']
-  },
-  {
-    id: 'electric-man-2-hs',
-    title: 'Electric Man 2',
-    thumbnail: 'https://archive.org/services/img/electric-man-2-hs',
-    rating: 4.8,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/electric-man-2-hs',
-    genres: ['Action', 'Fighting', 'Flash']
-  },
-  {
-    id: 'interactive-buddy',
-    title: 'Interactive Buddy',
-    thumbnail: 'https://archive.org/services/img/interactive-buddy',
-    rating: 4.7,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/interactive-buddy',
-    genres: ['Simulation', 'Sandbox', 'Flash']
-  },
-  {
-    id: 'the-impossible-quiz',
-    title: 'The Impossible Quiz',
-    thumbnail: 'https://archive.org/services/img/the-impossible-quiz',
-    rating: 4.9,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/the-impossible-quiz',
-    genres: ['Puzzle', 'Trivia', 'Flash']
-  },
-  {
-    id: 'learn-to-fly',
-    title: 'Learn to Fly',
-    thumbnail: 'https://archive.org/services/img/learn-to-fly',
-    rating: 4.8,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/learn-to-fly',
-    genres: ['Strategy', 'Arcade', 'Flash']
-  },
-  {
-    id: 'age-of-war',
-    title: 'Age of War',
-    thumbnail: 'https://archive.org/services/img/age-of-war',
-    rating: 4.9,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/age-of-war',
-    genres: ['Strategy', 'Defense', 'Flash']
-  },
-  {
-    id: 'bloons-tower-defense-4',
-    title: 'Bloons Tower Defense 4',
-    thumbnail: 'https://archive.org/services/img/bloons-tower-defense-4',
-    rating: 4.9,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/bloons-tower-defense-4',
-    genres: ['Strategy', 'Tower Defense', 'Flash']
-  },
-  {
-    id: 'fancy-pants-adventures',
-    title: 'The Fancy Pants Adventures',
-    thumbnail: 'https://archive.org/services/img/fancy-pants-adventures',
-    rating: 4.8,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/fancy-pants-adventures',
-    genres: ['Platformer', 'Adventure', 'Flash']
-  },
-  {
-    id: 'swords-and-sandals-2',
-    title: 'Swords and Sandals 2',
-    thumbnail: 'https://archive.org/services/img/swords-and-sandals-2',
-    rating: 4.7,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/swords-and-sandals-2',
-    genres: ['RPG', 'Fighting', 'Flash']
-  },
-  {
-    id: 'duck-life-4',
-    title: 'Duck Life 4',
-    thumbnail: 'https://archive.org/services/img/duck-life-4',
-    rating: 4.8,
-    source: 'archive' as const,
-    embedUrl: 'https://archive.org/embed/duck-life-4',
-    genres: ['Adventure', 'Simulation', 'Flash']
-  }
-];
-
 // In-memory cache for Archive.org results
 let cachedArchiveGames: any[] = [];
 let lastArchiveFetchTime = 0;
@@ -205,48 +101,52 @@ async function fetchArchiveGames() {
     );
     clearTimeout(timeoutId);
 
-    if (!response.ok) {
-      throw new Error(`HTTP status ${response.status}`);
-    }
+    if (response.ok) {
+      const data: any = await response.json();
+      const docs = data?.response?.docs || [];
 
-    const data: any = await response.json();
-    const docs = data?.response?.docs || [];
-
-    const games = docs.map((doc: any) => {
-      let genres = ['Flash'];
-      if (doc.subject) {
-        if (Array.isArray(doc.subject)) {
-          genres = doc.subject.slice(0, 3);
-        } else if (typeof doc.subject === 'string') {
-          genres = doc.subject.split(',').map((s: string) => s.trim()).slice(0, 3);
+      const games = docs.map((doc: any) => {
+        let genres = ['Flash'];
+        if (doc.subject) {
+          if (Array.isArray(doc.subject)) {
+            genres = doc.subject.slice(0, 3);
+          } else if (typeof doc.subject === 'string') {
+            genres = doc.subject.split(',').map((s: string) => s.trim()).slice(0, 3);
+          }
         }
+        
+        genres = genres.map(g => g.charAt(0).toUpperCase() + g.slice(1));
+
+        return {
+          id: doc.identifier,
+          title: doc.title || 'Unknown Title',
+          thumbnail: `https://archive.org/services/img/${doc.identifier}`,
+          rating: 4.8,
+          source: 'archive',
+          embedUrl: `https://archive.org/embed/${doc.identifier}`,
+          genres: genres.length > 0 ? genres : ['Flash'],
+        };
+      });
+
+      if (games.length > 0) {
+        // Merge with curated collection for maximum variety and redundancy
+        const map = new Map<string, any>();
+        CURATED_FLASH_COLLECTIONS.forEach(g => map.set(g.id, g));
+        games.forEach(g => map.set(g.id, g));
+        
+        const merged = Array.from(map.values());
+        cachedArchiveGames = merged;
+        lastArchiveFetchTime = now;
+        return merged;
       }
-      
-      genres = genres.map(g => g.charAt(0).toUpperCase() + g.slice(1));
-
-      return {
-        id: doc.identifier,
-        title: doc.title || 'Unknown Title',
-        thumbnail: `https://archive.org/services/img/${doc.identifier}`,
-        rating: 4.5,
-        source: 'archive',
-        embedUrl: `https://archive.org/embed/${doc.identifier}`,
-        genres: genres.length > 0 ? genres : ['Flash'],
-      };
-    });
-
-    if (games.length > 0) {
-      cachedArchiveGames = games;
-      lastArchiveFetchTime = now;
-      return games;
     }
   } catch (e: any) {
-    // Graceful fallback without crashing or blocking the server
-    console.warn(`Archive.org fetch notice: ${e.name === 'AbortError' ? 'Request timed out' : (e.message || 'Service unavailable')}. Using curated fallback catalog.`);
+    // When live Archive.org search API is blocked, rate-limited or times out
+    console.warn(`Archive.org live search notice: ${e.name === 'AbortError' ? 'Request timed out' : (e.message || 'Service unavailable')}. Serving full curated Flash archive library.`);
   }
 
-  // Use previously cached games or built-in iconic games
-  return cachedArchiveGames.length > 0 ? cachedArchiveGames : FALLBACK_ARCHIVE_GAMES;
+  // Use full curated library of 40+ iconic games directly playable via Internet Archive & Ruffle
+  return CURATED_FLASH_COLLECTIONS;
 }
 
 async function fetchLocalWebports() {
