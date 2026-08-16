@@ -16,19 +16,37 @@ if (!fs.existsSync(customGamesDir)) {
   fs.mkdirSync(customGamesDir, { recursive: true });
 }
 
+// Track syncing status
+let isSyncing = false;
+let syncProgressMessage = 'Idle';
+
+function runSync() {
+  if (isSyncing) return;
+  isSyncing = true;
+  syncProgressMessage = 'Syncing games repository in background...';
+  console.log(syncProgressMessage);
+
+  const scriptPath = path.join(process.cwd(), 'sync-games.sh');
+  exec(`bash "${scriptPath}"`, (error, stdout, stderr) => {
+    isSyncing = false;
+    if (error) {
+      syncProgressMessage = `Sync failed: ${error.message}`;
+      console.error(`Sync error: ${error}`);
+      return;
+    }
+    syncProgressMessage = 'Games synchronized successfully!';
+    console.log(`Sync stdout: ${stdout}`);
+    if (stderr) console.warn(`Sync stderr: ${stderr}`);
+  });
+}
+
 // Ensure assets are downloaded in the background if they were wiped
 function ensureAssetsSync() {
   const gameportsDir = path.join(process.cwd(), 'public', 'gameports');
-  if (!fs.existsSync(gameportsDir)) {
+  const quasarDir = path.join(process.cwd(), 'public', 'quasar');
+  if (!fs.existsSync(gameportsDir) || !fs.existsSync(quasarDir)) {
     console.log('Assets missing. Triggering background sync...');
-    exec('npm run sync', (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Sync error: ${error}`);
-        return;
-      }
-      console.log(`Sync stdout: ${stdout}`);
-      if (stderr) console.error(`Sync stderr: ${stderr}`);
-    });
+    runSync();
   }
 }
 
@@ -63,13 +81,138 @@ const MOCK_GAMES = [
   }
 ];
 
-async function fetchArchiveGames() {
-  try {
-    const response = await fetch('https://archive.org/advancedsearch.php?q=collection:(softwarelibrary_flash)+AND+mediatype:(software)&fl[]=identifier,title,subject,downloads&sort[]=downloads+desc&rows=50&output=json');
-    const data = await response.json();
-    const docs = data.response.docs;
+// Fallback iconic flash games for when archive.org times out or is unreachable
+const FALLBACK_ARCHIVE_GAMES = [
+  {
+    id: 'alienhominid',
+    title: 'Alien Hominid',
+    thumbnail: 'https://archive.org/services/img/alienhominid',
+    rating: 4.9,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/alienhominid',
+    genres: ['Action', 'Shooter', 'Flash']
+  },
+  {
+    id: 'super-smash-flash-2',
+    title: 'Super Smash Flash 2',
+    thumbnail: 'https://archive.org/services/img/super-smash-flash-2',
+    rating: 5.0,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/super-smash-flash-2',
+    genres: ['Fighting', 'Action', 'Flash']
+  },
+  {
+    id: 'electric-man-2-hs',
+    title: 'Electric Man 2',
+    thumbnail: 'https://archive.org/services/img/electric-man-2-hs',
+    rating: 4.8,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/electric-man-2-hs',
+    genres: ['Action', 'Fighting', 'Flash']
+  },
+  {
+    id: 'interactive-buddy',
+    title: 'Interactive Buddy',
+    thumbnail: 'https://archive.org/services/img/interactive-buddy',
+    rating: 4.7,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/interactive-buddy',
+    genres: ['Simulation', 'Sandbox', 'Flash']
+  },
+  {
+    id: 'the-impossible-quiz',
+    title: 'The Impossible Quiz',
+    thumbnail: 'https://archive.org/services/img/the-impossible-quiz',
+    rating: 4.9,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/the-impossible-quiz',
+    genres: ['Puzzle', 'Trivia', 'Flash']
+  },
+  {
+    id: 'learn-to-fly',
+    title: 'Learn to Fly',
+    thumbnail: 'https://archive.org/services/img/learn-to-fly',
+    rating: 4.8,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/learn-to-fly',
+    genres: ['Strategy', 'Arcade', 'Flash']
+  },
+  {
+    id: 'age-of-war',
+    title: 'Age of War',
+    thumbnail: 'https://archive.org/services/img/age-of-war',
+    rating: 4.9,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/age-of-war',
+    genres: ['Strategy', 'Defense', 'Flash']
+  },
+  {
+    id: 'bloons-tower-defense-4',
+    title: 'Bloons Tower Defense 4',
+    thumbnail: 'https://archive.org/services/img/bloons-tower-defense-4',
+    rating: 4.9,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/bloons-tower-defense-4',
+    genres: ['Strategy', 'Tower Defense', 'Flash']
+  },
+  {
+    id: 'fancy-pants-adventures',
+    title: 'The Fancy Pants Adventures',
+    thumbnail: 'https://archive.org/services/img/fancy-pants-adventures',
+    rating: 4.8,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/fancy-pants-adventures',
+    genres: ['Platformer', 'Adventure', 'Flash']
+  },
+  {
+    id: 'swords-and-sandals-2',
+    title: 'Swords and Sandals 2',
+    thumbnail: 'https://archive.org/services/img/swords-and-sandals-2',
+    rating: 4.7,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/swords-and-sandals-2',
+    genres: ['RPG', 'Fighting', 'Flash']
+  },
+  {
+    id: 'duck-life-4',
+    title: 'Duck Life 4',
+    thumbnail: 'https://archive.org/services/img/duck-life-4',
+    rating: 4.8,
+    source: 'archive' as const,
+    embedUrl: 'https://archive.org/embed/duck-life-4',
+    genres: ['Adventure', 'Simulation', 'Flash']
+  }
+];
 
-    return docs.map((doc: any) => {
+// In-memory cache for Archive.org results
+let cachedArchiveGames: any[] = [];
+let lastArchiveFetchTime = 0;
+const CACHE_TTL_MS = 1000 * 60 * 30; // 30 minutes
+
+async function fetchArchiveGames() {
+  const now = Date.now();
+  if (cachedArchiveGames.length > 0 && now - lastArchiveFetchTime < CACHE_TTL_MS) {
+    return cachedArchiveGames;
+  }
+
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 3500);
+
+    const response = await fetch(
+      'https://archive.org/advancedsearch.php?q=collection:(softwarelibrary_flash)+AND+mediatype:(software)&fl[]=identifier,title,subject,downloads&sort[]=downloads+desc&rows=50&output=json',
+      { signal: controller.signal }
+    );
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      throw new Error(`HTTP status ${response.status}`);
+    }
+
+    const data: any = await response.json();
+    const docs = data?.response?.docs || [];
+
+    const games = docs.map((doc: any) => {
       let genres = ['Flash'];
       if (doc.subject) {
         if (Array.isArray(doc.subject)) {
@@ -79,23 +222,31 @@ async function fetchArchiveGames() {
         }
       }
       
-      // Capitalize first letter of genres
       genres = genres.map(g => g.charAt(0).toUpperCase() + g.slice(1));
 
       return {
         id: doc.identifier,
         title: doc.title || 'Unknown Title',
         thumbnail: `https://archive.org/services/img/${doc.identifier}`,
-        rating: 4.5, // Mock rating or base on downloads
+        rating: 4.5,
         source: 'archive',
         embedUrl: `https://archive.org/embed/${doc.identifier}`,
         genres: genres.length > 0 ? genres : ['Flash'],
       };
     });
-  } catch (e) {
-    console.error("Failed to fetch from archive.org", e);
-    return [];
+
+    if (games.length > 0) {
+      cachedArchiveGames = games;
+      lastArchiveFetchTime = now;
+      return games;
+    }
+  } catch (e: any) {
+    // Graceful fallback without crashing or blocking the server
+    console.warn(`Archive.org fetch notice: ${e.name === 'AbortError' ? 'Request timed out' : (e.message || 'Service unavailable')}. Using curated fallback catalog.`);
   }
+
+  // Use previously cached games or built-in iconic games
+  return cachedArchiveGames.length > 0 ? cachedArchiveGames : FALLBACK_ARCHIVE_GAMES;
 }
 
 async function fetchLocalWebports() {
@@ -192,11 +343,28 @@ async function startServer() {
       // Combine archive games with our curated web/steam ports and local games
       let games = [...localGames, ...archiveGames, ...MOCK_GAMES];
 
-      res.json({ status: 'ok', data: games });
+      res.json({ status: 'ok', data: games, isSyncing, syncProgressMessage });
     } catch (error) {
       console.error('Error fetching games:', error);
       res.status(500).json({ error: 'Failed to fetch games' });
     }
+  });
+
+  // API Route to trigger background games sync
+  app.post('/api/sync', (req, res) => {
+    if (isSyncing) {
+      return res.json({ status: 'in_progress', message: syncProgressMessage });
+    }
+    runSync();
+    res.json({ status: 'started', message: 'Game synchronization started.' });
+  });
+
+  // API Route to check sync status
+  app.get('/api/sync-status', (req, res) => {
+    res.json({
+      isSyncing,
+      message: syncProgressMessage,
+    });
   });
 
   // API Route to upload games

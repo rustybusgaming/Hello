@@ -8,16 +8,16 @@ interface GenreTabsProps {
 
 export function GenreTabs({ genres, activeGenre, onSelectGenre }: GenreTabsProps) {
   return (
-    <div className="flex overflow-x-auto px-6 py-4 bg-[#121214] border-b border-[#2d2d30] no-scrollbar whitespace-nowrap text-[11px] font-bold tracking-widest uppercase items-center shadow-md z-20">
-      <div className="flex gap-2 w-full max-w-7xl mx-auto">
+    <div className="flex overflow-x-auto px-4 py-3 bg-black border-b border-white/5 no-scrollbar whitespace-nowrap text-[10px] font-medium tracking-wide items-center z-20">
+      <div className="flex gap-1.5 w-full max-w-6xl mx-auto">
         {genres.map((genre) => (
           <button
             key={genre}
             onClick={() => onSelectGenre(genre)}
-            className={`px-4 py-1.5 rounded-full transition-all duration-300 ${
+            className={`px-3 py-1 rounded-md transition-all duration-300 ${
               activeGenre === genre
-                ? 'bg-[#ff8a00] text-black shadow-[0_0_15px_rgba(255,138,0,0.4)]'
-                : 'bg-[#1c1c1f] text-gray-400 border border-[#2d2d30] hover:bg-[#2d2d30] hover:text-white'
+                ? 'bg-white text-black'
+                : 'bg-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/5'
             }`}
           >
             {genre}
