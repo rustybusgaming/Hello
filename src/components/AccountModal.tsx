@@ -126,13 +126,13 @@ export function AccountModal({
   // Load public accounts list
   useEffect(() => {
     fetch('/api/accounts')
-      .then(res => res.json())
+      .then(res => res.ok ? res.json() : null)
       .then(d => {
-        if (d.status === 'ok') {
-          setAllAccounts(d.data);
+        if (d && d.status === 'ok') {
+          setAllAccounts(d.data || []);
         }
       })
-      .catch(console.error);
+      .catch(() => {});
   }, [currentUser]);
 
   // Load user saves when viewing saves tab
@@ -140,13 +140,13 @@ export function AccountModal({
     if (currentUser?.id && activeTab === 'saves') {
       setSavesLoading(true);
       fetch(`/api/saves?userId=${currentUser.id}`)
-        .then(res => res.json())
+        .then(res => res.ok ? res.json() : null)
         .then(d => {
-          if (d.status === 'ok') {
-            setUserSaves(d.data);
+          if (d && d.status === 'ok') {
+            setUserSaves(d.data || []);
           }
         })
-        .catch(console.error)
+        .catch(() => {})
         .finally(() => setSavesLoading(false));
     }
   }, [currentUser?.id, activeTab]);
@@ -182,33 +182,6 @@ export function AccountModal({
       setLoginPassword('');
     } catch (err: any) {
       setLoginError(err.message || 'Login failed');
-    } finally {
-      setLoginLoading(false);
-    }
-  };
-
-  // Quick Demo Login (for testing convenience)
-  const handleQuickLogin = async (username: string, pass: string) => {
-    setLoginIdentifier(username);
-    setLoginPassword(pass);
-    setLoginLoading(true);
-    setLoginError('');
-
-    try {
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ identifier: username, password: pass })
-      });
-      const data = await res.json();
-      if (res.ok && data.status === 'ok') {
-        onUpdateUser(data.user, data.token);
-        setActiveTab('profile');
-      } else {
-        setLoginError(data.error || 'Demo login failed');
-      }
-    } catch (err: any) {
-      setLoginError(err.message);
     } finally {
       setLoginLoading(false);
     }
@@ -701,38 +674,6 @@ export function AccountModal({
                   {loginLoading ? 'Authenticating...' : 'Sign In'}
                 </button>
               </form>
-
-              {/* Demo Accounts Quick Login */}
-              <div className="pt-4 border-t border-zinc-800/80 space-y-2.5">
-                <span className="text-[11px] font-semibold uppercase tracking-wider text-zinc-500 block text-center">
-                  Quick Demo Sign-In (Instant Access)
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('admin', 'admin1234')}
-                    className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-left transition-all group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-amber-400" />
-                      <span className="text-xs font-bold text-white group-hover:text-amber-300">Admin Account</span>
-                    </div>
-                    <span className="text-[10px] text-zinc-500 font-mono block mt-0.5">user: admin</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('RetroMaster99', 'gamer1234')}
-                    className="p-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-left transition-all group"
-                  >
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-cyan-400" />
-                      <span className="text-xs font-bold text-white group-hover:text-cyan-300">Retro Player</span>
-                    </div>
-                    <span className="text-[10px] text-zinc-500 font-mono block mt-0.5">user: RetroMaster99</span>
-                  </button>
-                </div>
-              </div>
 
               <div className="text-center pt-2">
                 <button

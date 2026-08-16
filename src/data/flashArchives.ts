@@ -13,7 +13,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'alienhominid',
     title: 'Alien Hominid',
-    thumbnail: 'https://archive.org/services/img/alienhominid',
+    thumbnail: '/api/archive-img/alienhominid',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/alienhominid',
@@ -22,7 +22,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'super-smash-flash-2',
     title: 'Super Smash Flash 2',
-    thumbnail: 'https://archive.org/services/img/super-smash-flash-2',
+    thumbnail: '/api/archive-img/super-smash-flash-2',
     rating: 5.0,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/super-smash-flash-2',
@@ -31,7 +31,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'electric-man-2-hs',
     title: 'Electric Man 2',
-    thumbnail: 'https://archive.org/services/img/electric-man-2-hs',
+    thumbnail: '/api/archive-img/electric-man-2-hs',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/electric-man-2-hs',
@@ -40,7 +40,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'interactive-buddy',
     title: 'Interactive Buddy',
-    thumbnail: 'https://archive.org/services/img/interactive-buddy',
+    thumbnail: '/api/archive-img/interactive-buddy',
     rating: 4.7,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/interactive-buddy',
@@ -49,7 +49,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'the-impossible-quiz',
     title: 'The Impossible Quiz',
-    thumbnail: 'https://archive.org/services/img/the-impossible-quiz',
+    thumbnail: '/api/archive-img/the-impossible-quiz',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/the-impossible-quiz',
@@ -58,7 +58,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'the-impossible-quiz-2',
     title: 'The Impossible Quiz 2',
-    thumbnail: 'https://archive.org/services/img/the-impossible-quiz-2',
+    thumbnail: '/api/archive-img/the-impossible-quiz-2',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/the-impossible-quiz-2',
@@ -67,7 +67,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'learn-to-fly',
     title: 'Learn to Fly',
-    thumbnail: 'https://archive.org/services/img/learn-to-fly',
+    thumbnail: '/api/archive-img/learn-to-fly',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/learn-to-fly',
@@ -76,7 +76,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'learn-to-fly-2',
     title: 'Learn to Fly 2',
-    thumbnail: 'https://archive.org/services/img/learn-to-fly-2',
+    thumbnail: '/api/archive-img/learn-to-fly-2',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/learn-to-fly-2',
@@ -85,7 +85,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'age-of-war',
     title: 'Age of War',
-    thumbnail: 'https://archive.org/services/img/age-of-war',
+    thumbnail: '/api/archive-img/age-of-war',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/age-of-war',
@@ -94,7 +94,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'age-of-war-2',
     title: 'Age of War 2',
-    thumbnail: 'https://archive.org/services/img/age-of-war-2',
+    thumbnail: '/api/archive-img/age-of-war-2',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/age-of-war-2',
@@ -103,7 +103,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'bloons-tower-defense-4',
     title: 'Bloons Tower Defense 4',
-    thumbnail: 'https://archive.org/services/img/bloons-tower-defense-4',
+    thumbnail: '/api/archive-img/bloons-tower-defense-4',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/bloons-tower-defense-4',
@@ -112,7 +112,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'fancy-pants-adventures',
     title: 'The Fancy Pants Adventures',
-    thumbnail: 'https://archive.org/services/img/fancy-pants-adventures',
+    thumbnail: '/api/archive-img/fancy-pants-adventures',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/fancy-pants-adventures',
@@ -121,7 +121,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'fancy-pants-adventures-world-2',
     title: 'Fancy Pants Adventures: World 2',
-    thumbnail: 'https://archive.org/services/img/fancy-pants-adventures-world-2',
+    thumbnail: '/api/archive-img/fancy-pants-adventures-world-2',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/fancy-pants-adventures-world-2',
@@ -130,7 +130,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'swords-and-sandals-2',
     title: 'Swords and Sandals 2',
-    thumbnail: 'https://archive.org/services/img/swords-and-sandals-2',
+    thumbnail: '/api/archive-img/swords-and-sandals-2',
     rating: 4.7,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/swords-and-sandals-2',
@@ -139,7 +139,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'duck-life-4',
     title: 'Duck Life 4',
-    thumbnail: 'https://archive.org/services/img/duck-life-4',
+    thumbnail: '/api/archive-img/duck-life-4',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/duck-life-4',
@@ -148,7 +148,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'duck-life-3',
     title: 'Duck Life 3: Evolution',
-    thumbnail: 'https://archive.org/services/img/duck-life-3',
+    thumbnail: '/api/archive-img/duck-life-3',
     rating: 4.7,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/duck-life-3',
@@ -157,7 +157,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'paparie-flash',
     title: "Papa's Pizzeria",
-    thumbnail: 'https://archive.org/services/img/papas-pizzeria_flash',
+    thumbnail: '/api/archive-img/papas-pizzeria_flash',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/papas-pizzeria_flash',
@@ -166,7 +166,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'papas-freezeria-flash',
     title: "Papa's Freezeria",
-    thumbnail: 'https://archive.org/services/img/papas-freezeria-flash',
+    thumbnail: '/api/archive-img/papas-freezeria-flash',
     rating: 5.0,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/papas-freezeria-flash',
@@ -175,7 +175,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'papas-burgeria-flash',
     title: "Papa's Burgeria",
-    thumbnail: 'https://archive.org/services/img/papas-burgeria-flash',
+    thumbnail: '/api/archive-img/papas-burgeria-flash',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/papas-burgeria-flash',
@@ -184,7 +184,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'strike-force-heroes',
     title: 'Strike Force Heroes',
-    thumbnail: 'https://archive.org/services/img/strike-force-heroes',
+    thumbnail: '/api/archive-img/strike-force-heroes',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/strike-force-heroes',
@@ -193,7 +193,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'strike-force-heroes-2',
     title: 'Strike Force Heroes 2',
-    thumbnail: 'https://archive.org/services/img/strike-force-heroes-2',
+    thumbnail: '/api/archive-img/strike-force-heroes-2',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/strike-force-heroes-2',
@@ -202,7 +202,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'raze-flash-game',
     title: 'Raze',
-    thumbnail: 'https://archive.org/services/img/raze-flash-game',
+    thumbnail: '/api/archive-img/raze-flash-game',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/raze-flash-game',
@@ -211,7 +211,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'raze-2',
     title: 'Raze 2',
-    thumbnail: 'https://archive.org/services/img/raze-2',
+    thumbnail: '/api/archive-img/raze-2',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/raze-2',
@@ -220,7 +220,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'super-mario-63',
     title: 'Super Mario 63',
-    thumbnail: 'https://archive.org/services/img/super-mario-63',
+    thumbnail: '/api/archive-img/super-mario-63',
     rating: 5.0,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/super-mario-63',
@@ -229,7 +229,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'fireboy-and-watergirl-forest-temple',
     title: 'Fireboy and Watergirl: The Forest Temple',
-    thumbnail: 'https://archive.org/services/img/fireboy-and-watergirl-forest-temple',
+    thumbnail: '/api/archive-img/fireboy-and-watergirl-forest-temple',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/fireboy-and-watergirl-forest-temple',
@@ -238,7 +238,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'run-3',
     title: 'Run 3',
-    thumbnail: 'https://archive.org/services/img/run-3-flash',
+    thumbnail: '/api/archive-img/run-3-flash',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/run-3-flash',
@@ -247,7 +247,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'qwop-flash',
     title: 'QWOP',
-    thumbnail: 'https://archive.org/services/img/qwop-game',
+    thumbnail: '/api/archive-img/qwop-game',
     rating: 4.6,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/qwop-game',
@@ -256,7 +256,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'happy-wheels-flash',
     title: 'Happy Wheels (Flash Classic)',
-    thumbnail: 'https://archive.org/services/img/happy-wheels-original',
+    thumbnail: '/api/archive-img/happy-wheels-original',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/happy-wheels-original',
@@ -265,7 +265,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'stick-war',
     title: 'Stick War',
-    thumbnail: 'https://archive.org/services/img/stick-war',
+    thumbnail: '/api/archive-img/stick-war',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/stick-war',
@@ -274,7 +274,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'stick-war-2',
     title: 'Stick War 2: Order Empire',
-    thumbnail: 'https://archive.org/services/img/stick-war-2',
+    thumbnail: '/api/archive-img/stick-war-2',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/stick-war-2',
@@ -283,7 +283,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'sugar-sugar',
     title: 'Sugar Sugar',
-    thumbnail: 'https://archive.org/services/img/sugar-sugar',
+    thumbnail: '/api/archive-img/sugar-sugar',
     rating: 4.7,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/sugar-sugar',
@@ -292,7 +292,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'red-ball-4',
     title: 'Red Ball 4',
-    thumbnail: 'https://archive.org/services/img/red-ball-4',
+    thumbnail: '/api/archive-img/red-ball-4',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/red-ball-4',
@@ -301,7 +301,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'bad-ice-cream',
     title: 'Bad Ice Cream',
-    thumbnail: 'https://archive.org/services/img/bad-ice-cream',
+    thumbnail: '/api/archive-img/bad-ice-cream',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/bad-ice-cream',
@@ -310,7 +310,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'bad-ice-cream-2',
     title: 'Bad Ice Cream 2',
-    thumbnail: 'https://archive.org/services/img/bad-ice-cream-2',
+    thumbnail: '/api/archive-img/bad-ice-cream-2',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/bad-ice-cream-2',
@@ -319,7 +319,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'jacksmith',
     title: 'Jacksmith',
-    thumbnail: 'https://archive.org/services/img/jacksmith-flash',
+    thumbnail: '/api/archive-img/jacksmith-flash',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/jacksmith-flash',
@@ -328,7 +328,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'plazma-burst-2',
     title: 'Plazma Burst 2',
-    thumbnail: 'https://archive.org/services/img/plazma-burst-2',
+    thumbnail: '/api/archive-img/plazma-burst-2',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/plazma-burst-2',
@@ -337,7 +337,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'sonny-2',
     title: 'Sonny 2',
-    thumbnail: 'https://archive.org/services/img/sonny-2',
+    thumbnail: '/api/archive-img/sonny-2',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/sonny-2',
@@ -346,7 +346,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'infiltrating-the-airship',
     title: 'Henry Stickmin: Infiltrating the Airship',
-    thumbnail: 'https://archive.org/services/img/infiltrating-the-airship',
+    thumbnail: '/api/archive-img/infiltrating-the-airship',
     rating: 5.0,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/infiltrating-the-airship',
@@ -355,7 +355,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'stealing-the-diamond',
     title: 'Henry Stickmin: Stealing the Diamond',
-    thumbnail: 'https://archive.org/services/img/stealing-the-diamond',
+    thumbnail: '/api/archive-img/stealing-the-diamond',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/stealing-the-diamond',
@@ -364,7 +364,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'escaping-the-prison',
     title: 'Henry Stickmin: Escaping the Prison',
-    thumbnail: 'https://archive.org/services/img/escaping-the-prison',
+    thumbnail: '/api/archive-img/escaping-the-prison',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/escaping-the-prison',
@@ -373,7 +373,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'breaking-the-bank',
     title: 'Henry Stickmin: Breaking the Bank',
-    thumbnail: 'https://archive.org/services/img/breaking-the-bank',
+    thumbnail: '/api/archive-img/breaking-the-bank',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/breaking-the-bank',
@@ -382,7 +382,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'crush-the-castle',
     title: 'Crush the Castle',
-    thumbnail: 'https://archive.org/services/img/crush-the-castle',
+    thumbnail: '/api/archive-img/crush-the-castle',
     rating: 4.8,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/crush-the-castle',
@@ -391,7 +391,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'effing-worms',
     title: 'Effing Worms',
-    thumbnail: 'https://archive.org/services/img/effing-worms',
+    thumbnail: '/api/archive-img/effing-worms',
     rating: 4.7,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/effing-worms',
@@ -400,7 +400,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
   {
     id: 'super-fighters',
     title: 'Superfighters',
-    thumbnail: 'https://archive.org/services/img/superfighters',
+    thumbnail: '/api/archive-img/superfighters',
     rating: 4.9,
     source: 'archive',
     embedUrl: 'https://archive.org/embed/superfighters',

@@ -52,11 +52,11 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
     if (!game?.id) return;
     const userIdQuery = currentUser?.id ? `userId=${currentUser.id}&` : '';
     fetch(`/api/saves?${userIdQuery}gameId=${game.id}`)
-      .then(res => res.json())
+      .then(res => res.ok ? res.json() : { status: 'error', data: [] })
       .then(d => {
-        if (d.status === 'ok') setGameSaves(d.data);
+        if (d && d.status === 'ok') setGameSaves(d.data || []);
       })
-      .catch(console.error);
+      .catch(() => {});
   };
 
   useEffect(() => {
@@ -358,9 +358,8 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                     <iframe
                       src={game.embedUrl}
                       frameBorder="0"
-                      allow="autoplay; fullscreen; speaker; clipboard-read; clipboard-write"
+                      allow="autoplay; fullscreen; clipboard-read; clipboard-write"
                       className={`w-full h-full ${isTheaterMode ? 'min-h-[85vh]' : 'min-h-[55vh] sm:min-h-[72vh]'} ${isCrtMode ? 'rounded-xl border-2 border-zinc-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
-                      allowFullScreen
                       title={`${game.title} Embed`}
                     ></iframe>
                   )}

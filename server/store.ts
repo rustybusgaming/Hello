@@ -13,11 +13,31 @@ if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
-// Initial Admin & Demo Accounts with proper hashed passwords
+// Initial Admin & User Accounts with proper hashed passwords
+const playerPass = hashPassword('player1234');
 const adminPass = hashPassword('admin1234');
-const gamerPass = hashPassword('gamer1234');
 
 const DEFAULT_STORED_ACCOUNTS: StoredUserAccount[] = [
+  {
+    id: 'user-4_7t',
+    username: '4_7t',
+    email: 'calebhackssucks@gmail.com',
+    displayName: '4_7t',
+    bio: 'Playing The Henry Stickmin Collection. Steam community player from Waikato, New Zealand.',
+    passwordHash: playerPass.hash,
+    passwordSalt: playerPass.salt,
+    role: 'admin',
+    avatarUrl: 'https://avatars.fastly.steamstatic.com/c11a37205a4d0a6402a258c6d21fcca7038b3cfb_full.jpg',
+    createdAt: '2015-12-28T00:00:00.000Z',
+    lastLogin: new Date().toISOString(),
+    steamId: '76561198272986867',
+    steamPersonaName: '4_7t',
+    steamAvatar: 'https://avatars.fastly.steamstatic.com/c11a37205a4d0a6402a258c6d21fcca7038b3cfb_full.jpg',
+    steamProfileUrl: 'https://steamcommunity.com/id/4_7t/',
+    steamLevel: 32,
+    steamGamesCount: 94,
+    steamLinkedAt: new Date().toISOString()
+  },
   {
     id: 'user-admin',
     username: 'admin',
@@ -30,33 +50,13 @@ const DEFAULT_STORED_ACCOUNTS: StoredUserAccount[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&q=80',
     createdAt: new Date(Date.now() - 86400000 * 30).toISOString(),
     lastLogin: new Date().toISOString(),
-    steamId: '76561198000000000',
-    steamPersonaName: 'AdminPlayer',
-    steamAvatar: 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg',
-    steamProfileUrl: 'https://steamcommunity.com/id/admin',
-    steamLevel: 42,
-    steamGamesCount: 156,
-    steamLinkedAt: new Date(Date.now() - 86400000 * 20).toISOString()
-  },
-  {
-    id: 'user-retro-gamer',
-    username: 'RetroMaster99',
-    email: 'gamer@retro.arcade',
-    displayName: 'Retro Speedrunner',
-    bio: 'Preserving 2000s Flash games and webports. Speedrunner of Karlson and Super Mario 64.',
-    passwordHash: gamerPass.hash,
-    passwordSalt: gamerPass.salt,
-    role: 'user',
-    avatarUrl: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&q=80',
-    createdAt: new Date(Date.now() - 86400000 * 14).toISOString(),
-    lastLogin: new Date().toISOString(),
-    steamId: '76561198123456789',
-    steamPersonaName: 'RetroGamer',
-    steamAvatar: 'https://avatars.steamstatic.com/b5bd56c1aa4607f3ab0d44f0b38d3be933642c4c_full.jpg',
-    steamProfileUrl: 'https://steamcommunity.com/profiles/76561198123456789',
-    steamLevel: 18,
-    steamGamesCount: 48,
-    steamLinkedAt: new Date(Date.now() - 86400000 * 7).toISOString()
+    steamId: '76561198272986867',
+    steamPersonaName: '4_7t',
+    steamAvatar: 'https://avatars.fastly.steamstatic.com/c11a37205a4d0a6402a258c6d21fcca7038b3cfb_full.jpg',
+    steamProfileUrl: 'https://steamcommunity.com/id/4_7t/',
+    steamLevel: 32,
+    steamGamesCount: 94,
+    steamLinkedAt: new Date().toISOString()
   }
 ];
 

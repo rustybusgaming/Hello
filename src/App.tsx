@@ -47,28 +47,28 @@ export default function App() {
       fetch('/api/auth/me', {
         headers: { Authorization: `Bearer ${authToken}` }
       })
-        .then(res => res.json())
+        .then(res => res.ok ? res.json() : null)
         .then(d => {
-          if (d.status === 'ok' && d.user) {
+          if (d && d.status === 'ok' && d.user) {
             setCurrentUser(d.user);
           } else {
             // Expired or invalid token
             setAuthToken(null);
           }
         })
-        .catch(err => console.error('Session check error:', err));
+        .catch(() => setAuthToken(null));
     } else {
       // Fallback check if accounts exist
       fetch('/api/accounts')
-        .then(res => res.json())
+        .then(res => res.ok ? res.json() : null)
         .then(d => {
-          if (d.status === 'ok' && Array.isArray(d.data) && d.data.length > 0) {
+          if (d && d.status === 'ok' && Array.isArray(d.data) && d.data.length > 0) {
             if (!currentUser) {
               setCurrentUser(d.data[0]);
             }
           }
         })
-        .catch(console.error);
+        .catch(() => {});
     }
   }, [authToken]);
 
@@ -81,12 +81,12 @@ export default function App() {
 
   const fetchGames = () => {
     fetch(`/api/games?t=${Date.now()}`)
-      .then((res) => res.json())
+      .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        if (data.status === 'ok') {
+        if (data && data.status === 'ok') {
           // Filter out hidden games for regular view unless search matches
-          const visibleGames = data.data.filter((g: Game) => !g.hidden);
-          setGames(visibleGames.length > 0 ? visibleGames : data.data);
+          const visibleGames = (data.data || []).filter((g: Game) => !g.hidden);
+          setGames(visibleGames.length > 0 ? visibleGames : (data.data || []));
           if (typeof data.isSyncing === 'boolean') {
             setIsSyncing(data.isSyncing);
           }
@@ -105,14 +105,14 @@ export default function App() {
     if (!isSyncing) return;
     const interval = setInterval(() => {
       fetch('/api/sync-status')
-        .then((res) => res.json())
+        .then((res) => res.ok ? res.json() : null)
         .then((data) => {
-          if (!data.isSyncing) {
+          if (data && !data.isSyncing) {
             setIsSyncing(false);
             fetchGames();
           }
         })
-        .catch((err) => console.error('Error polling sync status:', err));
+        .catch(() => {});
     }, 3000);
 
     return () => clearInterval(interval);
@@ -122,9 +122,9 @@ export default function App() {
     if (isSyncing) return;
     setIsSyncing(true);
     fetch('/api/sync', { method: 'POST' })
-      .then((res) => res.json())
+      .then((res) => res.ok ? res.json() : null)
       .then((data) => {
-        console.log('Sync trigger response:', data);
+        if (data) console.log('Sync trigger response:', data);
       })
       .catch((err) => {
         console.error('Failed to trigger sync:', err);
@@ -134,14 +134,17 @@ export default function App() {
 
   const handleSwitchUser = async (username: string) => {
     try {
-      const res = await fetch('/api/accounts/login', {
+      const res = await fetch('/api/accounts/switch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username })
       });
-      const d = await res.json();
-      if (d.status === 'ok') {
-        setCurrentUser(d.data);
+      if (res.ok) {
+        const d = await res.json();
+        if (d.status === 'ok') {
+          setCurrentUser(d.data || d.user);
+          if (d.token) setAuthToken(d.token);
+        }
       }
     } catch (err) {
       console.error('Failed to switch user:', err);

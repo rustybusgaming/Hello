@@ -1,0 +1,43 @@
+[
+  {
+    "id": "user-4_7t",
+    "username": "4_7t",
+    "email": "calebhackssucks@gmail.com",
+    "displayName": "4_7t",
+    "bio": "Steam player from New Zealand. Playing The Henry Stickmin Collection.",
+    "role": "admin",
+    "avatarUrl": "https://avatars.fastly.steamstatic.com/c11a37205a4d0a6402a258c6d21fcca7038b3cfb_full.jpg",
+    "createdAt": "2015-12-28T00:00:00.000Z",
+    "lastLogin": "2026-08-16T23:14:00.000Z",
+    "steamId": "76561198272986867",
+    "steamPersonaName": "4_7t",
+    "steamAvatar": "https://avatars.fastly.steamstatic.com/c11a37205a4d0a6402a258c6d21fcca7038b3cfb_full.jpg",
+    "steamProfileUrl": "https://steamcommunity.com/id/4_7t/",
+    "steamLevel": 32,
+    "steamGamesCount": 94,
+    "steamLinkedAt": "2026-08-16T23:14:00.000Z",
+    "savesCount": 3,
+    "passwordHash": "11a74812de7d6a8addd1ae489814e0d19821d9247a63a6ed69b21b4f5833fbfae8c77fc9801a2b9ed7384e6985dea93aaf6a3d759912113b101487e2a1a95103",
+    "passwordSalt": "2673209b4fdf920c4838622a6a53869c"
+  },
+  {
+    "id": "user-admin",
+    "username": "admin",
+    "email": "admin@flashhub.local",
+    "displayName": "FlashHub Admin",
+    "role": "admin",
+    "avatarUrl": "https://avatars.fastly.steamstatic.com/c11a37205a4d0a6402a258c6d21fcca7038b3cfb_full.jpg",
+    "createdAt": "2026-08-16T22:39:07.692Z",
+    "lastLogin": "2026-08-16T23:14:00.000Z",
+    "steamId": "76561198272986867",
+    "steamPersonaName": "4_7t",
+    "steamAvatar": "https://avatars.fastly.steamstatic.com/c11a37205a4d0a6402a258c6d21fcca7038b3cfb_full.jpg",
+    "steamProfileUrl": "https://steamcommunity.com/id/4_7t/",
+    "steamLevel": 32,
+    "steamGamesCount": 94,
+    "steamLinkedAt": "2026-08-16T23:14:00.000Z",
+    "savesCount": 1,
+    "passwordHash": "11a74812de7d6a8addd1ae489814e0d19821d9247a63a6ed69b21b4f5833fbfae8c77fc9801a2b9ed7384e6985dea93aaf6a3d759912113b101487e2a1a95103",
+    "passwordSalt": "2673209b4fdf920c4838622a6a53869c"
+  }
+]

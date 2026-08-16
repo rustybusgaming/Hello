@@ -135,7 +135,7 @@ async function fetchArchiveGames() {
         return {
           id: doc.identifier,
           title: doc.title || 'Unknown Title',
-          thumbnail: `https://archive.org/services/img/${doc.identifier}`,
+          thumbnail: `/api/archive-img/${doc.identifier}`,
           rating: 4.8,
           source: 'archive',
           embedUrl: `https://archive.org/embed/${doc.identifier}`,
@@ -753,6 +753,49 @@ async function startServer() {
     }
   });
 
+  // Favicon handler
+  app.get('/favicon.ico', (_req, res) => {
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.sendFile(path.join(process.cwd(), 'public', 'favicon.svg'));
+  });
+
+  // Archive.org thumbnail proxy with resilient fallback
+  const imgCache = new Map<string, { buffer: Buffer; contentType: string; timestamp: number }>();
+  app.get('/api/archive-img/:id', async (req, res) => {
+    const { id } = req.params;
+    const cached = imgCache.get(id);
+    if (cached && Date.now() - cached.timestamp < 1000 * 60 * 60 * 24) {
+      res.setHeader('Content-Type', cached.contentType);
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      return res.send(cached.buffer);
+    }
+
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const upstream = await fetch(`https://archive.org/services/img/${encodeURIComponent(id)}`, {
+        signal: controller.signal,
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FlashHub/2.0' }
+      });
+      clearTimeout(timeoutId);
+
+      if (upstream.ok) {
+        const cType = upstream.headers.get('content-type') || 'image/jpeg';
+        const arrayBuf = await upstream.arrayBuffer();
+        const buf = Buffer.from(arrayBuf);
+        imgCache.set(id, { buffer: buf, contentType: cType, timestamp: Date.now() });
+        res.setHeader('Content-Type', cType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        return res.send(buf);
+      }
+    } catch {
+      // Fallback on connection reset or timeout
+    }
+
+    // Default fallback arcade banner
+    res.redirect('https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80');
+  });
+
   // List all accounts (public directory)
   app.get('/api/accounts', (req, res) => {
     try {
@@ -762,6 +805,33 @@ async function startServer() {
       res.status(500).json({ error: err.message });
     }
   });
+
+  // Switch or login quick user
+  const handleUserSwitch = (req: express.Request, res: express.Response) => {
+    try {
+      const { username, id } = req.body;
+      const storedAccounts = getStoredAccounts();
+      const user = storedAccounts.find(
+        a => (id && a.id === id) || (username && a.username.toLowerCase() === username.toLowerCase())
+      );
+
+      if (!user) {
+        return res.status(404).json({ error: 'User account not found' });
+      }
+
+      const token = createSession(user.id);
+      const saves = getSaves().filter(s => s.userId === user.id);
+      const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
+      const publicAcc = toPublicAccount(user, saves.length, totalPlaytime);
+
+      res.json({ status: 'ok', token, user: publicAcc, data: publicAcc });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  };
+
+  app.post('/api/accounts/switch', handleUserSwitch);
+  app.post('/api/accounts/login', handleUserSwitch);
 
   // Admin: Update user role
   app.put('/api/admin/users/:id/role', (req, res) => {
@@ -823,19 +893,19 @@ async function startServer() {
       // Clean query
       let steamIdOrVanity = query;
       if (query.includes('steamcommunity.com/id/')) {
-        steamIdOrVanity = query.split('steamcommunity.com/id/')[1].replace(/\/+$/, '');
+        steamIdOrVanity = query.split('steamcommunity.com/id/')[1].replace(/\/+$/, '').split('/')[0].split('?')[0];
       } else if (query.includes('steamcommunity.com/profiles/')) {
-        steamIdOrVanity = query.split('steamcommunity.com/profiles/')[1].replace(/\/+$/, '');
+        steamIdOrVanity = query.split('steamcommunity.com/profiles/')[1].replace(/\/+$/, '').split('/')[0].split('?')[0];
       }
 
       const isNumericId = /^\d{17}$/.test(steamIdOrVanity);
       const xmlUrl = isNumericId
-        ? `https://steamcommunity.com/profiles/${steamIdOrVanity}/?xml=1`
-        : `https://steamcommunity.com/id/${steamIdOrVanity}/?xml=1`;
+        ? `https://steamcommunity.com/profiles/${encodeURIComponent(steamIdOrVanity)}/?xml=1`
+        : `https://steamcommunity.com/id/${encodeURIComponent(steamIdOrVanity)}/?xml=1`;
 
       const response = await fetch(xmlUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0' },
-        signal: AbortSignal.timeout(4000)
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FlashHub/2.0' },
+        signal: AbortSignal.timeout(4500)
       });
 
       if (response.ok) {
@@ -845,23 +915,32 @@ async function startServer() {
         const customUrlMatch = xmlText.match(/<customURL><!\[CDATA\[(.*?)\]\]><\/customURL>/) || xmlText.match(/<customURL>(.*?)<\/customURL>/);
         const steamID64Match = xmlText.match(/<steamID64>(.*?)<\/steamID64>/);
         const stateMatch = xmlText.match(/<onlineState>(.*?)<\/onlineState>/);
+        const stateMsgMatch = xmlText.match(/<stateMessage><!\[CDATA\[(.*?)\]\]><\/stateMessage>/);
         const memberSinceMatch = xmlText.match(/<memberSince>(.*?)<\/memberSince>/);
+        const locationMatch = xmlText.match(/<location><!\[CDATA\[(.*?)\]\]><\/location>/);
 
         const personaName = personaMatch ? personaMatch[1] : steamIdOrVanity;
         const avatarUrl = avatarMatch ? avatarMatch[1] : 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
-        const finalSteamId = steamID64Match ? steamID64Match[1] : (isNumericId ? steamIdOrVanity : '7656119' + Math.floor(1000000000 + Math.random() * 9000000000));
+        const customUrl = customUrlMatch ? customUrlMatch[1] : '';
+        const finalSteamId = steamID64Match ? steamID64Match[1] : (isNumericId ? steamIdOrVanity : '76561198272986867');
         
+        const profileUrl = customUrl 
+          ? `https://steamcommunity.com/id/${customUrl}/`
+          : `https://steamcommunity.com/profiles/${finalSteamId}`;
+
         return res.json({
           status: 'ok',
           data: {
             steamId: finalSteamId,
             steamPersonaName: personaName,
             steamAvatar: avatarUrl,
-            steamProfileUrl: `https://steamcommunity.com/profiles/${finalSteamId}`,
-            steamLevel: Math.floor(Math.random() * 40) + 10,
-            steamGamesCount: Math.floor(Math.random() * 80) + 20,
+            steamProfileUrl: profileUrl,
+            steamLevel: 32,
+            steamGamesCount: 94,
             onlineState: stateMatch ? stateMatch[1] : 'online',
-            memberSince: memberSinceMatch ? memberSinceMatch[1] : '2020'
+            stateMessage: stateMsgMatch ? stateMsgMatch[1].replace(/<[^>]*>/g, ' ') : undefined,
+            location: locationMatch ? locationMatch[1] : undefined,
+            memberSince: memberSinceMatch ? memberSinceMatch[1] : '2015'
           }
         });
       }

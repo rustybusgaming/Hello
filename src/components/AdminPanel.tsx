@@ -71,12 +71,12 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
     try {
       setStatsLoading(true);
       const [statsRes, accRes] = await Promise.all([
-        fetch('/api/admin/stats').then(r => r.json()),
-        fetch('/api/accounts').then(r => r.json())
+        fetch('/api/admin/stats').then(r => r.ok ? r.json() : { status: 'error' }),
+        fetch('/api/accounts').then(r => r.ok ? r.json() : { status: 'error' })
       ]);
 
-      if (statsRes.status === 'ok') setStats(statsRes.data);
-      if (accRes.status === 'ok') setAccounts(accRes.data);
+      if (statsRes && statsRes.status === 'ok') setStats(statsRes.data);
+      if (accRes && accRes.status === 'ok') setAccounts(accRes.data);
     } catch (err) {
       console.error('Failed to load admin data:', err);
     } finally {
@@ -93,11 +93,11 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
     if (activeTab === 'saves') {
       setSavesLoading(true);
       fetch('/api/saves')
-        .then(r => r.json())
+        .then(r => r.ok ? r.json() : null)
         .then(d => {
-          if (d.status === 'ok') setAllSaves(d.data);
+          if (d && d.status === 'ok') setAllSaves(d.data || []);
         })
-        .catch(console.error)
+        .catch(() => {})
         .finally(() => setSavesLoading(false));
     }
   }, [activeTab]);
