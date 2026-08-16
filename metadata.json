@@ -1,6 +1,6 @@
 {
   "name": "Flash Game Hub",
-  "description": "A single-page HTML/CSS/JS Flash game hub integrating Newgrounds, Webporting, and Steam games with a dark theme.",
+  "description": "A dark-themed game hub with webports, user accounts, Steam profile linking, cloud save tracking, and an admin sync operations panel.",
   "requestFramePermissions": [],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

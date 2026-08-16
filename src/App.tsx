@@ -1,11 +1,14 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Game } from './types';
+import { Game, UserAccount } from './types';
 import { TopBar } from './components/TopBar';
 import { GenreTabs } from './components/GenreTabs';
 import { GameCard } from './components/GameCard';
 import { PlayerModal } from './components/PlayerModal';
 import { UploadModal } from './components/UploadModal';
-import { Loader2, Clock, Heart, Timer, X } from 'lucide-react';
+import { AdminPanel } from './components/AdminPanel';
+import { AccountModal } from './components/AccountModal';
+import { NotFoundPanel } from './components/NotFoundPanel';
+import { Loader2, Clock, Heart, Timer, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './lib/hooks';
 
@@ -24,17 +27,66 @@ export default function App() {
   const [activeGenre, setActiveGenre] = useState('All');
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [sessionRecap, setSessionRecap] = useState<SessionRecap | null>(null);
+  
+  // Modals & Panels
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+  const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
+  const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
+  const [show404View, setShow404View] = useState(false);
+
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useLocalStorage<UserAccount | null>('flashhub-active-user', null);
+  const [authToken, setAuthToken] = useLocalStorage<string | null>('flashhub-auth-token', null);
 
   const [favorites, setFavorites] = useLocalStorage<string[]>('flashhub-favorites', []);
   const [recentlyPlayed, setRecentlyPlayed] = useLocalStorage<string[]>('flashhub-recently-played', []);
+
+  // Validate session on launch or sync active user
+  useEffect(() => {
+    if (authToken) {
+      fetch('/api/auth/me', {
+        headers: { Authorization: `Bearer ${authToken}` }
+      })
+        .then(res => res.json())
+        .then(d => {
+          if (d.status === 'ok' && d.user) {
+            setCurrentUser(d.user);
+          } else {
+            // Expired or invalid token
+            setAuthToken(null);
+          }
+        })
+        .catch(err => console.error('Session check error:', err));
+    } else {
+      // Fallback check if accounts exist
+      fetch('/api/accounts')
+        .then(res => res.json())
+        .then(d => {
+          if (d.status === 'ok' && Array.isArray(d.data) && d.data.length > 0) {
+            if (!currentUser) {
+              setCurrentUser(d.data[0]);
+            }
+          }
+        })
+        .catch(console.error);
+    }
+  }, [authToken]);
+
+  const handleUpdateUser = (user: UserAccount | null, token?: string) => {
+    setCurrentUser(user);
+    if (token !== undefined) {
+      setAuthToken(token);
+    }
+  };
 
   const fetchGames = () => {
     fetch(`/api/games?t=${Date.now()}`)
       .then((res) => res.json())
       .then((data) => {
         if (data.status === 'ok') {
-          setGames(data.data);
+          // Filter out hidden games for regular view unless search matches
+          const visibleGames = data.data.filter((g: Game) => !g.hidden);
+          setGames(visibleGames.length > 0 ? visibleGames : data.data);
           if (typeof data.isSyncing === 'boolean') {
             setIsSyncing(data.isSyncing);
           }
@@ -80,6 +132,22 @@ export default function App() {
       });
   };
 
+  const handleSwitchUser = async (username: string) => {
+    try {
+      const res = await fetch('/api/accounts/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username })
+      });
+      const d = await res.json();
+      if (d.status === 'ok') {
+        setCurrentUser(d.data);
+      }
+    } catch (err) {
+      console.error('Failed to switch user:', err);
+    }
+  };
+
   const allGenres = useMemo(() => {
     const genres = new Set<string>();
     games.forEach((game) => game.genres.forEach((g) => genres.add(g)));
@@ -103,13 +171,16 @@ export default function App() {
   }, [favorites, games]);
 
   const handleRandomGame = () => {
-    if (filteredGames.length === 0) return;
-    const randomIndex = Math.floor(Math.random() * filteredGames.length);
-    handleGameClick(filteredGames[randomIndex]);
+    if (games.length === 0) return;
+    setShow404View(false);
+    const pool = filteredGames.length > 0 ? filteredGames : games;
+    const randomIndex = Math.floor(Math.random() * pool.length);
+    handleGameClick(pool[randomIndex]);
   };
 
   const handleGameClick = (game: Game) => {
     setSelectedGame(game);
+    setShow404View(false);
     setRecentlyPlayed(prev => {
       const updated = [game.id, ...prev.filter(id => id !== game.id)].slice(0, 8);
       return updated;
@@ -155,30 +226,54 @@ export default function App() {
     );
   };
 
-  const isDefaultView = searchQuery === '' && activeGenre === 'All';
+  const isDefaultView = searchQuery === '' && activeGenre === 'All' && !show404View;
 
   return (
     <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-white/20 flex flex-col overflow-hidden">
       <TopBar 
         searchQuery={searchQuery} 
-        setSearchQuery={setSearchQuery} 
+        setSearchQuery={(q) => {
+          setSearchQuery(q);
+          if (show404View) setShow404View(false);
+        }} 
         onRandomGame={handleRandomGame} 
         onUploadClick={() => setIsUploadModalOpen(true)}
         onSyncClick={handleTriggerSync}
         isSyncing={isSyncing}
+        currentUser={currentUser}
+        onOpenAccount={() => setIsAccountModalOpen(true)}
+        onOpenAdmin={() => setIsAdminModalOpen(true)}
+        onTrigger404={() => setShow404View(prev => !prev)}
       />
       
-      <GenreTabs 
-        genres={allGenres} 
-        activeGenre={activeGenre} 
-        onSelectGenre={setActiveGenre} 
-      />
+      {!show404View && (
+        <GenreTabs 
+          genres={allGenres} 
+          activeGenre={activeGenre} 
+          onSelectGenre={setActiveGenre} 
+        />
+      )}
 
-      <main className="flex-1 w-full max-w-6xl mx-auto p-4 sm:p-6 overflow-y-auto">
+      <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 overflow-y-auto">
         {loading ? (
           <div className="flex flex-col items-center justify-center py-32 text-zinc-600">
             <Loader2 className="w-5 h-5 animate-spin mb-4 text-zinc-400" />
             <p className="text-[10px] tracking-widest uppercase">Loading catalog...</p>
+          </div>
+        ) : show404View ? (
+          <div className="py-6">
+            <NotFoundPanel
+              errorTitle="404 - Cartridge Not Found"
+              errorMessage="The requested cartridge, cloud save, or custom game port could not be resolved from the repository catalogue."
+              targetId={searchQuery || 'cartridge://null'}
+              onGoHome={() => {
+                setShow404View(false);
+                setSearchQuery('');
+                setActiveGenre('All');
+              }}
+              onRandomGame={handleRandomGame}
+              onRetry={fetchGames}
+            />
           </div>
         ) : filteredGames.length > 0 ? (
           <div className="flex flex-col gap-10">
@@ -186,9 +281,9 @@ export default function App() {
               <section>
                 <div className="flex items-center gap-2 mb-3">
                   <Clock className="w-4 h-4 text-zinc-400" />
-                  <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">Recently Played</h2>
+                  <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Recently Played</h2>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                   {recentlyPlayedGames.map((game) => (
                     <GameCard 
                       key={game.id} 
@@ -206,9 +301,9 @@ export default function App() {
               <section>
                 <div className="flex items-center gap-2 mb-3">
                   <Heart className="w-4 h-4 text-zinc-400" fill="currentColor" />
-                  <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">My Arcade</h2>
+                  <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">My Arcade</h2>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                   {favoriteGames.map((game) => (
                     <GameCard 
                       key={game.id} 
@@ -225,10 +320,12 @@ export default function App() {
             <section>
               {isDefaultView && (recentlyPlayedGames.length > 0 || favoriteGames.length > 0) && (
                 <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-[11px] font-medium uppercase tracking-widest text-zinc-400">All Games</h2>
+                  <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
+                    All Games ({games.length})
+                  </h2>
                 </div>
               )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
                 {filteredGames.map((game) => (
                   <GameCard 
                     key={game.id} 
@@ -242,9 +339,18 @@ export default function App() {
             </section>
           </div>
         ) : (
-          <div className="text-center py-32 text-zinc-500">
-            <p className="text-sm font-medium text-zinc-400 mb-1">No games found</p>
-            <p className="text-[11px]">Try adjusting your search or category filters.</p>
+          <div className="py-6">
+            <NotFoundPanel
+              errorTitle={`No matches for "${searchQuery}"`}
+              errorMessage={`We couldn't find any games matching "${searchQuery}" in the ${activeGenre} catalog.`}
+              targetId={searchQuery}
+              onGoHome={() => {
+                setSearchQuery('');
+                setActiveGenre('All');
+              }}
+              onRandomGame={handleRandomGame}
+              onRetry={fetchGames}
+            />
           </div>
         )}
       </main>
@@ -279,17 +385,40 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* Player Modal */}
       {selectedGame && (
         <PlayerModal 
           game={selectedGame} 
           onClose={handleCloseModal} 
+          currentUser={currentUser}
         />
       )}
 
+      {/* Upload Modal */}
       {isUploadModalOpen && (
         <UploadModal 
           onClose={() => setIsUploadModalOpen(false)}
           onUploadComplete={fetchGames}
+        />
+      )}
+
+      {/* Admin Panel Modal */}
+      {isAdminModalOpen && (
+        <AdminPanel
+          games={games}
+          onClose={() => setIsAdminModalOpen(false)}
+          onRefreshGames={fetchGames}
+          currentUser={currentUser}
+        />
+      )}
+
+      {/* User Account & Steam Linking Modal */}
+      {isAccountModalOpen && (
+        <AccountModal
+          currentUser={currentUser}
+          authToken={authToken}
+          onClose={() => setIsAccountModalOpen(false)}
+          onUpdateUser={handleUpdateUser}
         />
       )}
     </div>

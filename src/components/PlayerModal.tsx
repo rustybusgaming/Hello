@@ -1,26 +1,69 @@
 import React, { useState, useEffect } from 'react';
-import { Game } from '../types';
-import { X, ExternalLink, MonitorPlay, Tv, Timer } from 'lucide-react';
+import { Game, UserAccount, GameSave } from '../types';
+import {
+  X,
+  ExternalLink,
+  MonitorPlay,
+  Tv,
+  Timer,
+  Save,
+  Download,
+  AlertTriangle,
+  ChevronDown,
+  ChevronUp,
+  Plus
+} from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { NotFoundPanel } from './NotFoundPanel';
 
 interface PlayerModalProps {
   game: Game | null;
   onClose: (elapsedSeconds: number) => void;
+  currentUser?: UserAccount | null;
 }
 
-export function PlayerModal({ game, onClose }: PlayerModalProps) {
+export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isCrtMode, setIsCrtMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [showSaveDrawer, setShowSaveDrawer] = useState(false);
+  const [show404Panel, setShow404Panel] = useState(false);
+
+  // Save Keeper state
+  const [gameSaves, setGameSaves] = useState<GameSave[]>([]);
+  const [slotName, setSlotName] = useState('Slot 1');
+  const [saveNotes, setSaveNotes] = useState('');
+  const [saveScore, setSaveScore] = useState('');
+  const [saveMessage, setSaveMessage] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setElapsedSeconds(0);
+    setShow404Panel(false);
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
   }, [game?.id]);
+
+  // Load saves for this game
+  const fetchGameSaves = () => {
+    if (!game?.id) return;
+    const userIdQuery = currentUser?.id ? `userId=${currentUser.id}&` : '';
+    fetch(`/api/saves?${userIdQuery}gameId=${game.id}`)
+      .then(res => res.json())
+      .then(d => {
+        if (d.status === 'ok') setGameSaves(d.data);
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    if (showSaveDrawer) {
+      fetchGameSaves();
+    }
+  }, [showSaveDrawer, game?.id]);
 
   if (!game) return null;
 
@@ -34,36 +77,79 @@ export function PlayerModal({ game, onClose }: PlayerModalProps) {
     onClose(elapsedSeconds);
   };
 
+  // Perform quick save
+  const handleCreateSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!game) return;
+
+    setIsSaving(true);
+    try {
+      const payload = {
+        gameId: game.id,
+        gameTitle: game.title,
+        userId: currentUser?.id || 'guest',
+        slotName: slotName || 'Quick Save',
+        saveData: JSON.stringify({
+          sessionSeconds: elapsedSeconds,
+          savedAt: new Date().toISOString(),
+          notes: saveNotes,
+          score: saveScore ? Number(saveScore) : undefined
+        }),
+        playtimeMinutes: Math.round(elapsedSeconds / 60),
+        highScore: saveScore ? Number(saveScore) : undefined,
+        notes: saveNotes
+      };
+
+      const res = await fetch('/api/saves', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+
+      const d = await res.json();
+      if (d.status === 'ok') {
+        setSaveMessage('Save state committed to cloud!');
+        setTimeout(() => setSaveMessage(''), 3500);
+        fetchGameSaves();
+      }
+    } catch (err: any) {
+      setSaveMessage(`Error: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <AnimatePresence>
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-500 ${isTheaterMode ? 'bg-black p-0' : 'bg-black/90 backdrop-blur-md p-4 sm:p-6'}`}
+        className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-500 ${isTheaterMode ? 'bg-black p-0' : 'bg-black/90 backdrop-blur-md p-3 sm:p-5'}`}
         onClick={handleClose}
       >
         <motion.div
-          initial={{ scale: 0.95, opacity: 0 }}
+          initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.95, opacity: 0 }}
-          className={`bg-zinc-950 overflow-hidden flex flex-col shadow-2xl transition-all duration-500 ${isTheaterMode ? 'w-full h-full rounded-none border-0' : 'w-full max-w-5xl rounded-xl border border-white/10'}`}
+          exit={{ scale: 0.96, opacity: 0 }}
+          className={`bg-zinc-950 overflow-hidden flex flex-col shadow-2xl transition-all duration-500 ${isTheaterMode ? 'w-full h-full rounded-none border-0' : 'w-full max-w-5xl rounded-2xl border border-zinc-800/80'}`}
           onClick={(e) => e.stopPropagation()}
         >
-          <div className={`flex items-center justify-between p-3 border-b border-white/5 transition-colors duration-500 ${isTheaterMode ? 'bg-black' : 'bg-zinc-950'}`}>
+          {/* Top Control Bar */}
+          <div className={`flex flex-wrap items-center justify-between p-3 border-b border-zinc-800/80 gap-2 ${isTheaterMode ? 'bg-black' : 'bg-zinc-900/60'}`}>
             <div className="flex items-center gap-3">
-              <h2 className={`font-medium text-zinc-200 flex items-center gap-2.5 tracking-wide ${isTheaterMode ? 'text-sm' : 'text-base'}`}>
+              <h2 className={`font-semibold text-zinc-100 flex items-center gap-2 tracking-tight ${isTheaterMode ? 'text-xs' : 'text-sm'}`}>
                 {game.title}
-                <span className={`text-[9px] font-medium px-1.5 py-0.5 rounded-md tracking-widest uppercase ${
-                  game.source === 'steam' ? 'bg-blue-500/20 text-blue-400' :
-                  game.source === 'archive' ? 'bg-zinc-800 text-zinc-300' :
-                  'bg-emerald-500/20 text-emerald-400'
+                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase font-mono tracking-wider ${
+                  game.source === 'steam' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
+                  game.source === 'archive' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
+                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                 }`}>
                   {game.source}
                 </span>
               </h2>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-white/5 border border-white/5 text-[11px] font-mono text-zinc-300" title="Active Play Time">
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
                 <Timer className="w-3 h-3 text-zinc-400" />
                 <span>{formatTimer(elapsedSeconds)}</span>
@@ -71,74 +157,216 @@ export function PlayerModal({ game, onClose }: PlayerModalProps) {
             </div>
 
             <div className="flex items-center gap-1.5">
+              {/* Save State Keeper toggle */}
+              <button
+                onClick={() => setShowSaveDrawer(!showSaveDrawer)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                  showSaveDrawer
+                    ? 'bg-emerald-500 text-black'
+                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+                }`}
+                title="Manage Cloud Saves"
+              >
+                <Save className="w-3.5 h-3.5" />
+                <span>Save Keeper</span>
+                {showSaveDrawer ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+              </button>
+
               <button
                 onClick={() => setIsCrtMode(!isCrtMode)}
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${isCrtMode ? 'bg-zinc-200 text-black' : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}`}
-                title="Toggle Retro CRT Effect"
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isCrtMode ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                title="Toggle Retro CRT Scanlines"
               >
                 <Tv className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">CRT</span>
               </button>
+
               <button
                 onClick={() => setIsTheaterMode(!isTheaterMode)}
-                className={`flex items-center gap-2 px-2.5 py-1.5 rounded-md text-xs font-medium transition-colors ${isTheaterMode ? 'bg-zinc-200 text-black' : 'text-zinc-500 hover:text-zinc-200 hover:bg-white/5'}`}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isTheaterMode ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
                 title="Toggle Theater Mode"
               >
                 <MonitorPlay className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Theater</span>
               </button>
-              
-              <div className="w-px h-4 bg-white/10 mx-1"></div>
+
+              <button
+                onClick={() => setShow404Panel(!show404Panel)}
+                className={`p-1.5 rounded-lg transition-all ${
+                  show404Panel ? 'bg-red-500/20 text-red-400' : 'text-zinc-400 hover:text-amber-400 hover:bg-zinc-800'
+                }`}
+                title="Report 404 / Port Diagnostics"
+              >
+                <AlertTriangle className="w-4 h-4" />
+              </button>
               
               <a
                 href={game.embedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 text-zinc-500 hover:text-zinc-200 hover:bg-white/5 rounded-md transition-colors"
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
                 title="Open in new tab"
               >
                 <ExternalLink className="w-4 h-4" />
               </a>
+
               <button
                 onClick={handleClose}
-                className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
                 title="Close"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
           </div>
+
+          {/* Expandable Save Keeper Drawer */}
+          <AnimatePresence>
+            {showSaveDrawer && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: 'auto', opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="border-b border-zinc-800 bg-zinc-950/95 p-4 overflow-hidden"
+              >
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Create New Save Slot */}
+                  <form onSubmit={handleCreateSave} className="p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <Save className="w-3.5 h-3.5 text-emerald-400" />
+                        Create / Overwrite Save Slot
+                      </span>
+                      {saveMessage && (
+                        <span className="text-[11px] text-emerald-400 font-semibold">{saveMessage}</span>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="text"
+                        placeholder="Slot Name (e.g. Slot 1, Level 4)"
+                        value={slotName}
+                        onChange={e => setSlotName(e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500"
+                      />
+                      <input
+                        type="number"
+                        placeholder="Score / Checkpoint (optional)"
+                        value={saveScore}
+                        onChange={e => setSaveScore(e.target.value)}
+                        className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500"
+                      />
+                    </div>
+
+                    <input
+                      type="text"
+                      placeholder="Notes / Boss battle status..."
+                      value={saveNotes}
+                      onChange={e => setSaveNotes(e.target.value)}
+                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500"
+                    />
+
+                    <button
+                      type="submit"
+                      disabled={isSaving}
+                      className="w-full py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      {isSaving ? 'Saving to Cloud...' : 'Commit Save State'}
+                    </button>
+                  </form>
+
+                  {/* Existing Saves List for this game */}
+                  <div className="p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800 flex flex-col">
+                    <span className="text-xs font-bold text-white mb-2">Saved States ({gameSaves.length})</span>
+                    <div className="flex-1 overflow-y-auto max-h-28 space-y-1.5">
+                      {gameSaves.length === 0 ? (
+                        <div className="text-[11px] text-zinc-500 py-4 text-center">No save states stored for this cartridge.</div>
+                      ) : (
+                        gameSaves.map(s => (
+                          <div key={s.id} className="p-2 rounded-lg bg-zinc-950 border border-zinc-800/80 flex items-center justify-between text-xs">
+                            <div>
+                              <span className="font-bold text-zinc-200">{s.slotName}</span>
+                              <span className="text-[10px] text-zinc-500 block">
+                                {new Date(s.timestamp).toLocaleDateString()} {s.notes && `• ${s.notes}`}
+                              </span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const blob = new Blob([s.saveData], { type: 'application/json' });
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `${game.title}_${s.slotName}.json`;
+                                a.click();
+                              }}
+                              className="p-1 rounded bg-zinc-800 text-zinc-300 hover:text-white"
+                              title="Download JSON save"
+                            >
+                              <Download className="w-3 h-3" />
+                            </button>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
           
+          {/* Main Game Screen or 404 Diagnostics Panel */}
           <div className="relative w-full bg-black flex-grow flex items-center justify-center overflow-hidden">
-            {/* CRT Effect Overlay */}
-            {isCrtMode && (
-              <div className="absolute inset-0 pointer-events-none z-10 crt-overlay mix-blend-overlay opacity-30"></div>
+            {show404Panel ? (
+              <div className="w-full h-full flex items-center justify-center p-6 bg-zinc-950 overflow-y-auto">
+                <NotFoundPanel
+                  errorTitle={`Port Diagnostics: ${game.title}`}
+                  errorMessage="If this cartridge fails to boot in the player window, check that the upstream repository is reachable or toggle the asset proxy stream."
+                  targetId={game.id}
+                  onGoHome={() => setShow404Panel(false)}
+                  onRandomGame={() => {
+                    setShow404Panel(false);
+                    onClose(0);
+                  }}
+                  onRetry={() => {
+                    setShow404Panel(false);
+                  }}
+                />
+              </div>
+            ) : (
+              <>
+                {/* CRT Effect Overlay */}
+                {isCrtMode && (
+                  <div className="absolute inset-0 pointer-events-none z-10 crt-overlay mix-blend-overlay opacity-30"></div>
+                )}
+                {isCrtMode && (
+                  <div className="absolute inset-0 pointer-events-none z-20 scanlines opacity-10"></div>
+                )}
+                <div className={`w-full h-full flex items-center justify-center transition-transform duration-300 ${isCrtMode ? 'scale-[0.98]' : ''}`} style={{ transform: 'translateZ(0)' }}>
+                  {game.source === 'steam' ? (
+                    <iframe
+                      src={game.embedUrl}
+                      frameBorder="0"
+                      width="646"
+                      height="190"
+                      allow="autoplay; fullscreen"
+                      className={`max-w-full ${isCrtMode ? 'rounded-2xl' : ''}`}
+                      title={`${game.title} Steam Widget`}
+                    ></iframe>
+                  ) : (
+                    <iframe
+                      src={game.embedUrl}
+                      frameBorder="0"
+                      allow="autoplay; fullscreen; speaker; clipboard-read; clipboard-write"
+                      className={`w-full h-full ${isTheaterMode ? 'min-h-[85vh]' : 'min-h-[55vh] sm:min-h-[72vh]'} ${isCrtMode ? 'rounded-xl border-2 border-zinc-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
+                      allowFullScreen
+                      title={`${game.title} Embed`}
+                    ></iframe>
+                  )}
+                </div>
+              </>
             )}
-            {isCrtMode && (
-              <div className="absolute inset-0 pointer-events-none z-20 scanlines opacity-10"></div>
-            )}
-            <div className={`w-full h-full flex items-center justify-center transition-transform duration-300 ${isCrtMode ? 'scale-[0.98]' : ''}`} style={{ transform: 'translateZ(0)' }}>
-              {game.source === 'steam' ? (
-                <iframe
-                  src={game.embedUrl}
-                  frameBorder="0"
-                  width="646"
-                  height="190"
-                  allow="autoplay; fullscreen"
-                  className={`max-w-full ${isCrtMode ? 'rounded-2xl' : ''}`}
-                  title={`${game.title} Steam Widget`}
-                ></iframe>
-              ) : (
-                <iframe
-                  src={game.embedUrl}
-                  frameBorder="0"
-                  allow="autoplay; fullscreen; speaker; clipboard-read; clipboard-write"
-                  className={`w-full h-full ${isTheaterMode ? 'min-h-[80vh]' : 'min-h-[50vh] sm:min-h-[70vh]'} ${isCrtMode ? 'rounded-xl border-2 border-zinc-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
-                  allowFullScreen
-                  title={`${game.title} Embed`}
-                ></iframe>
-              )}
-            </div>
           </div>
         </motion.div>
       </motion.div>

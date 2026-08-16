@@ -28,7 +28,7 @@ function removeDirRecursive(targetDir: string) {
 
 function runCommand(command: string): Promise<string> {
   return new Promise((resolve, reject) => {
-    exec(command, { cwd: process.cwd() }, (err, stdout, stderr) => {
+    exec(command, { cwd: process.cwd(), maxBuffer: 1024 * 1024 * 50 }, (err, stdout, stderr) => {
       if (err) {
         reject(new Error(stderr || stdout || err.message));
       } else {
@@ -39,63 +39,15 @@ function runCommand(command: string): Promise<string> {
 }
 
 export async function syncGamesLibrary(): Promise<void> {
-  console.log('[Sync] Starting cross-platform game synchronization...');
+  console.log('[Sync] Initializing local games folders and proxy configurations...');
 
   const gameportsDir = path.join(process.cwd(), 'public', 'gameports');
   const quasarDir = path.join(process.cwd(), 'public', 'quasar');
+  const customGamesDir = path.join(process.cwd(), 'public', 'custom_games');
 
   fs.mkdirSync(gameportsDir, { recursive: true });
   fs.mkdirSync(quasarDir, { recursive: true });
+  fs.mkdirSync(customGamesDir, { recursive: true });
 
-  // 1. Sync Gameports
-  const hasGameports = fs.existsSync(path.join(gameportsDir, 'milkman karlson')) || fs.existsSync(path.join(gameportsDir, 'Build'));
-  if (!hasGameports) {
-    console.log('[Sync] Downloading Gameports collection from GitHub...');
-    const tempGameports = path.join(process.cwd(), 'public', 'gameports_temp');
-    removeDirRecursive(tempGameports);
-
-    try {
-      await runCommand(`git clone --depth 1 https://github.com/aukak/gameports.git "${tempGameports}"`);
-      removeDirRecursive(path.join(tempGameports, '.git'));
-      copyDirRecursive(tempGameports, gameportsDir);
-      removeDirRecursive(tempGameports);
-      console.log('[Sync] Gameports downloaded successfully.');
-    } catch (e: any) {
-      console.warn('[Sync] Note: Git clone for Gameports failed or git is not installed in PATH:', e.message);
-      removeDirRecursive(tempGameports);
-    }
-  }
-
-  // 2. Sync Quasar
-  const quasarStorage = path.join(quasarDir, 'storage');
-  const quasarImg = path.join(quasarDir, 'img');
-  const hasQuasar = fs.existsSync(quasarStorage) && fs.existsSync(quasarImg) && fs.readdirSync(quasarStorage).length > 0;
-
-  if (!hasQuasar) {
-    console.log('[Sync] Downloading Quasar library from GitHub...');
-    const tempQuasar = path.join(process.cwd(), 'temp_quasar');
-    removeDirRecursive(tempQuasar);
-
-    try {
-      await runCommand(`git clone --depth 1 https://github.com/slqntdevss/quasar.git "${tempQuasar}"`);
-      
-      const srcStorage = path.join(tempQuasar, 'public', 'assets', 'storage');
-      const srcImg = path.join(tempQuasar, 'public', 'img');
-
-      if (fs.existsSync(srcStorage)) {
-        copyDirRecursive(srcStorage, quasarStorage);
-      }
-      if (fs.existsSync(srcImg)) {
-        copyDirRecursive(srcImg, quasarImg);
-      }
-
-      removeDirRecursive(tempQuasar);
-      console.log('[Sync] Quasar library downloaded successfully.');
-    } catch (e: any) {
-      console.warn('[Sync] Note: Git clone for Quasar failed or git is not installed in PATH:', e.message);
-      removeDirRecursive(tempQuasar);
-    }
-  }
-
-  console.log('[Sync] Game synchronization process completed.');
+  console.log('[Sync] Game catalogs & on-demand cloud proxies active.');
 }
