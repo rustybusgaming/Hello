@@ -1,0 +1,6 @@
+{
+  "name": "Flash Game Hub",
+  "description": "A single-page HTML/CSS/JS Flash game hub integrating Newgrounds, Webporting, and Steam games with a dark theme.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
