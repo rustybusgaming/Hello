@@ -11,6 +11,7 @@ import { NotFoundPanel } from './components/NotFoundPanel';
 import { Loader2, Clock, Heart, Timer, X, AlertTriangle } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './lib/hooks';
+import { formatGameInfo } from './utils/gameTitles';
 
 interface SessionRecap {
   title: string;
@@ -84,9 +85,20 @@ export default function App() {
       .then((res) => res.ok ? res.json() : null)
       .then((data) => {
         if (data && data.status === 'ok') {
+          const formattedList = (data.data || []).map((g: Game) => {
+            const info = formatGameInfo(g.id, g.title, g.genres);
+            return {
+              ...g,
+              title: info.title,
+              genres: (info.genres && info.genres.length > 0) ? info.genres : g.genres,
+              description: g.description || info.description,
+              rating: g.rating || info.rating || 4.8
+            };
+          });
+
           // Filter out hidden games for regular view unless search matches
-          const visibleGames = (data.data || []).filter((g: Game) => !g.hidden);
-          setGames(visibleGames.length > 0 ? visibleGames : (data.data || []));
+          const visibleGames = formattedList.filter((g: Game) => !g.hidden);
+          setGames(visibleGames.length > 0 ? visibleGames : formattedList);
           if (typeof data.isSyncing === 'boolean') {
             setIsSyncing(data.isSyncing);
           }
@@ -154,13 +166,28 @@ export default function App() {
   const allGenres = useMemo(() => {
     const genres = new Set<string>();
     games.forEach((game) => game.genres.forEach((g) => genres.add(g)));
-    return ['All', ...Array.from(genres).sort()];
+    const sorted = Array.from(genres).sort();
+    return ['All', '🛡️ Archive-Safe (HTML5/Mirrors)', ...sorted];
   }, [games]);
 
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
-      const matchesSearch = game.title.toLowerCase().includes(searchQuery.toLowerCase());
-      const matchesGenre = activeGenre === 'All' || game.genres.includes(activeGenre);
+      const q = searchQuery.toLowerCase();
+      const matchesSearch =
+        game.title.toLowerCase().includes(q) ||
+        (game.description && game.description.toLowerCase().includes(q)) ||
+        game.genres.some(g => g.toLowerCase().includes(q));
+
+      let matchesGenre = activeGenre === 'All';
+      if (activeGenre === '🛡️ Archive-Safe (HTML5/Mirrors)') {
+        matchesGenre = Boolean(
+          game.isArchiveIndependent ||
+          game.source === 'webporting' ||
+          (game.mirrors && game.mirrors.some(m => m.isArchiveIndependent))
+        );
+      } else if (activeGenre !== 'All') {
+        matchesGenre = game.genres.includes(activeGenre);
+      }
       return matchesSearch && matchesGenre;
     });
   }, [games, searchQuery, activeGenre]);

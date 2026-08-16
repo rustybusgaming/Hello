@@ -172,9 +172,15 @@ export function AccountModal({
         })
       });
 
-      const data = await res.json();
-      if (!res.ok || data.status !== 'ok') {
-        throw new Error(data.error || 'Login failed. Please check your credentials.');
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: `Server returned status ${res.status}` };
+      }
+
+      if (!res.ok || data?.status !== 'ok') {
+        throw new Error(data?.error || 'Login failed. Please check your credentials.');
       }
 
       onUpdateUser(data.user, data.token);
@@ -229,9 +235,15 @@ export function AccountModal({
         })
       });
 
-      const data = await res.json();
-      if (!res.ok || data.status !== 'ok') {
-        throw new Error(data.error || 'Registration failed');
+      let data: any = null;
+      try {
+        data = await res.json();
+      } catch {
+        data = { error: `Server returned status ${res.status}` };
+      }
+
+      if (!res.ok || data?.status !== 'ok') {
+        throw new Error(data?.error || 'Registration failed');
       }
 
       onUpdateUser(data.user, data.token);

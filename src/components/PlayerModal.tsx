@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Game, UserAccount, GameSave } from '../types';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Game, UserAccount, GameSave, GameMirror } from '../types';
 import {
   X,
   ExternalLink,
@@ -11,7 +11,10 @@ import {
   AlertTriangle,
   ChevronDown,
   ChevronUp,
-  Plus
+  Plus,
+  ShieldCheck,
+  RefreshCw,
+  Server
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NotFoundPanel } from './NotFoundPanel';
@@ -29,6 +32,12 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   const [showSaveDrawer, setShowSaveDrawer] = useState(false);
   const [show404Panel, setShow404Panel] = useState(false);
 
+  // Mirrors state
+  const [selectedMirrorId, setSelectedMirrorId] = useState<string>('');
+  const [currentEmbedUrl, setCurrentEmbedUrl] = useState<string>('');
+  const [iframeKey, setIframeKey] = useState(0);
+  const [showMirrorBar, setShowMirrorBar] = useState(true);
+
   // Save Keeper state
   const [gameSaves, setGameSaves] = useState<GameSave[]>([]);
   const [slotName, setSlotName] = useState('Slot 1');
@@ -37,15 +46,79 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   const [saveMessage, setSaveMessage] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
+  // Generate complete list of mirrors for this game
+  const availableMirrors = useMemo<GameMirror[]>(() => {
+    if (!game) return [];
+    
+    if (game.mirrors && game.mirrors.length > 0) {
+      return game.mirrors;
+    }
+
+    const mirrors: GameMirror[] = [];
+
+    // If game has embedUrl
+    if (game.embedUrl) {
+      if (game.embedUrl.includes('archive.org')) {
+        // Offer Ruffle WASM as primary replacement for Archive outages
+        mirrors.push({
+          id: 'ruffle-wasm',
+          name: 'Ruffle WASM (Zero-Archive)',
+          type: 'ruffle',
+          url: `/play.html?title=${encodeURIComponent(game.title)}&url=${encodeURIComponent(game.embedUrl)}`,
+          isArchiveIndependent: true
+        });
+        mirrors.push({
+          id: 'archive-org',
+          name: 'Internet Archive Embed',
+          type: 'archive',
+          url: game.embedUrl,
+          isArchiveIndependent: false
+        });
+      } else {
+        mirrors.push({
+          id: 'primary-webport',
+          name: 'HTML5 WebPort (Primary)',
+          type: 'webport',
+          url: game.embedUrl,
+          isArchiveIndependent: true
+        });
+      }
+    }
+
+    // Always include Custom Ruffle File Player fallback
+    mirrors.push({
+      id: 'local-ruffle',
+      name: 'Custom File / Drag & Drop',
+      type: 'custom',
+      url: `/play.html?title=${encodeURIComponent(game.title)}`,
+      isArchiveIndependent: true
+    });
+
+    return mirrors;
+  }, [game]);
+
+  // Set initial mirror on game load
   useEffect(() => {
     setElapsedSeconds(0);
     setShow404Panel(false);
+
+    if (game) {
+      // If the primary embed is archive.org and user needs reliability, we check available mirrors
+      const defaultMirror = availableMirrors[0];
+      if (defaultMirror) {
+        setSelectedMirrorId(defaultMirror.id);
+        setCurrentEmbedUrl(defaultMirror.url);
+      } else {
+        setCurrentEmbedUrl(game.embedUrl);
+      }
+    }
+
     const interval = setInterval(() => {
       setElapsedSeconds((prev) => prev + 1);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [game?.id]);
+  }, [game?.id, availableMirrors]);
 
   // Load saves for this game
   const fetchGameSaves = () => {
@@ -77,6 +150,12 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
     onClose(elapsedSeconds);
   };
 
+  const handleSelectMirror = (m: GameMirror) => {
+    setSelectedMirrorId(m.id);
+    setCurrentEmbedUrl(m.url);
+    setIframeKey(k => k + 1);
+  };
+
   // Perform quick save
   const handleCreateSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -93,7 +172,8 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
           sessionSeconds: elapsedSeconds,
           savedAt: new Date().toISOString(),
           notes: saveNotes,
-          score: saveScore ? Number(saveScore) : undefined
+          score: saveScore ? Number(saveScore) : undefined,
+          mirrorId: selectedMirrorId
         }),
         playtimeMinutes: Math.round(elapsedSeconds / 60),
         highScore: saveScore ? Number(saveScore) : undefined,
@@ -118,6 +198,8 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
       setIsSaving(false);
     }
   };
+
+  const isCurrentArchive = currentEmbedUrl.includes('archive.org');
 
   return (
     <AnimatePresence>
@@ -147,6 +229,11 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                 }`}>
                   {game.source}
                 </span>
+                {game.isArchiveIndependent && (
+                  <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
+                    <ShieldCheck className="w-2.5 h-2.5" /> 100% Archive-Independent
+                  </span>
+                )}
               </h2>
 
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300">
@@ -201,7 +288,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
               </button>
               
               <a
-                href={game.embedUrl}
+                href={currentEmbedUrl || game.embedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
@@ -219,6 +306,52 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
               </button>
             </div>
           </div>
+
+          {/* Secondary Mirrors & Outage Protection Bar */}
+          {showMirrorBar && availableMirrors.length > 1 && (
+            <div className="bg-zinc-900/80 px-3 py-2 border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className="text-zinc-400 font-semibold flex items-center gap-1 text-[11px] uppercase tracking-wider">
+                  <Server className="w-3 h-3 text-amber-400" />
+                  Active Mirror:
+                </span>
+                {availableMirrors.map((m) => {
+                  const isActive = selectedMirrorId === m.id || currentEmbedUrl === m.url;
+                  return (
+                    <button
+                      key={m.id}
+                      onClick={() => handleSelectMirror(m)}
+                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 ${
+                        isActive
+                          ? 'bg-amber-400 text-black shadow-sm'
+                          : 'bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700/60'
+                      }`}
+                    >
+                      {m.isArchiveIndependent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                      {m.name}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {isCurrentArchive && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
+                    ⚠️ Archive.org down?
+                  </span>
+                  <button
+                    onClick={() => {
+                      const nonArchive = availableMirrors.find(m => m.isArchiveIndependent);
+                      if (nonArchive) handleSelectMirror(nonArchive);
+                    }}
+                    className="text-[11px] font-bold text-black bg-amber-400 hover:bg-amber-300 px-2.5 py-0.5 rounded transition-all flex items-center gap-1"
+                  >
+                    <RefreshCw className="w-2.5 h-2.5" /> Switch to Fallback
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Expandable Save Keeper Drawer */}
           <AnimatePresence>
@@ -322,7 +455,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
               <div className="w-full h-full flex items-center justify-center p-6 bg-zinc-950 overflow-y-auto">
                 <NotFoundPanel
                   errorTitle={`Port Diagnostics: ${game.title}`}
-                  errorMessage="If this cartridge fails to boot in the player window, check that the upstream repository is reachable or toggle the asset proxy stream."
+                  errorMessage="If this cartridge fails to boot in the player window, switch mirrors above or drag your own SWF file directly."
                   targetId={game.id}
                   onGoHome={() => setShow404Panel(false)}
                   onRandomGame={() => {
@@ -331,6 +464,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                   }}
                   onRetry={() => {
                     setShow404Panel(false);
+                    setIframeKey(k => k + 1);
                   }}
                 />
               </div>
@@ -346,7 +480,8 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                 <div className={`w-full h-full flex items-center justify-center transition-transform duration-300 ${isCrtMode ? 'scale-[0.98]' : ''}`} style={{ transform: 'translateZ(0)' }}>
                   {game.source === 'steam' ? (
                     <iframe
-                      src={game.embedUrl}
+                      key={iframeKey}
+                      src={currentEmbedUrl || game.embedUrl}
                       frameBorder="0"
                       width="646"
                       height="190"
@@ -356,7 +491,8 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                     ></iframe>
                   ) : (
                     <iframe
-                      src={game.embedUrl}
+                      key={iframeKey}
+                      src={currentEmbedUrl || game.embedUrl}
                       frameBorder="0"
                       allow="autoplay; fullscreen; clipboard-read; clipboard-write"
                       className={`w-full h-full ${isTheaterMode ? 'min-h-[85vh]' : 'min-h-[55vh] sm:min-h-[72vh]'} ${isCrtMode ? 'rounded-xl border-2 border-zinc-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}

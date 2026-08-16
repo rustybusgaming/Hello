@@ -1,3 +1,11 @@
+export interface GameMirror {
+  id: string;
+  name: string;
+  type: 'html5' | 'ruffle' | 'webport' | 'archive' | 'mirror' | 'custom';
+  url: string;
+  isArchiveIndependent?: boolean;
+}
+
 export interface Game {
   id: string;
   title: string;
@@ -7,6 +15,11 @@ export interface Game {
   embedUrl: string;
   genres: string[];
   hidden?: boolean;
+  mirrors?: GameMirror[];
+  swfUrl?: string;
+  html5Url?: string;
+  isArchiveIndependent?: boolean;
+  description?: string;
 }
 
 export interface UserAccount {

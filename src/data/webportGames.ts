@@ -1,3 +1,5 @@
+import { GameMirror } from '../types';
+
 export interface WebportGameEntry {
   id: string;
   repoKey: string;
@@ -7,6 +9,8 @@ export interface WebportGameEntry {
   source: 'webporting';
   embedUrl: string;
   genres: string[];
+  isArchiveIndependent?: boolean;
+  mirrors?: GameMirror[];
 }
 
 export const GENIZY_WEBPORT_GAMES: WebportGameEntry[] = [

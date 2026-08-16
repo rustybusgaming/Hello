@@ -7,6 +7,7 @@ import multer from 'multer';
 import { syncGamesLibrary } from './sync-games';
 import { CURATED_FLASH_COLLECTIONS } from './src/data/flashArchives';
 import { GENIZY_WEBPORT_GAMES } from './src/data/webportGames';
+import { formatGameInfo } from './src/utils/gameTitles';
 import {
   getStoredAccounts,
   saveStoredAccounts,
@@ -185,14 +186,18 @@ async function fetchLocalWebports() {
             }
           } catch(err) {}
 
+          const rawTitle = dir.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const info = formatGameInfo(`gameports-${dir}`, rawTitle, ['Web Port', 'Gameports']);
           localGames.push({
             id: `gameports-${dir}`,
-            title: dir.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            title: info.title,
+            description: info.description,
             thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80',
-            rating: 4.8,
+            rating: info.rating || 4.8,
             source: 'webporting',
             embedUrl: `/gameports/${encodeURIComponent(dir)}/index.html`,
-            genres: ['Web Port', 'Gameports']
+            genres: info.genres,
+            isArchiveIndependent: true
           });
         }
       }
@@ -217,14 +222,18 @@ async function fetchLocalWebports() {
         }
         
         if (embedUrl) {
+          const rawTitle = dir.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+          const info = formatGameInfo(`quasar-${dir}`, rawTitle, ['Flash', 'Quasar']);
           localGames.push({
             id: `quasar-${dir}`,
-            title: dir.replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            title: info.title,
+            description: info.description,
             thumbnail: `/quasar/img/games/${encodeURIComponent(dir)}.png`, // fallback handled by frontend if needed
-            rating: 4.7,
+            rating: info.rating || 4.8,
             source: 'webporting',
             embedUrl,
-            genres: ['Flash', 'Quasar']
+            genres: info.genres,
+            isArchiveIndependent: true
           });
         }
       }
@@ -382,11 +391,18 @@ async function startServer() {
         ...MOCK_GAMES
       ];
 
-      // Mark hidden games
-      const games = allGames.map(g => ({
-        ...g,
-        hidden: hiddenSet.has(g.id)
-      }));
+      // Format titles and mark hidden games
+      const games = allGames.map(g => {
+        const info = formatGameInfo(g.id, g.title, g.genres);
+        return {
+          ...g,
+          title: info.title,
+          genres: (info.genres && info.genres.length > 0) ? info.genres : g.genres,
+          description: g.description || info.description,
+          rating: g.rating || info.rating || 4.8,
+          hidden: hiddenSet.has(g.id)
+        };
+      });
 
       res.json({ status: 'ok', data: games, isSyncing, syncProgressMessage });
     } catch (error) {
@@ -772,7 +788,7 @@ async function startServer() {
 
     try {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 2500);
+      const timeoutId = setTimeout(() => controller.abort(), 1800);
       const upstream = await fetch(`https://archive.org/services/img/${encodeURIComponent(id)}`, {
         signal: controller.signal,
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FlashHub/2.0' }
@@ -789,11 +805,39 @@ async function startServer() {
         return res.send(buf);
       }
     } catch {
-      // Fallback on connection reset or timeout
+      // Upstream rate limit, timeout or reset
     }
 
-    // Default fallback arcade banner
-    res.redirect('https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80');
+    // High quality instant retro SVG cartridge banner
+    const readableTitle = id
+      .replace(/[-_]+/g, ' ')
+      .replace(/\b\w/g, c => c.toUpperCase())
+      .slice(0, 24);
+
+    const svgFallback = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240">
+      <defs>
+        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="#18181b"/>
+          <stop offset="100%" stop-color="#09090b"/>
+        </linearGradient>
+        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stop-color="#f59e0b"/>
+          <stop offset="100%" stop-color="#ef4444"/>
+        </linearGradient>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#bg)"/>
+      <rect x="12" y="12" width="376" height="216" rx="10" fill="none" stroke="#27272a" stroke-width="1.5"/>
+      <circle cx="200" cy="95" r="36" fill="#27272a" opacity="0.6"/>
+      <polygon points="190,80 218,95 190,110" fill="url(#accent)"/>
+      <text x="200" y="165" fill="#f4f4f5" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="0.5">${readableTitle}</text>
+      <text x="200" y="190" fill="#71717a" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">FLASH ARCADE CLASSIC</text>
+    </svg>`;
+
+    const buf = Buffer.from(svgFallback, 'utf-8');
+    imgCache.set(id, { buffer: buf, contentType: 'image/svg+xml', timestamp: Date.now() });
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    return res.send(buf);
   });
 
   // List all accounts (public directory)

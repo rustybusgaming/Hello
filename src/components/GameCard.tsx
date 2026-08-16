@@ -47,11 +47,16 @@ export function GameCard({ game, isFavorite = false, onToggleFavorite, onClick }
         <div className="absolute bottom-2 left-2 flex gap-1.5 items-center">
           <span className={`text-[9px] px-1.5 py-0.5 font-medium rounded-md uppercase tracking-wider ${
             game.source === 'steam' ? 'bg-blue-500/80 text-white' :
-            game.source === 'archive' ? 'bg-zinc-700/80 text-white' :
+            game.source === 'archive' ? 'bg-amber-600/80 text-white' :
             'bg-emerald-500/80 text-white'
           } backdrop-blur-sm`}>
             {game.source}
           </span>
+          {game.isArchiveIndependent && (
+            <span className="text-[9px] bg-cyan-950/80 border border-cyan-500/30 text-cyan-300 px-1.5 py-0.5 rounded-md backdrop-blur-sm font-medium" title="Runs without Archive.org">
+              ⚡ Multi-Mirror
+            </span>
+          )}
           <span className="text-[9px] bg-black/40 px-1.5 py-0.5 rounded-md backdrop-blur-sm text-zinc-300 font-medium">
             ★ {game.rating ? game.rating.toFixed(1) : '5.0'}
           </span>

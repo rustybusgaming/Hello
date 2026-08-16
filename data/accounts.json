@@ -39,5 +39,31 @@
     "savesCount": 1,
     "passwordHash": "11a74812de7d6a8addd1ae489814e0d19821d9247a63a6ed69b21b4f5833fbfae8c77fc9801a2b9ed7384e6985dea93aaf6a3d759912113b101487e2a1a95103",
     "passwordSalt": "2673209b4fdf920c4838622a6a53869c"
+  },
+  {
+    "id": "user-1786922452125-0mve",
+    "username": "testuser",
+    "email": "test@example.com",
+    "displayName": "testuser",
+    "bio": "FlashHub retro player.",
+    "passwordHash": "487d38531e5f824216558f41b305aec0d0c063437d2bc3c554017f3712f73086989372b9d03e1e6ee8421db665e835f0a730d4bce915d2dcf06252ccb59ee466",
+    "passwordSalt": "661e223310f0fb82bbc390deec549a6f",
+    "role": "user",
+    "avatarUrl": "https://api.dicebear.com/7.x/bottts/svg?seed=testuser",
+    "createdAt": "2026-08-16T23:20:52.125Z",
+    "lastLogin": "2026-08-16T23:20:52.125Z"
+  },
+  {
+    "id": "user-1786922513485-abhv",
+    "username": "retrotest9",
+    "email": "retro9@test.com",
+    "displayName": "retrotest9",
+    "bio": "FlashHub retro player.",
+    "passwordHash": "c0c7524d9a685169060ecc70cb860322adf19f66cb332e90dd17d0e813fa4570d4f5291c85588141e4a05be286225d7f83baa4aef2a5c22ab6c793449d240b6a",
+    "passwordSalt": "13579a9fc5e8bcf7724e204ba2bdf28d",
+    "role": "user",
+    "avatarUrl": "https://api.dicebear.com/7.x/bottts/svg?seed=retrotest9",
+    "createdAt": "2026-08-16T23:21:53.485Z",
+    "lastLogin": "2026-08-16T23:21:53.485Z"
   }
 ]

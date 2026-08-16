@@ -386,6 +386,10 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       <span>Archive.org + Ruffle Web (40+ Flash Classics):</span>
                       <span className="text-zinc-200 font-mono">Curated + Live</span>
                     </div>
+                    <div className="flex justify-between border-b border-zinc-800/60 pb-1.5">
+                      <span>Archive Outage Resilience:</span>
+                      <span className="text-emerald-400 font-bold font-mono">Multi-Mirror & Ruffle Active</span>
+                    </div>
                     <div className="flex justify-between">
                       <span>Quasar & Custom Uploads:</span>
                       <span className="text-zinc-200 font-mono">Local Public Storage</span>
