@@ -15,6 +15,20 @@ import { formatGameInfo } from './utils/gameTitles';
 
 const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3.5';
 
+/**
+ * Loopback has two names, and they are separate origins to the browser. Framing games from
+ * the other one keeps third-party game code away from the hub's cookie and storage without
+ * any extra configuration during local development.
+ */
+function deriveGameOrigin(): string {
+  if (typeof window === 'undefined') return '';
+  const { protocol, hostname, port } = window.location;
+  const suffix = port ? `:${port}` : '';
+  if (hostname === 'localhost') return `${protocol}//127.0.0.1${suffix}`;
+  if (hostname === '127.0.0.1') return `${protocol}//localhost${suffix}`;
+  return '';
+}
+
 interface SessionRecap {
   title: string;
   seconds: number;
@@ -42,8 +56,10 @@ export default function App() {
   // sends automatically, so nothing here is readable by page or frame scripts.
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
   // Origin that game frames load from; kept separate from the hub so game code cannot
-  // reach the session. Empty means the server has no second origin configured.
-  const [gameOrigin, setGameOrigin] = useState('');
+  // reach the session. Derived locally first so the very first frame already points at the
+  // right place — waiting on /api/config would make an early click load same-origin and
+  // then reload the game when the answer arrived.
+  const [gameOrigin, setGameOrigin] = useState(deriveGameOrigin);
   const [, setAuthChecked] = useState(false);
 
   const [favorites, setFavorites] = useLocalStorage<string[]>('flashhub-favorites', []);
@@ -68,10 +84,14 @@ export default function App() {
 
     refreshSession();
 
+    // The server has the final say (a deployment may set GAME_ORIGIN), but an older or
+    // unreachable endpoint just leaves the derived value in place.
     fetch('/api/config')
       .then(res => (res.ok ? res.json() : null))
-      .then(d => setGameOrigin(d?.gameOrigin || ''))
-      .catch(() => setGameOrigin(''));
+      .then(d => {
+        if (d?.gameOrigin) setGameOrigin(d.gameOrigin);
+      })
+      .catch(() => {});
   }, []);
 
   const handleUpdateUser = (user: UserAccount | null) => {
