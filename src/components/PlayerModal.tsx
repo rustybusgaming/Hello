@@ -56,6 +56,11 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   const autoSaveId = useRef<string | null>(null);
   const [stateStatus, setStateStatus] = useState<'idle' | 'restored' | 'saving' | 'saved'>('idle');
   const [frameError, setFrameError] = useState<string | null>(null);
+  // Some browsers and privacy extensions refuse to embed a second loopback origin. When
+  // that happens the game frame is simply never reachable, so the player falls back to the
+  // hub's own origin rather than showing a black rectangle.
+  const [isolationBlocked, setIsolationBlocked] = useState(false);
+  const frameSpokeUp = useRef(false);
 
   const localStateKey = game ? `flashhub-game-state:${game.id}` : '';
   const AUTO_SLOT = 'Progress (auto)';
@@ -271,6 +276,8 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
       const msg = event.data;
       if (!msg || typeof msg !== 'object') return;
 
+      frameSpokeUp.current = true;
+
       if (msg.type === 'flashhub:storage-request') {
         const send = () => {
           frameRef.current?.contentWindow?.postMessage(
@@ -311,6 +318,29 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
   }, [game?.id, currentUser?.id, elapsedSeconds, localStateKey]);
+
+  // Watch for the frame checking in. Every game document this app serves carries the
+  // storage bridge, so silence means the frame never ran.
+  useEffect(() => {
+    if (!game || !gameOrigin || isolationBlocked) return;
+    if (!(currentEmbedUrl || game.embedUrl).startsWith('/')) return;
+
+    frameSpokeUp.current = false;
+    const timer = setTimeout(() => {
+      if (!frameSpokeUp.current) {
+        console.warn(
+          `[FlashHub] No response from the isolated game origin (${gameOrigin}); ` +
+          'falling back to same-origin so the game can run.'
+        );
+        setIsolationBlocked(true);
+        // Remount rather than re-point: an iframe whose navigation was refused does not
+        // reliably load a new document when only its src changes.
+        setIframeKey(k => k + 1);
+      }
+    }, 5000);
+
+    return () => clearTimeout(timer);
+  }, [game?.id, gameOrigin, isolationBlocked, currentEmbedUrl, iframeKey]);
 
   const handleClose = () => {
     onClose(elapsedSeconds);
@@ -380,7 +410,9 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
   // Relative URLs are served by this app, so they move to the isolated game origin.
   // Everything the game then loads resolves against that origin too.
-  const toFrameUrl = (url: string) => (gameOrigin && url.startsWith('/') ? gameOrigin + url : url);
+  const useIsolatedOrigin = !!gameOrigin && !isolationBlocked;
+  const toFrameUrl = (url: string) =>
+    useIsolatedOrigin && url.startsWith('/') ? gameOrigin + url : url;
   const frameSrc = toFrameUrl(currentEmbedUrl || game.embedUrl);
 
   return (
@@ -423,6 +455,15 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                 <Timer className="w-3 h-3 text-zinc-400" />
                 <span>{formatTimer(elapsedSeconds)}</span>
               </div>
+
+              {isolationBlocked && (
+                <span
+                  className="hidden sm:inline-flex chip chip-archive"
+                  title="This browser would not load the game from a separate origin, so it is running on the hub's origin instead."
+                >
+                  Isolation unavailable
+                </span>
+              )}
 
               {stateStatus !== 'idle' && (
                 <span
@@ -706,7 +747,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                        * the game's own scripts from running at all.
                        */
                       sandbox={
-                        gameOrigin
+                        useIsolatedOrigin
                           ? 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock'
                           : 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
                       }
