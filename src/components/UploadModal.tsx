@@ -1,24 +1,28 @@
 import React, { useState } from 'react';
 import { X, UploadCloud } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useEscapeKey } from '../lib/hooks';
 
 interface UploadModalProps {
   onClose: () => void;
   onUploadComplete: () => void;
-  authToken: string | null;
+  isAuthenticated: boolean;
 }
 
-export function UploadModal({ onClose, onUploadComplete, authToken }: UploadModalProps) {
+export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: UploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
   const [thumb, setThumb] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
 
+  // An upload in flight should not be interrupted by a stray key press
+  useEscapeKey(onClose, !isUploading);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !title) return;
-    if (!authToken) {
+    if (!isAuthenticated) {
       setUploadError('Sign in from the account menu to upload a game.');
       return;
     }
@@ -35,7 +39,6 @@ export function UploadModal({ onClose, onUploadComplete, authToken }: UploadModa
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken}` },
         body: formData,
       });
 

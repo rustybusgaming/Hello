@@ -28,6 +28,9 @@ import {
   getUserIdFromToken,
   removeSession
 } from './server/auth';
+import { guardCredentials, recordFailure, clearFailures } from './server/rateLimit';
+import { runHealthCheck, getHealthReport } from './server/healthCheck';
+import { FRAME_STORAGE_SCRIPT, FRAME_STORAGE_MARKER } from './server/frameStorage';
 import { UserAccount, StoredUserAccount, GameSave } from './src/types';
 import { checkAchievements, ACHIEVEMENTS } from './server/achievements';
 
@@ -80,7 +83,23 @@ function copyLengthHeaders(upstream: Response, res: express.Response) {
  * Returns false if the client hung up mid-transfer, which is normal when a player
  * closes a game while its assets are still downloading.
  */
+const CLIENT_GONE_CODES = new Set([
+  'ERR_STREAM_PREMATURE_CLOSE',
+  'ERR_STREAM_UNABLE_TO_PIPE',
+  'ERR_STREAM_DESTROYED',
+  'ERR_STREAM_WRITE_AFTER_END',
+  'EPIPE',
+  'ECONNRESET'
+]);
+
 async function streamUpstream(upstream: Response, res: express.Response): Promise<boolean> {
+  // A player closing a game mid-download, or a health probe reading only the first byte,
+  // leaves a destroyed response here. That is routine, not an error worth throwing over.
+  if (res.destroyed || res.writableEnded) {
+    await upstream.body?.cancel().catch(() => {});
+    return false;
+  }
+
   if (!upstream.body) {
     res.end();
     return true;
@@ -90,10 +109,32 @@ async function streamUpstream(upstream: Response, res: express.Response): Promis
     await pipeline(Readable.fromWeb(upstream.body as any), res);
     return true;
   } catch (err: any) {
-    if (err?.code === 'ERR_STREAM_PREMATURE_CLOSE' || err?.code === 'EPIPE') return false;
+    if (CLIENT_GONE_CODES.has(err?.code)) return false;
     throw err;
   }
 }
+
+/**
+ * Put the storage bridge in front of a proxied game's own scripts. Sandboxed frames have no
+ * usable localStorage, so without this a game's progress silently evaporates.
+ */
+function injectFrameStorage(html: string): string {
+  const tag = `<script>${FRAME_STORAGE_SCRIPT}</script>`;
+  if (html.includes(FRAME_STORAGE_MARKER)) return html;
+
+  if (/<head[^>]*>/i.test(html)) {
+    return html.replace(/<head[^>]*>/i, match => `${match}${tag}`);
+  }
+  if (/<html[^>]*>/i.test(html)) {
+    return html.replace(/<html[^>]*>/i, match => `${match}${tag}`);
+  }
+  return tag + html;
+}
+
+// Ports that live one level deeper in the repository than their catalogue id suggests
+const WEBPORT_SUBPATHS = GENIZY_WEBPORT_GAMES
+  .map(g => g.repoKey)
+  .filter(key => key.includes('/'));
 
 // Escape untrusted text before interpolating it into HTML/SVG responses
 function escapeHtml(value: string): string {
@@ -129,24 +170,6 @@ async function runSync() {
 
 // Keep a few webports and steam games for variety
 const MOCK_GAMES = [
-  {
-    id: 'sm64',
-    title: 'Super Mario 64 Web',
-    thumbnail: 'https://upload.wikimedia.org/wikipedia/en/6/6a/Super_Mario_64_box_cover.jpg',
-    rating: 5.0,
-    source: 'webporting' as const,
-    embedUrl: 'https://sm64web.com/',
-    genres: ['Adventure', 'Platformer']
-  },
-  {
-    id: 'quake',
-    title: 'WebQuake',
-    thumbnail: 'https://upload.wikimedia.org/wikipedia/en/9/9a/Quake_box_art.jpg',
-    rating: 4.9,
-    source: 'webporting' as const,
-    embedUrl: 'https://netquake.io/',
-    genres: ['Action', 'Shooter']
-  },
   {
     id: '220',
     title: 'Half-Life 2',
@@ -382,6 +405,9 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
+  // Behind Cloud Run / any reverse proxy, req.ip is the proxy without this
+  app.set('trust proxy', true);
+
   // Middleware to parse JSON (cloud saves and backup imports can be sizeable)
   app.use(express.json({ limit: '10mb' }));
 
@@ -418,10 +444,16 @@ async function startServer() {
   };
 
   // API Route: Play any genizy/web-port game with dynamic CDN patching
-  app.get('/api/webports/play/:gameId', async (req, res) => {
-    const { gameId } = req.params;
+  app.get('/api/webports/play/*', async (req, res) => {
+    const gameId = (req.params as any)[0] as string;
+
+    if (!gameId || gameId.split('/').some(segment => segment === '..')) {
+      return res.status(400).type('text/plain').send('Invalid game path');
+    }
+
     try {
-      const targetUrl = `https://raw.githubusercontent.com/genizy/web-port/main/${encodeURIComponent(gameId)}/index.html`;
+      const encodedPath = gameId.split('/').map(encodeURIComponent).join('/');
+      const targetUrl = `https://raw.githubusercontent.com/genizy/web-port/main/${encodedPath}/index.html`;
       const response = await fetch(targetUrl, {
         headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
       });
@@ -444,7 +476,7 @@ async function startServer() {
       let html = await response.text();
 
       // Replace jsdelivr base URL with local proxy base
-      const baseHref = `/api/webport-proxy/${encodeURIComponent(gameId)}/`;
+      const baseHref = `/api/webport-proxy/${gameId.split('/').map(encodeURIComponent).join('/')}/`;
       if (html.includes('<base href=')) {
         html = html.replace(/<base href="[^"]*">/i, `<base href="${baseHref}">`);
       } else if (html.includes('<head>')) {
@@ -454,7 +486,7 @@ async function startServer() {
       }
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
-      res.send(html);
+      res.send(injectFrameStorage(html));
     } catch (err: any) {
       console.error(`Error loading webport ${gameId}:`, err);
       res.status(500).type('text/plain').send(`Error loading game: ${err.message}`);
@@ -462,9 +494,14 @@ async function startServer() {
   });
 
   // API Route: Proxy assets for genizy/web-port games on demand (no 10GB download needed, no 403 errors)
-  app.get('/api/webport-proxy/:gameId/*', async (req, res) => {
-    const { gameId } = req.params;
-    const assetPath = req.params[0];
+  app.get('/api/webport-proxy/*', async (req, res) => {
+    // The game id may itself contain a slash, so split on the first path segment that
+    // belongs to the asset: everything before it identifies the port.
+    const fullPath = (req.params as any)[0] as string;
+    const knownPrefix = WEBPORT_SUBPATHS.find(prefix => fullPath.startsWith(prefix + '/'));
+    const splitAt = knownPrefix ? knownPrefix.length : fullPath.indexOf('/');
+    const gameId = fullPath.slice(0, splitAt);
+    const assetPath = fullPath.slice(splitAt + 1);
 
     // Never let a crafted asset path climb out of the game's folder upstream
     if (assetPath.split('/').some(segment => segment === '..')) {
@@ -472,7 +509,7 @@ async function startServer() {
     }
 
     try {
-      const targetUrl = `https://raw.githubusercontent.com/genizy/web-port/main/${encodeURIComponent(gameId)}/${encodeURI(assetPath)}`;
+      const targetUrl = `https://raw.githubusercontent.com/genizy/web-port/main/${gameId.split('/').map(encodeURIComponent).join('/')}/${encodeURI(assetPath)}`;
       
       const upstreamRes = await fetch(targetUrl, {
         headers: {
@@ -499,6 +536,20 @@ async function startServer() {
       console.error(`Error proxying webport asset for ${gameId}/${assetPath}:`, err);
       if (!res.headersSent) res.status(500).type('text/plain').send(`Error proxying asset: ${err.message}`);
       else res.end();
+    }
+  });
+
+  // Storage bridge for sandboxed game frames (see server/frameStorage.ts)
+  // The Ruffle player page is static, but it needs the storage bridge inlined before its
+  // own scripts run, so it is served through here rather than straight off disk.
+  app.get('/play.html', (_req, res) => {
+    try {
+      const source = fs.readFileSync(path.join(process.cwd(), 'public', 'play.html'), 'utf8');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.send(injectFrameStorage(source));
+    } catch (err: any) {
+      console.error('Could not serve play.html:', err);
+      res.status(500).type('text/plain').send('Player unavailable');
     }
   });
 
@@ -674,6 +725,15 @@ async function startServer() {
 
         if (!hasExternalBase) {
           const baseHref = `/api/quasar/${assetPath.replace(/index\.html?$/i, '')}`;
+
+          // Several games were authored for a site root and reference their own files with
+          // root-absolute paths ("/js/main.js"). Those ignore <base> entirely and would land
+          // on the hub's root, so they are re-pointed at the game's own folder.
+          html = html.replace(
+            /(<(?:script|link|img|source|iframe)\b[^>]*?\s(?:src|href)=")\/(?!\/|api\/)([^"]*)"/gi,
+            (_match, prefix, rest) => `${prefix}${baseHref}${rest}"`
+          );
+
           if (existingBase) {
             html = html.replace(/<base\s+href="[^"]*"\s*\/?>/i, `<base href="${baseHref}">`);
           } else if (/<head[^>]*>/i.test(html)) {
@@ -684,7 +744,7 @@ async function startServer() {
         }
 
         res.setHeader('Content-Type', 'text/html; charset=utf-8');
-        return res.send(html);
+        return res.send(injectFrameStorage(html));
       }
 
       res.setHeader(
@@ -701,45 +761,49 @@ async function startServer() {
     }
   });
 
+  // Assemble the full catalogue: custom uploads, webports, local mirrors, the quasar
+  // mirror, Archive.org titles and the handful of curated links.
+  const buildCatalog = async () => {
+    const archiveGames = await fetchArchiveGames();
+    const localGames = await fetchLocalWebports();
+    const settings = getGameSettings();
+    const hiddenSet = new Set(settings.hiddenGameIds || []);
+
+    let allGames = [
+      ...(settings.customGames || []),
+      ...GENIZY_WEBPORT_GAMES,
+      ...localGames,
+      ...QUASAR_GAMES,
+      ...archiveGames,
+      ...MOCK_GAMES
+    ];
+
+    // Deduplicate games by ID
+    const seenIds = new Set<string>();
+    allGames = allGames.filter(g => {
+      if (seenIds.has(g.id)) return false;
+      seenIds.add(g.id);
+      return true;
+    });
+
+    // Format titles and mark hidden games
+    return allGames.map(g => {
+      const info = formatGameInfo(g.id, g.title, g.genres);
+      return {
+        ...g,
+        title: info.title,
+        genres: (info.genres && info.genres.length > 0) ? info.genres : g.genres,
+        description: g.description || info.description,
+        rating: g.rating || info.rating || 4.8,
+        hidden: hiddenSet.has(g.id)
+      };
+    });
+  };
+
   // API Route to fetch games
   app.get('/api/games', async (req, res) => {
     try {
-      const archiveGames = await fetchArchiveGames();
-      const localGames = await fetchLocalWebports();
-      const settings = getGameSettings();
-      const hiddenSet = new Set(settings.hiddenGameIds || []);
-      
-      // Combine genizy webports, archive games, curated web/steam ports, and custom added games
-      let allGames = [
-        ...(settings.customGames || []),
-        ...GENIZY_WEBPORT_GAMES,
-        ...localGames,
-        ...QUASAR_GAMES,
-        ...archiveGames,
-        ...MOCK_GAMES
-      ];
-
-      // Deduplicate games by ID
-      const seenIds = new Set<string>();
-      allGames = allGames.filter(g => {
-        if (seenIds.has(g.id)) return false;
-        seenIds.add(g.id);
-        return true;
-      });
-
-      // Format titles and mark hidden games
-      const games = allGames.map(g => {
-        const info = formatGameInfo(g.id, g.title, g.genres);
-        return {
-          ...g,
-          title: info.title,
-          genres: (info.genres && info.genres.length > 0) ? info.genres : g.genres,
-          description: g.description || info.description,
-          rating: g.rating || info.rating || 4.8,
-          hidden: hiddenSet.has(g.id)
-        };
-      });
-
+      const games = await buildCatalog();
       res.json({ status: 'ok', data: games, isSyncing, syncProgressMessage });
     } catch (error) {
       console.error('Error fetching games:', error);
@@ -749,12 +813,48 @@ async function startServer() {
 
   // --- AUTHENTICATION & REAL USER ACCOUNT ENDPOINTS ---
   
+  const SESSION_COOKIE = 'fh_session';
+  const SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+  // Read one cookie without pulling in a parser dependency
+  const readCookie = (req: express.Request, name: string): string => {
+    const header = req.headers.cookie;
+    if (!header) return '';
+    for (const part of header.split(';')) {
+      const [key, ...rest] = part.trim().split('=');
+      if (key === name) return decodeURIComponent(rest.join('='));
+    }
+    return '';
+  };
+
+  /**
+   * The cookie is the real session carrier: httpOnly keeps it out of reach of any script,
+   * so a hostile game frame cannot lift it. The header forms remain for API clients.
+   */
+  const setSessionCookie = (res: express.Response, token: string) => {
+    res.cookie(SESSION_COOKIE, token, {
+      httpOnly: true,
+      sameSite: 'strict',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: SESSION_MAX_AGE_MS,
+      path: '/'
+    });
+  };
+
+  const clearSessionCookie = (res: express.Response) => {
+    res.clearCookie(SESSION_COOKIE, { path: '/' });
+  };
+
   // Helper to read the session token off a request
   const getAuthToken = (req: express.Request): string => {
     const authHeader = (req.headers['authorization'] as string) || '';
-    return authHeader.startsWith('Bearer ')
-      ? authHeader.substring(7).trim()
-      : ((req.headers['x-auth-token'] as string) || (req.query.token as string) || '');
+    if (authHeader.startsWith('Bearer ')) return authHeader.substring(7).trim();
+    return (
+      (req.headers['x-auth-token'] as string) ||
+      readCookie(req, SESSION_COOKIE) ||
+      (req.query.token as string) ||
+      ''
+    );
   };
 
   // Helper to extract session user from request header
@@ -795,6 +895,9 @@ async function startServer() {
     try {
       const { username, email, password, displayName, avatarUrl, bio } = req.body;
 
+      const limitKeys = guardCredentials(req, res, 'register');
+      if (!limitKeys) return;
+
       if (!username || typeof username !== 'string' || username.trim().length < 3) {
         return res.status(400).json({ error: 'Username must be at least 3 characters' });
       }
@@ -818,9 +921,11 @@ async function startServer() {
       const lowerEmail = email.trim().toLowerCase();
 
       if (storedAccounts.some(a => a.username.toLowerCase() === lowerUser)) {
+        recordFailure(limitKeys);
         return res.status(400).json({ error: 'An account with this username already exists' });
       }
       if (storedAccounts.some(a => a.email.toLowerCase() === lowerEmail)) {
+        recordFailure(limitKeys);
         return res.status(400).json({ error: 'An account with this email already exists' });
       }
 
@@ -848,6 +953,12 @@ async function startServer() {
       // Create persistent session token
       const token = createSession(newAccount.id);
 
+      // An admin provisioning an account from the console must keep their own session,
+      // so the cookie is only issued when the caller was not already signed in.
+      if (!getAuthUser(req)) {
+        setSessionCookie(res, token);
+      }
+
       res.status(201).json({
         status: 'ok',
         token,
@@ -873,6 +984,9 @@ async function startServer() {
         return res.status(400).json({ error: 'Password is required' });
       }
 
+      const limitKeys = guardCredentials(req, res, 'login', loginId);
+      if (!limitKeys) return;
+
       const storedAccounts = getStoredAccounts();
       const lowerId = loginId.toLowerCase();
       const user = storedAccounts.find(
@@ -880,14 +994,20 @@ async function startServer() {
       );
 
       if (!user) {
+        // Count misses on unknown accounts too, so the endpoint cannot be used to
+        // enumerate which usernames exist by watching who gets throttled.
+        recordFailure(limitKeys);
         return res.status(401).json({ error: 'Invalid username/email or password' });
       }
 
       // Verify password hash
       const isValid = verifyPassword(password, user.passwordHash, user.passwordSalt);
       if (!isValid) {
+        recordFailure(limitKeys);
         return res.status(401).json({ error: 'Invalid username/email or password' });
       }
+
+      clearFailures(limitKeys);
 
       // Update last login
       user.lastLogin = new Date().toISOString();
@@ -895,6 +1015,7 @@ async function startServer() {
 
       // Issue session token
       const token = createSession(user.id);
+      setSessionCookie(res, token);
 
       const saves = getSaves().filter(s => s.userId === user.id);
       const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
@@ -935,6 +1056,7 @@ async function startServer() {
   app.post('/api/auth/logout', (req, res) => {
     try {
       removeSession(getAuthToken(req));
+      clearSessionCookie(res);
       res.json({ status: 'ok', message: 'Logged out successfully' });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -988,6 +1110,9 @@ async function startServer() {
       if (!currentPassword || !newPassword) {
         return res.status(400).json({ error: 'Current password and new password are required' });
       }
+
+      const limitKeys = guardCredentials(req, res, 'change-password', user.id);
+      if (!limitKeys) return;
       if (newPassword.length < 6) {
         return res.status(400).json({ error: 'New password must be at least 6 characters' });
       }
@@ -1000,13 +1125,20 @@ async function startServer() {
 
       const isValid = verifyPassword(currentPassword, storedAccounts[index].passwordHash, storedAccounts[index].passwordSalt);
       if (!isValid) {
+        recordFailure(limitKeys);
         return res.status(400).json({ error: 'Current password is incorrect' });
       }
+
+      clearFailures(limitKeys);
 
       const { hash, salt } = hashPassword(newPassword);
       storedAccounts[index].passwordHash = hash;
       storedAccounts[index].passwordSalt = salt;
       saveStoredAccounts(storedAccounts);
+
+      // Re-issue the session so the change takes effect on this device without a sign-out
+      removeSession(getAuthToken(req));
+      setSessionCookie(res, createSession(user.id));
 
       res.json({ status: 'ok', message: 'Password updated successfully!' });
     } catch (err: any) {
@@ -1102,10 +1234,16 @@ async function startServer() {
         return res.status(400).json({ error: 'Password confirmation required to delete account' });
       }
 
+      const limitKeys = guardCredentials(req, res, 'delete-account', user.id);
+      if (!limitKeys) return;
+
       const isValid = verifyPassword(password, user.passwordHash, user.passwordSalt);
       if (!isValid) {
+        recordFailure(limitKeys);
         return res.status(400).json({ error: 'Incorrect password confirmation' });
       }
+
+      clearFailures(limitKeys);
 
       let storedAccounts = getStoredAccounts();
       storedAccounts = storedAccounts.filter(a => a.id !== user.id);
@@ -1118,6 +1256,7 @@ async function startServer() {
 
       // Clear session
       removeSession(getAuthToken(req));
+      clearSessionCookie(res);
 
       res.json({ status: 'ok', message: 'Account and associated data deleted' });
     } catch (err: any) {
@@ -1658,6 +1797,33 @@ async function startServer() {
     }
   });
 
+  // --- CATALOGUE HEALTH CHECK ---
+  app.get('/api/admin/health-check', (req, res) => {
+    if (!requireAdmin(req, res)) return;
+    res.json({ status: 'ok', ...getHealthReport() });
+  });
+
+  app.post('/api/admin/health-check', async (req, res) => {
+    if (!requireAdmin(req, res)) return;
+
+    const { running } = getHealthReport();
+    if (running) {
+      return res.json({ status: 'in_progress', ...getHealthReport() });
+    }
+
+    try {
+      const games = await buildCatalog();
+      const origin = `http://127.0.0.1:${PORT}`;
+
+      // Runs in the background; the client polls GET for progress
+      runHealthCheck(games, origin).catch(err => console.error('Health check failed:', err));
+
+      res.json({ status: 'started', total: games.length });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // API Route to trigger background games sync
   app.post('/api/sync', (req, res) => {
     if (!requireAdmin(req, res)) return;
@@ -1748,7 +1914,15 @@ async function startServer() {
   };
 
   // Serve custom games directly
-  app.use('/custom_games', express.static(customGamesDir));
+  app.use(
+    '/custom_games',
+    (req, res, next) => {
+      // Sandboxed frames are an opaque origin, so their sub-resource fetches are cross-origin
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      next();
+    },
+    express.static(customGamesDir)
+  );
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {

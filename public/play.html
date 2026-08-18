@@ -125,6 +125,7 @@
       backdrop-filter: blur(8px);
     }
   </style>
+  <!-- The server inlines the game-storage bridge above this point; see server/frameStorage.ts -->
   <script src="https://unpkg.com/@ruffle-rs/ruffle"></script>
 </head>
 <body>
@@ -255,14 +256,29 @@
 
     document.getElementById('start-btn').addEventListener('click', () => {
       if (swfUrl) {
-        loadSwf(swfUrl);
+        whenStorageReady(() => loadSwf(swfUrl));
       } else {
         showError('No SWF URL specified. Please choose an alternative mirror or drag a .swf file.');
       }
     });
 
+    // Wait for the hub to seed saved progress before booting, so Ruffle reads the player's
+    // SharedObjects rather than starting from a blank slate. The bridge always resolves,
+    // falling back to empty storage if the hub does not answer.
+    function whenStorageReady(run) {
+      const bridge = window.__flashhubStorage;
+      if (!bridge || bridge.ready) {
+        run();
+        return;
+      }
+      let done = false;
+      const go = () => { if (!done) { done = true; run(); } };
+      window.addEventListener('flashhub:storage-ready', go, { once: true });
+      setTimeout(go, 2000);
+    }
+
     if (autoplay && swfUrl) {
-      setTimeout(() => loadSwf(swfUrl), 100);
+      whenStorageReady(() => setTimeout(() => loadSwf(swfUrl), 60));
     }
 
     // Drag and Drop support

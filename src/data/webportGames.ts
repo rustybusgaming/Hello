@@ -65,16 +65,6 @@ export const GENIZY_WEBPORT_GAMES: WebportGameEntry[] = [
     genres: ['Shooter', 'Action', 'Fast-Paced']
   },
   {
-    id: 'webport-cuphead',
-    repoKey: 'cuphead',
-    title: 'Cuphead (Boss Rush)',
-    thumbnail: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/268910/header.jpg',
-    rating: 4.9,
-    source: 'webporting',
-    embedUrl: '/api/webports/play/cuphead',
-    genres: ['Action', 'Platformer', 'Difficult']
-  },
-  {
     id: 'webport-getting-over-it',
     repoKey: 'getting-over-it',
     title: 'Getting Over It with Bennett Foddy',
@@ -226,12 +216,12 @@ export const GENIZY_WEBPORT_GAMES: WebportGameEntry[] = [
   },
   {
     id: 'webport-kindergarten',
-    repoKey: 'kindergarten',
+    repoKey: 'kindergarten/1',
     title: 'Kindergarten',
     thumbnail: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/578590/header.jpg',
     rating: 4.8,
     source: 'webporting',
-    embedUrl: '/api/webports/play/kindergarten',
+    embedUrl: '/api/webports/play/kindergarten/1',
     genres: ['Adventure', 'Dark Comedy', 'Puzzle']
   },
   {
@@ -326,12 +316,12 @@ export const GENIZY_WEBPORT_GAMES: WebportGameEntry[] = [
   },
   {
     id: 'webport-fears-to-fathom',
-    repoKey: 'fears-to-fathom',
+    repoKey: 'fears-to-fathom/home-alone',
     title: 'Fears to Fathom: Norwood Hitchhike',
     thumbnail: '/api/cover/fears-to-fathom?title=Fears%20to%20Fathom%3A%20Norwood%20Hitchhike',
     rating: 4.8,
     source: 'webporting',
-    embedUrl: '/api/webports/play/fears-to-fathom',
+    embedUrl: '/api/webports/play/fears-to-fathom/home-alone',
     genres: ['Psychological', 'Horror', 'Story']
   },
   {

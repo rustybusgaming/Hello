@@ -15,10 +15,12 @@ import {
   Download,
   CheckCircle2,
   AlertCircle,
+  Activity,
   Terminal,
   Search
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { useEscapeKey } from '../lib/hooks';
 import { GENIZY_WEBPORT_GAMES } from '../data/webportGames';
 import { QUASAR_FLASH_GAMES, QUASAR_HTML5_GAMES, QUASAR_WEBGL_GAMES } from '../data/quasarGames';
 import { CURATED_FLASH_COLLECTIONS } from '../data/flashArchives';
@@ -28,18 +30,14 @@ interface AdminPanelProps {
   onClose: () => void;
   onRefreshGames: () => void;
   currentUser: UserAccount | null;
-  authToken: string | null;
 }
 
-export function AdminPanel({ games, onClose, onRefreshGames, currentUser, authToken }: AdminPanelProps) {
+export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'sync' | 'accounts' | 'games' | 'saves'>('sync');
 
-  // Every /api/admin route requires an admin session
-  const isAdmin = currentUser?.role === 'admin' && !!authToken;
-  const authHeaders = (extra?: Record<string, string>): Record<string, string> => ({
-    ...(extra || {}),
-    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
-  });
+  // Every /api/admin route requires an admin session, carried by the httpOnly cookie
+  const isAdmin = currentUser?.role === 'admin';
+  const authHeaders = (extra?: Record<string, string>): Record<string, string> => ({ ...(extra || {}) });
 
   // Stats
   const [stats, setStats] = useState<SystemStats | null>(null);
@@ -64,6 +62,12 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser, authTo
   const [allSaves, setAllSaves] = useState<GameSave[]>([]);
   const [savesLoading, setSavesLoading] = useState(false);
 
+  // Catalogue health
+  interface HealthFailure { id: string; title: string; target: string; kind: string; status: number | string }
+  interface HealthReport { startedAt: string; finishedAt: string | null; checked: number; total: number; failures: HealthFailure[] }
+  const [health, setHealth] = useState<HealthReport | null>(null);
+  const [healthRunning, setHealthRunning] = useState(false);
+
   // Sync state
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncLogs, setSyncLogs] = useState<string[]>([
@@ -74,6 +78,8 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser, authTo
 
   const appendLog = (message: string) =>
     setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
+
+  useEscapeKey(onClose);
 
   // Load stats & accounts
   const loadAdminData = async () => {
@@ -109,6 +115,50 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser, authTo
         .finally(() => setSavesLoading(false));
     }
   }, [activeTab, isAdmin]);
+
+  // --- Catalogue health check ---
+  const loadHealth = async () => {
+    if (!isAdmin) return;
+    try {
+      const res = await fetch('/api/admin/health-check', { headers: authHeaders() });
+      if (!res.ok) return;
+      const d = await res.json();
+      setHealth(d.report || null);
+      setHealthRunning(!!d.running);
+    } catch {
+      /* the panel simply shows the previous report */
+    }
+  };
+
+  useEffect(() => {
+    loadHealth();
+  }, [isAdmin]);
+
+  // Poll while a scan is in flight so the progress count advances
+  useEffect(() => {
+    if (!healthRunning) return;
+    const timer = setInterval(loadHealth, 2000);
+    return () => clearInterval(timer);
+  }, [healthRunning]);
+
+  const handleRunHealthCheck = async () => {
+    setHealthRunning(true);
+    appendLog('Starting catalogue health check…');
+    try {
+      const res = await fetch('/api/admin/health-check', { method: 'POST', headers: authHeaders() });
+      const d = await res.json();
+      if (!res.ok) {
+        appendLog(`Health check refused: ${d.error || res.status}`);
+        setHealthRunning(false);
+        return;
+      }
+      appendLog(`Probing ${d.total ?? '?'} catalogue entries…`);
+      loadHealth();
+    } catch (err: any) {
+      appendLog(`Health check failed: ${err.message}`);
+      setHealthRunning(false);
+    }
+  };
 
   // Trigger Manual Sync
   const handleTriggerSync = async () => {
@@ -191,7 +241,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser, authTo
           if (lookupRes.ok && lookupData.status === 'ok') {
             const linkRes = await fetch('/api/auth/link-steam', {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${d.token}` },
+              headers: { 'Content-Type': 'application/json', 'X-Auth-Token': d.token },
               body: JSON.stringify(lookupData.data)
             });
             const linkData = await linkRes.json();
@@ -716,6 +766,84 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser, authTo
                     </button>
                   </div>
                 </form>
+              </div>
+
+              {/* Catalogue health */}
+              <div className="panel p-4 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-flame" />
+                      Catalogue Health
+                    </h4>
+                    <p className="text-[11px] text-zinc-500 mt-1">
+                      Probes every game and thumbnail the way a player reaches it, so dead mirrors
+                      show up here instead of in someone's game window.
+                    </p>
+                  </div>
+                  <button
+                    onClick={handleRunHealthCheck}
+                    disabled={healthRunning}
+                    className="btn-ghost flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+                  >
+                    {healthRunning ? 'Scanning…' : 'Run scan'}
+                  </button>
+                </div>
+
+                {healthRunning && health && (
+                  <div className="space-y-1.5">
+                    <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                      <div
+                        className="h-full bg-flame transition-[width] duration-500"
+                        style={{ width: `${health.total ? Math.round((health.checked / health.total) * 100) : 0}%` }}
+                      />
+                    </div>
+                    <span className="font-mono text-[10px] text-zinc-500">
+                      {health.checked} / {health.total} targets
+                    </span>
+                  </div>
+                )}
+
+                {!healthRunning && health && (
+                  <div className="flex items-center gap-4 text-[11px]">
+                    <span className={health.failures.length === 0 ? 'text-mint font-semibold' : 'text-flame font-semibold'}>
+                      {health.failures.length === 0
+                        ? 'All targets responded'
+                        : `${health.failures.length} dead target${health.failures.length === 1 ? '' : 's'}`}
+                    </span>
+                    <span className="text-zinc-600 font-mono">
+                      {health.checked} checked · {health.finishedAt ? new Date(health.finishedAt).toLocaleString() : 'incomplete'}
+                    </span>
+                  </div>
+                )}
+
+                {!healthRunning && health && health.failures.length > 0 && (
+                  <div className="max-h-44 overflow-y-auto border border-edge rounded-lg divide-y divide-edge/70">
+                    {health.failures.map((f, i) => (
+                      <div key={`${f.id}-${f.kind}-${i}`} className="p-2 flex items-center justify-between gap-3 text-[11px]">
+                        <div className="min-w-0">
+                          <span className="font-semibold text-zinc-200">{f.title}</span>
+                          <span className="ml-2 font-mono text-[10px] text-zinc-600">{f.kind}</span>
+                          <span className="block font-mono text-[10px] text-zinc-600 truncate">{f.target}</span>
+                        </div>
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          <span className="chip chip-custom">{f.status}</span>
+                          <button
+                            onClick={() => handleToggleGame(f.id, false)}
+                            className="btn-ghost px-2 py-1 rounded-md text-[10px]"
+                            title="Hide this game from the catalogue"
+                          >
+                            Hide
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {!health && !healthRunning && (
+                  <p className="text-[11px] text-zinc-600">No scan has been run yet.</p>
+                )}
               </div>
 
               {/* Game list with hide/unhide toggle */}

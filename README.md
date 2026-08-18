@@ -64,6 +64,36 @@ from the curated Archive.org catalogue.
 | `npm run lint` | Type-checks the project with `tsc --noEmit` |
 | `npm run sync` | Downloads the gameports/quasar libraries into `public/` |
 
+## Security model
+
+Games are third-party code, so they run walled off from the hub:
+
+- Every game frame is sandboxed **without `allow-same-origin`**, which puts it in an opaque
+  origin. It cannot read the hub's DOM, storage or cookies, and its own requests are not
+  sent with the session.
+- The session lives in an **httpOnly, SameSite=Strict cookie**. No page or frame script can
+  read the token, and nothing is kept in `localStorage`.
+- Password checks on sign-in, password change and account deletion are rate limited per
+  account and (more loosely) per IP, so shared school or office networks are not locked out
+  by one attacker.
+
+Because a sandboxed frame has no usable `localStorage`, the server inlines a small storage
+bridge (`server/frameStorage.ts`) into every game document. The frame gets a synchronous
+in-memory `Storage` that is seeded from, and written back to, the hub over `postMessage` —
+which is what makes cloud saves hold real game state (Ruffle keeps Flash SharedObjects in
+`localStorage`) rather than just a playtime note. Signed-in players get their progress on
+their account; guests keep theirs in the hub's own browser storage.
+
+Unity's `PlayerPrefs` uses IndexedDB rather than `localStorage`, so WebGL saves are not
+carried across devices yet.
+
+## Keeping the catalogue honest
+
+The admin console has a **catalogue health check** (Game Catalog tab) that walks every entry,
+probes the game and its thumbnail the way a player would reach them, and — for HTML games —
+also probes the first game script, since several mirrors ship an `index.html` whose code was
+never copied. Failures are listed with a one-click Hide. Run it occasionally: mirrors rot.
+
 ## Accounts and roles
 
 - Accounts are created through the account modal; **the first account to register becomes

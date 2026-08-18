@@ -38,45 +38,37 @@ export default function App() {
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [show404View, setShow404View] = useState(false);
 
-  // User Authentication State
-  const [currentUser, setCurrentUser] = useLocalStorage<UserAccount | null>('flashhub-active-user', null);
-  const [authToken, setAuthToken] = useLocalStorage<string | null>('flashhub-auth-token', null);
+  // User Authentication State. The session itself lives in an httpOnly cookie the browser
+  // sends automatically, so nothing here is readable by page or frame scripts.
+  const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  const [, setAuthChecked] = useState(false);
 
   const [favorites, setFavorites] = useLocalStorage<string[]>('flashhub-favorites', []);
   const [recentlyPlayed, setRecentlyPlayed] = useLocalStorage<string[]>('flashhub-recently-played', []);
 
-  // Validate the stored session on launch and refresh the cached profile
+  // Ask the server who we are; the session cookie rides along automatically
+  const refreshSession = () => {
+    fetch('/api/auth/me')
+      .then(res => (res.ok ? res.json() : null))
+      .then(d => setCurrentUser(d && d.status === 'ok' && d.user ? d.user : null))
+      .catch(() => setCurrentUser(null))
+      .finally(() => setAuthChecked(true));
+  };
+
   useEffect(() => {
-    if (!authToken) {
-      // No session means no signed-in player; saves fall back to the guest bucket
-      setCurrentUser(null);
-      return;
-    }
+    // Older builds kept the session token and profile in localStorage, where any
+    // same-origin script could read them. Clear those leftovers on first load.
+    try {
+      window.localStorage.removeItem('flashhub-auth-token');
+      window.localStorage.removeItem('flashhub-active-user');
+    } catch { /* private mode */ }
 
-    fetch('/api/auth/me', {
-      headers: { Authorization: `Bearer ${authToken}` }
-    })
-      .then(res => res.ok ? res.json() : null)
-      .then(d => {
-        if (d && d.status === 'ok' && d.user) {
-          setCurrentUser(d.user);
-        } else {
-          // Expired or invalid token
-          setCurrentUser(null);
-          setAuthToken(null);
-        }
-      })
-      .catch(() => {
-        setCurrentUser(null);
-        setAuthToken(null);
-      });
-  }, [authToken]);
+    refreshSession();
+  }, []);
 
-  const handleUpdateUser = (user: UserAccount | null, token?: string) => {
+  const handleUpdateUser = (user: UserAccount | null) => {
     setCurrentUser(user);
-    if (token !== undefined) {
-      setAuthToken(token);
-    }
+    setAuthChecked(true);
   };
 
   const fetchGames = () => {
@@ -467,7 +459,6 @@ export default function App() {
           game={selectedGame} 
           onClose={handleCloseModal} 
           currentUser={currentUser}
-          authToken={authToken}
         />
       )}
 
@@ -476,7 +467,7 @@ export default function App() {
         <UploadModal 
           onClose={() => setIsUploadModalOpen(false)}
           onUploadComplete={fetchGames}
-          authToken={authToken}
+          isAuthenticated={!!currentUser}
         />
       )}
 
@@ -487,7 +478,6 @@ export default function App() {
           onClose={() => setIsAdminModalOpen(false)}
           onRefreshGames={fetchGames}
           currentUser={currentUser}
-          authToken={authToken}
         />
       )}
 
@@ -495,7 +485,6 @@ export default function App() {
       {isAccountModalOpen && (
         <AccountModal
           currentUser={currentUser}
-          authToken={authToken}
           onClose={() => setIsAccountModalOpen(false)}
           onUpdateUser={handleUpdateUser}
         />

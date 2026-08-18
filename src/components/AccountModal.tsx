@@ -26,12 +26,12 @@ import {
   Edit3
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { useEscapeKey } from '../lib/hooks';
 
 interface AccountModalProps {
   currentUser: UserAccount | null;
   onClose: () => void;
-  onUpdateUser: (user: UserAccount | null, token?: string) => void;
-  authToken: string | null;
+  onUpdateUser: (user: UserAccount | null) => void;
   initialTab?: 'profile' | 'signin' | 'register' | 'steam' | 'saves' | 'security' | 'switch';
 }
 
@@ -50,7 +50,6 @@ export function AccountModal({
   currentUser,
   onClose,
   onUpdateUser,
-  authToken,
   initialTab = 'profile'
 }: AccountModalProps) {
   // Determine starting tab
@@ -111,6 +110,8 @@ export function AccountModal({
   // Switch / Accounts Directory
   const [allAccounts, setAllAccounts] = useState<UserAccount[]>([]);
 
+  useEscapeKey(onClose);
+
   // Update edit form values when user changes
   useEffect(() => {
     if (currentUser) {
@@ -137,9 +138,7 @@ export function AccountModal({
   useEffect(() => {
     if (currentUser?.id && activeTab === 'saves') {
       setSavesLoading(true);
-      fetch(`/api/saves?userId=${encodeURIComponent(currentUser.id)}`, {
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
-      })
+      fetch(`/api/saves?userId=${encodeURIComponent(currentUser.id)}`)
         .then(res => res.ok ? res.json() : null)
         .then(d => {
           if (d && d.status === 'ok') {
@@ -149,7 +148,7 @@ export function AccountModal({
         .catch(() => {})
         .finally(() => setSavesLoading(false));
     }
-  }, [currentUser?.id, activeTab, authToken]);
+  }, [currentUser?.id, activeTab]);
 
   // Handle Login Submit
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -183,7 +182,7 @@ export function AccountModal({
         throw new Error(data?.error || 'Login failed. Please check your credentials.');
       }
 
-      onUpdateUser(data.user, data.token);
+      onUpdateUser(data.user);
       setActiveTab('profile');
       setLoginPassword('');
     } catch (err: any) {
@@ -246,7 +245,7 @@ export function AccountModal({
         throw new Error(data?.error || 'Registration failed');
       }
 
-      onUpdateUser(data.user, data.token);
+      onUpdateUser(data.user);
       setActiveTab('profile');
     } catch (err: any) {
       setRegError(err.message || 'Registration failed');
@@ -258,16 +257,12 @@ export function AccountModal({
   // Handle Logout
   const handleLogout = async () => {
     try {
-      if (authToken) {
-        await fetch('/api/auth/logout', {
-          method: 'POST',
-          headers: { Authorization: `Bearer ${authToken}` }
-        });
-      }
+      // Clears the session server-side and expires the cookie
+      await fetch('/api/auth/logout', { method: 'POST' });
     } catch (err) {
       console.error(err);
     } finally {
-      onUpdateUser(null, undefined);
+      onUpdateUser(null);
       setActiveTab('signin');
     }
   };
@@ -275,7 +270,7 @@ export function AccountModal({
   // Save Profile Changes
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!authToken || !currentUser) return;
+    if (!currentUser) return;
 
     setProfileSaving(true);
     setProfileMessage('');
@@ -283,10 +278,7 @@ export function AccountModal({
     try {
       const res = await fetch('/api/auth/profile', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           displayName: editDisplayName,
           bio: editBio,
@@ -296,7 +288,7 @@ export function AccountModal({
 
       const data = await res.json();
       if (data.status === 'ok') {
-        onUpdateUser(data.user, authToken);
+        onUpdateUser(data.user);
         setIsEditingProfile(false);
         setProfileMessage('Profile updated successfully!');
         setTimeout(() => setProfileMessage(''), 4000);
@@ -313,7 +305,7 @@ export function AccountModal({
   // Handle Steam Linking
   const handleLinkSteam = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!steamInput.trim() || !authToken) return;
+    if (!steamInput.trim()) return;
 
     setSteamLoading(true);
     setSteamError('');
@@ -331,16 +323,13 @@ export function AccountModal({
 
       const linkRes = await fetch('/api/auth/link-steam', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(steamData)
       });
 
       const linkData = await linkRes.json();
       if (linkData.status === 'ok') {
-        onUpdateUser(linkData.user, authToken);
+        onUpdateUser(linkData.user);
         setSteamSuccess(`Successfully linked Steam profile "${steamData.steamPersonaName}"!`);
       } else {
         throw new Error(linkData.error || 'Could not link Steam account');
@@ -354,7 +343,6 @@ export function AccountModal({
 
   // Handle Unlink Steam
   const handleUnlinkSteam = async () => {
-    if (!authToken) return;
     setSteamLoading(true);
     setSteamError('');
     setSteamSuccess('');
@@ -362,11 +350,11 @@ export function AccountModal({
     try {
       const res = await fetch('/api/auth/unlink-steam', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${authToken}` }
+
       });
       const data = await res.json();
       if (data.status === 'ok') {
-        onUpdateUser(data.user, authToken);
+        onUpdateUser(data.user);
         setSteamInput('');
         setSteamSuccess('Steam account unlinked.');
       } else {
@@ -399,10 +387,7 @@ export function AccountModal({
     try {
       const res = await fetch('/api/auth/change-password', {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           currentPassword,
           newPassword
@@ -438,16 +423,13 @@ export function AccountModal({
     try {
       const res = await fetch('/api/auth/account', {
         method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${authToken}`
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ password: deletePassword })
       });
 
       const data = await res.json();
       if (data.status === 'ok') {
-        onUpdateUser(null, undefined);
+        onUpdateUser(null);
         setActiveTab('signin');
       } else {
         throw new Error(data.error || 'Deletion failed');
@@ -463,10 +445,7 @@ export function AccountModal({
   const handleDeleteSave = async (saveId: string) => {
     if (!confirm('Delete this cloud save slot?')) return;
     try {
-      const res = await fetch(`/api/saves/${saveId}`, {
-        method: 'DELETE',
-        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
-      });
+      const res = await fetch(`/api/saves/${saveId}`, { method: 'DELETE' });
       if (!res.ok) {
         const d = await res.json().catch(() => ({}));
         alert(d.error || 'Could not delete this save slot');

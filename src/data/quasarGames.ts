@@ -87,11 +87,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pbake.webp`,
     rating: 4.5,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Bakeria&swf=/api/quasar/storage/flash/pbake/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Bakeria&swf=/api/quasar/storage/flash/pbake/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pbake-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Bakeria&swf=/api/quasar/storage/flash/pbake/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pbake-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Bakeria&swf=/api/quasar/storage/flash/pbake/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pbake-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pbake/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -101,11 +101,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pburg.webp`,
     rating: 4.5,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Burgeria&swf=/api/quasar/storage/flash/pburg/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Burgeria&swf=/api/quasar/storage/flash/pburg/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pburg-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Burgeria&swf=/api/quasar/storage/flash/pburg/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pburg-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Burgeria&swf=/api/quasar/storage/flash/pburg/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pburg-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pburg/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -115,11 +115,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pchee.webp`,
     rating: 4.8,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Cheeseria&swf=/api/quasar/storage/flash/pchee/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Cheeseria&swf=/api/quasar/storage/flash/pchee/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pchee-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Cheeseria&swf=/api/quasar/storage/flash/pchee/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pchee-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Cheeseria&swf=/api/quasar/storage/flash/pchee/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pchee-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pchee/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -129,11 +129,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pcupc.webp`,
     rating: 4.5,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Cupcakeria&swf=/api/quasar/storage/flash/pcupc/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Cupcakeria&swf=/api/quasar/storage/flash/pcupc/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pcupc-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Cupcakeria&swf=/api/quasar/storage/flash/pcupc/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pcupc-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Cupcakeria&swf=/api/quasar/storage/flash/pcupc/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pcupc-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pcupc/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -143,11 +143,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pdonut.webp`,
     rating: 4.7,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Donuteria&swf=/api/quasar/storage/flash/pdonut/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Donuteria&swf=/api/quasar/storage/flash/pdonut/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pdonut-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Donuteria&swf=/api/quasar/storage/flash/pdonut/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pdonut-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Donuteria&swf=/api/quasar/storage/flash/pdonut/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pdonut-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pdonut/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -157,11 +157,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pfreeze.webp`,
     rating: 4.5,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Freezeria&swf=/api/quasar/storage/flash/pfreeze/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Freezeria&swf=/api/quasar/storage/flash/pfreeze/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pfreeze-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Freezeria&swf=/api/quasar/storage/flash/pfreeze/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pfreeze-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Freezeria&swf=/api/quasar/storage/flash/pfreeze/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pfreeze-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pfreeze/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -171,11 +171,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/photdog.webp`,
     rating: 4.5,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Hotdoggeria&swf=/api/quasar/storage/flash/photdog/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Hotdoggeria&swf=/api/quasar/storage/flash/photdog/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'photdog-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Hotdoggeria&swf=/api/quasar/storage/flash/photdog/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'photdog-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Hotdoggeria&swf=/api/quasar/storage/flash/photdog/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'photdog-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/photdog/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -185,11 +185,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/ppan.webp`,
     rating: 4.8,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Pancakeria&swf=/api/quasar/storage/flash/ppan/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Pancakeria&swf=/api/quasar/storage/flash/ppan/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'ppan-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Pancakeria&swf=/api/quasar/storage/flash/ppan/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'ppan-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pancakeria&swf=/api/quasar/storage/flash/ppan/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'ppan-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ppan/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -199,11 +199,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/ppasta.webp`,
     rating: 4.6,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Pastaria&swf=/api/quasar/storage/flash/ppasta/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Pastaria&swf=/api/quasar/storage/flash/ppasta/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'ppasta-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Pastaria&swf=/api/quasar/storage/flash/ppasta/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'ppasta-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pastaria&swf=/api/quasar/storage/flash/ppasta/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'ppasta-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ppasta/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -213,11 +213,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/ppizza.webp`,
     rating: 5.0,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Pizzaria&swf=/api/quasar/storage/flash/ppizza/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Pizzaria&swf=/api/quasar/storage/flash/ppizza/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'ppizza-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Pizzaria&swf=/api/quasar/storage/flash/ppizza/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'ppizza-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pizzaria&swf=/api/quasar/storage/flash/ppizza/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'ppizza-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ppizza/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -227,11 +227,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pscoop.webp`,
     rating: 4.5,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Scooperia&swf=/api/quasar/storage/flash/pscoop/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Scooperia&swf=/api/quasar/storage/flash/pscoop/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pscoop-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Scooperia&swf=/api/quasar/storage/flash/pscoop/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pscoop-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Scooperia&swf=/api/quasar/storage/flash/pscoop/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pscoop-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pscoop/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -241,11 +241,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/psushi.webp`,
     rating: 4.8,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Sushieria&swf=/api/quasar/storage/flash/psushi/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Sushieria&swf=/api/quasar/storage/flash/psushi/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'psushi-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Sushieria&swf=/api/quasar/storage/flash/psushi/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'psushi-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Sushieria&swf=/api/quasar/storage/flash/psushi/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'psushi-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/psushi/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -255,11 +255,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/pwing.webp`,
     rating: 4.5,
     source: 'webporting',
-    embedUrl: '/play.html?title=Papa\\\'s%20Wingeria&swf=/api/quasar/storage/flash/pwing/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=Papa%27s%20Wingeria&swf=/api/quasar/storage/flash/pwing/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'pwing-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa\\\'s%20Wingeria&swf=/api/quasar/storage/flash/pwing/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'pwing-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Wingeria&swf=/api/quasar/storage/flash/pwing/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'pwing-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pwing/game.swf', isArchiveIndependent: true }
     ]
   },
@@ -580,11 +580,11 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     thumbnail: `${CDN}/idek.webp`,
     rating: 4.7,
     source: 'webporting',
-    embedUrl: '/play.html?title=I%20Don\\\'t%20Even%20Know&swf=/api/quasar/storage/flash/idek/game.swf&autoplay=1',
+    embedUrl: '/play.html?title=I%20Don%27t%20Even%20Know&swf=/api/quasar/storage/flash/idek/game.swf&autoplay=1',
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'idek-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=I%20Don\\\'t%20Even%20Know&swf=/api/quasar/storage/flash/idek/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'idek-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=I%20Don%27t%20Even%20Know&swf=/api/quasar/storage/flash/idek/game.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'idek-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/idek/game.swf', isArchiveIndependent: true }
     ]
   },

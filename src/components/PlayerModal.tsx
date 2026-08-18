@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Game, UserAccount, GameSave, GameMirror } from '../types';
 import {
   X,
@@ -14,19 +14,21 @@ import {
   Plus,
   ShieldCheck,
   RefreshCw,
-  Server
+  Server,
+  Maximize2,
+  Minimize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NotFoundPanel } from './NotFoundPanel';
+import { useEscapeKey, useFullscreen } from '../lib/hooks';
 
 interface PlayerModalProps {
   game: Game | null;
   onClose: (elapsedSeconds: number) => void;
   currentUser?: UserAccount | null;
-  authToken?: string | null;
 }
 
-export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerModalProps) {
+export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isCrtMode, setIsCrtMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -37,6 +39,23 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
   const [selectedMirrorId, setSelectedMirrorId] = useState<string>('');
   const [currentEmbedUrl, setCurrentEmbedUrl] = useState<string>('');
   const [iframeKey, setIframeKey] = useState(0);
+
+  // The stage is what goes fullscreen, so the game fills the display without the chrome
+  const stageRef = useRef<HTMLDivElement>(null);
+  const { isFullscreen, toggleFullscreen } = useFullscreen(stageRef);
+
+  // --- Game state bridge -------------------------------------------------------------
+  // Game frames are sandboxed into an opaque origin, so their own localStorage is gone.
+  // The frame's storage is proxied here instead: seeded on load, persisted on change.
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const gameState = useRef<Record<string, string>>({});
+  const stateLoaded = useRef(false);
+  const seedSent = useRef(false);
+  const autoSaveId = useRef<string | null>(null);
+  const [stateStatus, setStateStatus] = useState<'idle' | 'restored' | 'saving' | 'saved'>('idle');
+
+  const localStateKey = game ? `flashhub-game-state:${game.id}` : '';
+  const AUTO_SLOT = 'Progress (auto)';
 
   // Save Keeper state
   const [gameSaves, setGameSaves] = useState<GameSave[]>([]);
@@ -126,9 +145,7 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
   const fetchGameSaves = () => {
     if (!game?.id) return;
     const userIdQuery = currentUser?.id ? `userId=${encodeURIComponent(currentUser.id)}&` : '';
-    fetch(`/api/saves?${userIdQuery}gameId=${encodeURIComponent(game.id)}`, {
-      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
-    })
+    fetch(`/api/saves?${userIdQuery}gameId=${encodeURIComponent(game.id)}`)
       .then(res => res.ok ? res.json() : { status: 'error', data: [] })
       .then(d => {
         if (d && d.status === 'ok') setGameSaves(d.data || []);
@@ -142,17 +159,155 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
     }
   }, [showSaveDrawer, game?.id]);
 
-  if (!game) return null;
-
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  // Pull the player's stored progress for this game: their account when signed in,
+  // otherwise this browser, so guests keep their saves too.
+  useEffect(() => {
+    if (!game) return;
+
+    let cancelled = false;
+    stateLoaded.current = false;
+    seedSent.current = false;
+    autoSaveId.current = null;
+    gameState.current = {};
+    setStateStatus('idle');
+
+    const readLocal = (): Record<string, string> => {
+      try {
+        const raw = window.localStorage.getItem(localStateKey);
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    };
+
+    const load = async () => {
+      let state = readLocal();
+
+      if (currentUser?.id) {
+        try {
+          const res = await fetch(`/api/saves?gameId=${encodeURIComponent(game.id)}`);
+          if (res.ok) {
+            const d = await res.json();
+            const auto = (d.data || []).find((entry: GameSave) => entry.slotName === AUTO_SLOT);
+            if (auto) {
+              autoSaveId.current = auto.id;
+              try {
+                const parsed = JSON.parse(auto.saveData);
+                // The account copy wins: it is the one that follows the player across devices
+                if (parsed && typeof parsed === 'object') state = parsed;
+              } catch { /* corrupt slot, fall back to the local copy */ }
+            }
+          }
+        } catch { /* offline: the local copy still works */ }
+      }
+
+      if (cancelled) return;
+      gameState.current = state;
+      stateLoaded.current = true;
+      if (Object.keys(state).length > 0) setStateStatus('restored');
+    };
+
+    load();
+    return () => { cancelled = true; };
+  }, [game?.id, currentUser?.id]);
+
+  // Talk to the sandboxed frame
+  useEffect(() => {
+    if (!game) return;
+
+    const persist = async (state: Record<string, string>) => {
+      gameState.current = state;
+
+      try {
+        window.localStorage.setItem(localStateKey, JSON.stringify(state));
+      } catch { /* quota or private mode; the account copy below still applies */ }
+
+      if (!currentUser?.id) {
+        setStateStatus('saved');
+        return;
+      }
+
+      setStateStatus('saving');
+      try {
+        const res = await fetch('/api/saves', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: autoSaveId.current || undefined,
+            gameId: game.id,
+            gameTitle: game.title,
+            userId: currentUser.id,
+            slotName: AUTO_SLOT,
+            saveData: JSON.stringify(state),
+            playtimeMinutes: Math.round(elapsedSeconds / 60),
+            notes: 'Captured from the game automatically'
+          })
+        });
+        const d = await res.json();
+        if (res.ok && d.status === 'ok') {
+          autoSaveId.current = d.data.id;
+          setStateStatus('saved');
+        } else {
+          setStateStatus('idle');
+        }
+      } catch {
+        setStateStatus('idle');
+      }
+    };
+
+    const onMessage = (event: MessageEvent) => {
+      // A sandboxed frame has a null origin, so identify it by its window instead
+      if (!frameRef.current || event.source !== frameRef.current.contentWindow) return;
+      const msg = event.data;
+      if (!msg || typeof msg !== 'object') return;
+
+      if (msg.type === 'flashhub:storage-request') {
+        const send = () => {
+          frameRef.current?.contentWindow?.postMessage(
+            { type: 'flashhub:storage-data', data: gameState.current },
+            '*'
+          );
+          seedSent.current = true;
+        };
+        // Answer once the saved state is in hand, so nothing boots on a blank slate
+        if (stateLoaded.current) send();
+        else {
+          const waitFor = setInterval(() => {
+            if (stateLoaded.current) {
+              clearInterval(waitFor);
+              send();
+            }
+          }, 120);
+          setTimeout(() => { clearInterval(waitFor); if (!seedSent.current) send(); }, 3000);
+        }
+        return;
+      }
+
+      if (msg.type === 'flashhub:storage-changed' && msg.data && typeof msg.data === 'object') {
+        // Ignore writes from a frame that never received our seed: it would overwrite a
+        // real save with whatever the game started from.
+        if (!seedSent.current) return;
+        persist(msg.data as Record<string, string>);
+      }
+    };
+
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [game?.id, currentUser?.id, elapsedSeconds, localStateKey]);
+
   const handleClose = () => {
     onClose(elapsedSeconds);
   };
+
+  useEscapeKey(handleClose);
+
+  if (!game) return null;
 
   const handleSelectMirror = (m: GameMirror) => {
     setSelectedMirrorId(m.id);
@@ -186,10 +341,7 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
 
       const res = await fetch('/api/saves', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
 
@@ -255,6 +407,21 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
                 <Timer className="w-3 h-3 text-zinc-400" />
                 <span>{formatTimer(elapsedSeconds)}</span>
               </div>
+
+              {stateStatus !== 'idle' && (
+                <span
+                  className="hidden sm:inline-flex chip chip-web"
+                  title={
+                    currentUser
+                      ? 'This game\'s progress is stored on your account'
+                      : 'Progress is stored in this browser. Sign in to carry it across devices.'
+                  }
+                >
+                  {stateStatus === 'restored' && 'Progress restored'}
+                  {stateStatus === 'saving' && 'Saving…'}
+                  {stateStatus === 'saved' && 'Progress saved'}
+                </span>
+              )}
             </div>
 
             <div className="flex items-center gap-1.5">
@@ -278,6 +445,15 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
               >
                 <Tv className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">CRT</span>
+              </button>
+
+              <button
+                onClick={toggleFullscreen}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isFullscreen ? 'bg-flame text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                title={isFullscreen ? 'Exit fullscreen' : 'Play fullscreen'}
+              >
+                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                <span className="hidden sm:inline">Fullscreen</span>
               </button>
 
               <button
@@ -461,7 +637,7 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
           </AnimatePresence>
           
           {/* Main Game Screen or 404 Diagnostics Panel */}
-          <div className="relative w-full bg-void flex-grow flex items-center justify-center overflow-hidden">
+          <div ref={stageRef} className="relative w-full bg-void flex-grow flex items-center justify-center overflow-hidden">
             {show404Panel ? (
               <div className="w-full h-full flex items-center justify-center p-6 bg-void overflow-y-auto">
                 <NotFoundPanel
@@ -497,15 +673,24 @@ export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerMod
                       width="646"
                       height="190"
                       allow="autoplay; fullscreen"
+                      sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
                       className={`max-w-full ${isCrtMode ? 'rounded-2xl' : ''}`}
                       title={`${game.title} Steam Widget`}
                     ></iframe>
                   ) : (
                     <iframe
                       key={iframeKey}
+                      ref={frameRef}
                       src={currentEmbedUrl || game.embedUrl}
                       frameBorder="0"
-                      allow="autoplay; fullscreen; clipboard-read; clipboard-write"
+                      allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
+                      /*
+                       * Deliberately no allow-same-origin: games are third-party code, and
+                       * without it they get an opaque origin that cannot read the hub's
+                       * session, storage or DOM. Their own saves travel over the bridge
+                       * in /frame-storage.js instead.
+                       */
+                      sandbox="allow-scripts allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock"
                       className={`w-full h-full ${isTheaterMode ? 'min-h-[85vh]' : 'min-h-[55vh] sm:min-h-[72vh]'} ${isCrtMode ? 'rounded-xl border-2 border-zinc-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
                       title={`${game.title} Embed`}
                     ></iframe>

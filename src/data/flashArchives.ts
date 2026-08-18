@@ -127,7 +127,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     genres: ['Platformer', 'Adventure', 'Flash'],
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/super-mario-63/Super_Mario_63.swf',
-    description: 'Runouw\\\'s magnum opus 2D homage to Super Mario 64 and Sunshine with the FLUDD pack and level editor.',
+    description: 'Runouw\'s magnum opus 2D homage to Super Mario 64 and Sunshine with the FLUDD pack and level editor.',
     mirrors: [
       { id: 'super-mario-63-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Super%20Mario%2063&swf=/api/archive-swf/super-mario-63/Super_Mario_63.swf&autoplay=1', isArchiveIndependent: true },
       { id: 'super-mario-63-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/super-mario-63/Super_Mario_63.swf', isArchiveIndependent: true },
