@@ -800,6 +800,36 @@ async function startServer() {
     });
   };
 
+  /**
+   * Origin that game frames are loaded from.
+   *
+   * Games are third-party code, so they must not share an origin with the hub. An opaque
+   * sandbox (dropping allow-same-origin) achieves that but also stops the frame's scripts
+   * from running at all, so instead the games are served from a *different real* origin:
+   * localhost and 127.0.0.1 are the same server but distinct origins, which keeps the hub's
+   * cookie and storage out of reach while letting the game behave normally.
+   *
+   * Deployments behind a real domain should set GAME_ORIGIN to a second hostname.
+   */
+  const resolveGameOrigin = (req: express.Request): string => {
+    if (process.env.GAME_ORIGIN) return process.env.GAME_ORIGIN.replace(/\/$/, '');
+
+    const host = (req.headers.host || '').split(':')[0];
+    const port = (req.headers.host || '').split(':')[1];
+    const suffix = port ? `:${port}` : '';
+    const protocol = req.protocol === 'https' ? 'https' : 'http';
+
+    if (host === 'localhost') return `${protocol}://127.0.0.1${suffix}`;
+    if (host === '127.0.0.1') return `${protocol}://localhost${suffix}`;
+
+    // No second origin available; frames fall back to same-origin (see the README).
+    return '';
+  };
+
+  app.get('/api/config', (req, res) => {
+    res.json({ status: 'ok', gameOrigin: resolveGameOrigin(req) });
+  });
+
   // API Route to fetch games
   app.get('/api/games', async (req, res) => {
     try {
@@ -2007,6 +2037,13 @@ async function startServer() {
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
+    if (!process.env.GAME_ORIGIN) {
+      console.log(
+        '[FlashHub] GAME_ORIGIN is not set. On localhost the hub falls back to 127.0.0.1 for ' +
+        'game frames, but a public deployment should set GAME_ORIGIN to a second hostname so ' +
+        'game code cannot share an origin with the hub.'
+      );
+    }
   });
 }
 

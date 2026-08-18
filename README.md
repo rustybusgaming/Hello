@@ -68,17 +68,25 @@ from the curated Archive.org catalogue.
 
 Games are third-party code, so they run walled off from the hub:
 
-- Every game frame is sandboxed **without `allow-same-origin`**, which puts it in an opaque
-  origin. It cannot read the hub's DOM, storage or cookies, and its own requests are not
-  sent with the session.
+- Game frames load from a **separate origin**, not the hub's. On localhost the server frames
+  them from `127.0.0.1` (same server, different origin); set `GAME_ORIGIN` to a second
+  hostname for a public deployment. Because the origin differs, game code cannot read the
+  hub's DOM or storage, and the session cookie is never sent with its requests.
+- The frames are also sandboxed (no top-level navigation, and so on). Note that
+  `allow-same-origin` is deliberately *kept*: it grants the game only its own origin, and
+  removing it produces an opaque origin where the game's own scripts do not run at all.
 - The session lives in an **httpOnly, SameSite=Strict cookie**. No page or frame script can
   read the token, and nothing is kept in `localStorage`.
 - Password checks on sign-in, password change and account deletion are rate limited per
   account and (more loosely) per IP, so shared school or office networks are not locked out
   by one attacker.
 
-Because a sandboxed frame has no usable `localStorage`, the server inlines a small storage
-bridge (`server/frameStorage.ts`) into every game document. The frame gets a synchronous
+If no second origin is available, frames fall back to the hub's own origin and this
+isolation is lost; the server logs a warning at startup when `GAME_ORIGIN` is unset.
+
+The server also inlines a small storage bridge (`server/frameStorage.ts`) into every game
+document. Games on the isolated origin would otherwise save into that origin's own storage,
+which is device-local and invisible to the hub. The frame gets a synchronous
 in-memory `Storage` that is seeded from, and written back to, the hub over `postMessage` —
 which is what makes cloud saves hold real game state (Ruffle keeps Flash SharedObjects in
 `localStorage`) rather than just a playtime note. Signed-in players get their progress on
@@ -109,6 +117,7 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `PORT` | No | Server port (default `3000`) |
+| `GAME_ORIGIN` | No | Second origin that game frames load from; falls back to `127.0.0.1` on localhost |
 | `NODE_ENV` | No | Set to `production` to serve `dist/` instead of the Vite middleware |
 | `STEAM_API_KEY` | No | Reserved for the Steam Web API; profile lookup currently scrapes the public XML/HTML endpoints |
 | `GEMINI_API_KEY` | No | Injected by AI Studio; not used by the current code |

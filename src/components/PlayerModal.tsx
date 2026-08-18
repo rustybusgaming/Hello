@@ -26,9 +26,11 @@ interface PlayerModalProps {
   game: Game | null;
   onClose: (elapsedSeconds: number) => void;
   currentUser?: UserAccount | null;
+  /** Separate origin games are framed from; empty falls back to same-origin. */
+  gameOrigin?: string;
 }
 
-export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
+export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: PlayerModalProps) {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isCrtMode, setIsCrtMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -53,6 +55,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   const seedSent = useRef(false);
   const autoSaveId = useRef<string | null>(null);
   const [stateStatus, setStateStatus] = useState<'idle' | 'restored' | 'saving' | 'saved'>('idle');
+  const [frameError, setFrameError] = useState<string | null>(null);
 
   const localStateKey = game ? `flashhub-game-state:${game.id}` : '';
   const AUTO_SLOT = 'Progress (auto)';
@@ -173,6 +176,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
     let cancelled = false;
     stateLoaded.current = false;
     seedSent.current = false;
+    setFrameError(null);
     autoSaveId.current = null;
     gameState.current = {};
     setStateStatus('idle');
@@ -289,6 +293,13 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
         return;
       }
 
+      if (msg.type === 'flashhub:frame-error') {
+        // Keep the last failure so the diagnostics panel can explain a blank game screen
+        console.warn('[FlashHub] Game frame error:', msg.message, msg.detail || '');
+        setFrameError(String(msg.message || 'The game reported an error'));
+        return;
+      }
+
       if (msg.type === 'flashhub:storage-changed' && msg.data && typeof msg.data === 'object') {
         // Ignore writes from a frame that never received our seed: it would overwrite a
         // real save with whatever the game started from.
@@ -366,6 +377,11 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   };
 
   const isCurrentArchive = currentEmbedUrl.includes('archive.org');
+
+  // Relative URLs are served by this app, so they move to the isolated game origin.
+  // Everything the game then loads resolves against that origin too.
+  const toFrameUrl = (url: string) => (gameOrigin && url.startsWith('/') ? gameOrigin + url : url);
+  const frameSrc = toFrameUrl(currentEmbedUrl || game.embedUrl);
 
   return (
     <AnimatePresence>
@@ -668,7 +684,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                   {game.source === 'steam' ? (
                     <iframe
                       key={iframeKey}
-                      src={currentEmbedUrl || game.embedUrl}
+                      src={frameSrc}
                       frameBorder="0"
                       width="646"
                       height="190"
@@ -681,16 +697,19 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                     <iframe
                       key={iframeKey}
                       ref={frameRef}
-                      src={currentEmbedUrl || game.embedUrl}
+                      src={frameSrc}
                       frameBorder="0"
                       allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
                       /*
-                       * Deliberately no allow-same-origin: games are third-party code, and
-                       * without it they get an opaque origin that cannot read the hub's
-                       * session, storage or DOM. Their own saves travel over the bridge
-                       * in /frame-storage.js instead.
+                       * Isolation comes from gameOrigin being a different origin than the
+                       * hub, not from dropping allow-same-origin: an opaque sandbox stops
+                       * the game's own scripts from running at all.
                        */
-                      sandbox="allow-scripts allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock"
+                      sandbox={
+                        gameOrigin
+                          ? 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock'
+                          : 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
+                      }
                       className={`w-full h-full ${isTheaterMode ? 'min-h-[85vh]' : 'min-h-[55vh] sm:min-h-[72vh]'} ${isCrtMode ? 'rounded-xl border-2 border-zinc-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
                       title={`${game.title} Embed`}
                     ></iframe>

@@ -133,6 +133,23 @@ export const FRAME_STORAGE_SCRIPT = `/* ${'flashhub-storage-bridge-v1'} */
 
   window.__flashhubStorage = bridge;
 
+  // Surface failures out of the frame: a sandboxed game that dies on boot is otherwise
+  // just a blank rectangle, with its console out of reach of the hub.
+  function reportError(message, detail) {
+    try {
+      parent.postMessage({ type: 'flashhub:frame-error', message: String(message).slice(0, 300), detail: String(detail || '').slice(0, 300) }, '*');
+    } catch (e) { /* nothing else we can do */ }
+  }
+
+  window.addEventListener('error', function (event) {
+    reportError(event.message || 'Script error', event.filename ? event.filename + ':' + event.lineno : '');
+  });
+
+  window.addEventListener('unhandledrejection', function (event) {
+    var reason = event.reason;
+    reportError(reason && reason.message ? reason.message : reason, reason && reason.name);
+  });
+
   try {
     parent.postMessage({ type: 'flashhub:storage-request' }, '*');
   } catch (e) {

@@ -41,6 +41,9 @@ export default function App() {
   // User Authentication State. The session itself lives in an httpOnly cookie the browser
   // sends automatically, so nothing here is readable by page or frame scripts.
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
+  // Origin that game frames load from; kept separate from the hub so game code cannot
+  // reach the session. Empty means the server has no second origin configured.
+  const [gameOrigin, setGameOrigin] = useState('');
   const [, setAuthChecked] = useState(false);
 
   const [favorites, setFavorites] = useLocalStorage<string[]>('flashhub-favorites', []);
@@ -64,6 +67,11 @@ export default function App() {
     } catch { /* private mode */ }
 
     refreshSession();
+
+    fetch('/api/config')
+      .then(res => (res.ok ? res.json() : null))
+      .then(d => setGameOrigin(d?.gameOrigin || ''))
+      .catch(() => setGameOrigin(''));
   }, []);
 
   const handleUpdateUser = (user: UserAccount | null) => {
@@ -459,6 +467,7 @@ export default function App() {
           game={selectedGame} 
           onClose={handleCloseModal} 
           currentUser={currentUser}
+          gameOrigin={gameOrigin}
         />
       )}
 
