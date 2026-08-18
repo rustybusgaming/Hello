@@ -25,8 +25,13 @@ export function hashPassword(password: string, customSalt?: string): { hash: str
 }
 
 export function verifyPassword(password: string, hash: string, salt: string): boolean {
+  if (!hash || !salt) return false;
   const computed = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-  return crypto.timingSafeEqual(Buffer.from(computed), Buffer.from(hash));
+  const computedBuf = Buffer.from(computed);
+  const storedBuf = Buffer.from(hash);
+  // timingSafeEqual throws on length mismatch, which a malformed stored hash would trigger
+  if (computedBuf.length !== storedBuf.length) return false;
+  return crypto.timingSafeEqual(computedBuf, storedBuf);
 }
 
 export function generateSessionToken(): string {
@@ -36,10 +41,21 @@ export function generateSessionToken(): string {
 export function getSessions(): Record<string, SessionRecord> {
   try {
     if (!fs.existsSync(SESSIONS_FILE)) {
-      fs.writeFileSync(SESSIONS_FILE, JSON.stringify({}, null, 2));
+      saveSessions({});
       return {};
     }
-    return JSON.parse(fs.readFileSync(SESSIONS_FILE, 'utf8'));
+    const raw = fs.readFileSync(SESSIONS_FILE, 'utf8').trim();
+    if (!raw) {
+      saveSessions({});
+      return {};
+    }
+    const parsed = JSON.parse(raw);
+    // An array or primitive here would break every token lookup downstream
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      saveSessions({});
+      return {};
+    }
+    return parsed as Record<string, SessionRecord>;
   } catch (err) {
     console.error('Error reading sessions:', err);
     return {};
@@ -48,7 +64,9 @@ export function getSessions(): Record<string, SessionRecord> {
 
 export function saveSessions(sessions: Record<string, SessionRecord>) {
   try {
-    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2));
+    const tmpFile = `${SESSIONS_FILE}.tmp`;
+    fs.writeFileSync(tmpFile, JSON.stringify(sessions, null, 2));
+    fs.renameSync(tmpFile, SESSIONS_FILE);
   } catch (err) {
     console.error('Error saving sessions:', err);
   }
@@ -57,6 +75,14 @@ export function saveSessions(sessions: Record<string, SessionRecord>) {
 export function createSession(userId: string): string {
   const token = generateSessionToken();
   const sessions = getSessions();
+
+  // Drop sessions that have already expired so the file does not grow forever
+  const nowMs = Date.now();
+  for (const [existingToken, record] of Object.entries(sessions)) {
+    if (new Date(record.expiresAt).getTime() < nowMs) {
+      delete sessions[existingToken];
+    }
+  }
   
   // 30-day session lifetime
   const createdAt = new Date().toISOString();

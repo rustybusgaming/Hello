@@ -13,30 +13,36 @@ import {
   EyeOff,
   Plus,
   Download,
-  Upload,
   CheckCircle2,
   AlertCircle,
-  Activity,
-  Cpu,
-  Database,
   Terminal,
   Search
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { GENIZY_WEBPORT_GAMES } from '../data/webportGames';
+import { QUASAR_FLASH_GAMES, QUASAR_HTML5_GAMES, QUASAR_WEBGL_GAMES } from '../data/quasarGames';
+import { CURATED_FLASH_COLLECTIONS } from '../data/flashArchives';
 
 interface AdminPanelProps {
   games: Game[];
   onClose: () => void;
   onRefreshGames: () => void;
   currentUser: UserAccount | null;
+  authToken: string | null;
 }
 
-export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: AdminPanelProps) {
+export function AdminPanel({ games, onClose, onRefreshGames, currentUser, authToken }: AdminPanelProps) {
   const [activeTab, setActiveTab] = useState<'sync' | 'accounts' | 'games' | 'saves'>('sync');
-  
+
+  // Every /api/admin route requires an admin session
+  const isAdmin = currentUser?.role === 'admin' && !!authToken;
+  const authHeaders = (extra?: Record<string, string>): Record<string, string> => ({
+    ...(extra || {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+  });
+
   // Stats
   const [stats, setStats] = useState<SystemStats | null>(null);
-  const [statsLoading, setStatsLoading] = useState(true);
 
   // Accounts
   const [accounts, setAccounts] = useState<UserAccount[]>([]);
@@ -62,37 +68,39 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncLogs, setSyncLogs] = useState<string[]>([
     '[System] Admin Console initialized.',
-    `[System] genizy/web-port proxy active (43 ports available).`,
-    `[System] Archive.org & Quasar Flash engines loaded.`
+    `[System] genizy/web-port proxy active (${GENIZY_WEBPORT_GAMES.length} ports available).`,
+    `[System] quasar mirror: ${QUASAR_FLASH_GAMES.length + QUASAR_HTML5_GAMES.length + QUASAR_WEBGL_GAMES.length} titles streaming from CDN.`
   ]);
+
+  const appendLog = (message: string) =>
+    setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${message}`]);
 
   // Load stats & accounts
   const loadAdminData = async () => {
     try {
-      setStatsLoading(true);
       const [statsRes, accRes] = await Promise.all([
-        fetch('/api/admin/stats').then(r => r.ok ? r.json() : { status: 'error' }),
-        fetch('/api/accounts').then(r => r.ok ? r.json() : { status: 'error' })
+        isAdmin
+          ? fetch('/api/admin/stats', { headers: authHeaders() }).then(r => r.ok ? r.json() : { status: 'error' })
+          : Promise.resolve({ status: 'error' }),
+        fetch('/api/accounts', { headers: authHeaders() }).then(r => r.ok ? r.json() : { status: 'error' })
       ]);
 
       if (statsRes && statsRes.status === 'ok') setStats(statsRes.data);
       if (accRes && accRes.status === 'ok') setAccounts(accRes.data);
     } catch (err) {
       console.error('Failed to load admin data:', err);
-    } finally {
-      setStatsLoading(false);
     }
   };
 
   useEffect(() => {
     loadAdminData();
-  }, []);
+  }, [isAdmin]);
 
   // Load global saves if on saves tab
   useEffect(() => {
-    if (activeTab === 'saves') {
+    if (activeTab === 'saves' && isAdmin) {
       setSavesLoading(true);
-      fetch('/api/saves')
+      fetch('/api/saves', { headers: authHeaders() })
         .then(r => r.ok ? r.json() : null)
         .then(d => {
           if (d && d.status === 'ok') setAllSaves(d.data || []);
@@ -100,20 +108,20 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         .catch(() => {})
         .finally(() => setSavesLoading(false));
     }
-  }, [activeTab]);
+  }, [activeTab, isAdmin]);
 
   // Trigger Manual Sync
   const handleTriggerSync = async () => {
     setIsSyncing(true);
-    setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Triggering manual repository catalog sync...`]);
+    appendLog('Triggering manual repository catalog sync...');
     try {
-      const res = await fetch('/api/sync', { method: 'POST' });
+      const res = await fetch('/api/sync', { method: 'POST', headers: authHeaders() });
       const d = await res.json();
-      setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sync response: ${d.message || d.status}`]);
+      appendLog(res.ok ? `Sync response: ${d.message || d.status}` : `Sync refused: ${d.error}`);
       loadAdminData();
       onRefreshGames();
     } catch (err: any) {
-      setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Sync error: ${err.message}`]);
+      appendLog(`Sync error: ${err.message}`);
     } finally {
       setIsSyncing(false);
     }
@@ -122,13 +130,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   // Clear Cache
   const handleClearCache = async () => {
     try {
-      const res = await fetch('/api/admin/cache/clear', { method: 'POST' });
+      const res = await fetch('/api/admin/cache/clear', { method: 'POST', headers: authHeaders() });
       const d = await res.json();
-      setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Cache cleared: ${d.message}`]);
+      appendLog(res.ok ? `Cache cleared: ${d.message}` : `Cache clear refused: ${d.error}`);
       loadAdminData();
       onRefreshGames();
     } catch (err: any) {
-      setSyncLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] Cache clear failed: ${err.message}`]);
+      appendLog(`Cache clear failed: ${err.message}`);
     }
   };
 
@@ -152,17 +160,57 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
       });
 
       const d = await res.json();
-      if (d.status === 'ok') {
-        setAccounts(prev => [...prev, d.user]);
-        setNewUsername('');
-        setNewEmail('');
-        setNewSteamId('');
-        setNewPassword('player1234');
-        setAccountActionMessage(`Account "${d.user.username}" created with password "${newPassword || 'player1234'}"!`);
-        setTimeout(() => setAccountActionMessage(''), 5000);
-      } else {
+      if (!res.ok || d.status !== 'ok') {
         alert(d.error || 'Failed to create account');
+        return;
       }
+
+      let createdUser = d.user;
+
+      // The register endpoint always creates a plain user (only the very first account is
+      // promoted), so apply the requested role separately with admin credentials.
+      if (newRole === 'admin' && createdUser.role !== 'admin') {
+        const roleRes = await fetch(`/api/admin/users/${createdUser.id}/role`, {
+          method: 'PUT',
+          headers: authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ role: 'admin' })
+        });
+        const roleData = await roleRes.json();
+        if (roleRes.ok && roleData.status === 'ok') {
+          createdUser = roleData.data;
+        } else {
+          appendLog(`Could not grant admin role: ${roleData.error || roleRes.status}`);
+        }
+      }
+
+      // Link Steam on the new account's own session, if an ID was supplied
+      if (newSteamId.trim() && d.token) {
+        try {
+          const lookupRes = await fetch(`/api/steam/lookup?query=${encodeURIComponent(newSteamId.trim())}`);
+          const lookupData = await lookupRes.json();
+          if (lookupRes.ok && lookupData.status === 'ok') {
+            const linkRes = await fetch('/api/auth/link-steam', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${d.token}` },
+              body: JSON.stringify(lookupData.data)
+            });
+            const linkData = await linkRes.json();
+            if (linkRes.ok && linkData.status === 'ok') createdUser = linkData.user;
+          }
+        } catch (linkErr: any) {
+          appendLog(`Steam link skipped: ${linkErr.message}`);
+        }
+      }
+
+      setAccounts(prev => [...prev, createdUser]);
+      const usedPassword = newPassword || 'player1234';
+      setNewUsername('');
+      setNewEmail('');
+      setNewSteamId('');
+      setNewPassword('player1234');
+      setNewRole('user');
+      setAccountActionMessage(`Account "${createdUser.username}" created with password "${usedPassword}"!`);
+      setTimeout(() => setAccountActionMessage(''), 5000);
     } catch (err: any) {
       alert(err.message);
     }
@@ -172,7 +220,12 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   const handleDeleteAccount = async (id: string, username: string) => {
     if (!confirm(`Delete account "${username}" and all their save states?`)) return;
     try {
-      await fetch(`/api/admin/users/${id}`, { method: 'DELETE' });
+      const res = await fetch(`/api/admin/users/${id}`, { method: 'DELETE', headers: authHeaders() });
+      const d = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(d.error || 'Failed to delete account');
+        return;
+      }
       setAccounts(prev => prev.filter(a => a.id !== id));
       loadAdminData();
     } catch (err: any) {
@@ -186,12 +239,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
     try {
       const res = await fetch(`/api/admin/users/${account.id}/role`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ role: nextRole })
       });
       const d = await res.json();
-      if (d.status === 'ok') {
+      if (res.ok && d.status === 'ok') {
         setAccounts(prev => prev.map(a => a.id === account.id ? { ...a, role: nextRole } : a));
+      } else {
+        alert(d.error || 'Failed to change role');
       }
     } catch (err: any) {
       alert(err.message);
@@ -203,12 +258,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
     try {
       const res = await fetch('/api/admin/games/toggle', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({ gameId, hide: !currentHidden })
       });
       const d = await res.json();
-      if (d.status === 'ok') {
+      if (res.ok && d.status === 'ok') {
         onRefreshGames();
+      } else {
+        appendLog(`Could not update game visibility: ${d.error || res.status}`);
       }
     } catch (err: any) {
       console.error('Failed to toggle game:', err);
@@ -223,7 +280,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
     try {
       const res = await fetch('/api/admin/games/custom-add', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify({
           title: customTitle.trim(),
           embedUrl: customUrl.trim(),
@@ -233,14 +290,37 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
       });
 
       const d = await res.json();
-      if (d.status === 'ok') {
+      if (res.ok && d.status === 'ok') {
         setCustomTitle('');
         setCustomUrl('');
         setCustomThumb('');
         setAddGameSuccess(`Added "${d.data.title}" to catalog!`);
         setTimeout(() => setAddGameSuccess(''), 4000);
         onRefreshGames();
+      } else {
+        alert(d.error || 'Failed to add game');
       }
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  // Download the full save backup with the admin token attached
+  const handleExportSaves = async () => {
+    try {
+      const res = await fetch('/api/saves/export-all', { headers: authHeaders() });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Failed to export saves');
+        return;
+      }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'flashhub-all-saves-backup.json';
+      a.click();
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       alert(err.message);
     }
@@ -252,23 +332,23 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-4xl bg-zinc-950 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-4xl bg-pit border border-edge rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-zinc-800 bg-zinc-900/60 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-edge bg-surface/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-amber-400 shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-flame/10 border border-flame/30 flex items-center justify-center text-flame shadow-lg">
               <Shield className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white tracking-tight">Admin & Sync Operations Center</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-flame/15 text-flame border border-flame/30">
                   ROOT ACCESS
                 </span>
               </div>
@@ -280,14 +360,25 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-all"
+            className="w-8 h-8 rounded-lg btn-ghost hover:text-white flex items-center justify-center transition-all"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
+        {/* Admin session notice */}
+        {!isAdmin && (
+          <div className="px-5 py-3 bg-flame/10 border-b border-flame/25 text-amber-200 text-xs flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 flex-shrink-0" />
+            <span>
+              Signed-in admin session required. Sign in from the account menu with an admin account to
+              load server stats and run operations here.
+            </span>
+          </div>
+        )}
+
         {/* Live Metrics Ribbon */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 border-b border-zinc-800 bg-zinc-900/30 divide-x divide-zinc-800/80 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-5 border-b border-edge bg-surface/30 divide-x divide-zinc-800/80 text-xs">
           <div className="p-3">
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Total Games</span>
             <div className="text-sm font-bold text-white mt-0.5">{games.length} Active</div>
@@ -304,7 +395,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </div>
           <div className="p-3">
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Memory Footprint</span>
-            <div className="text-sm font-bold text-emerald-400 mt-0.5">{stats?.memoryUsageMb || 64} MB</div>
+            <div className="text-sm font-bold text-mint mt-0.5">{stats?.memoryUsageMb || 64} MB</div>
           </div>
           <div className="p-3 col-span-2 sm:col-span-1">
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Proxy Engine</span>
@@ -313,12 +404,12 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-zinc-800 bg-zinc-900/20 px-4 pt-2 gap-2 text-xs font-medium">
+        <div className="flex border-b border-edge bg-surface/20 px-4 pt-2 gap-2 text-xs font-medium">
           <button
             onClick={() => setActiveTab('sync')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'sync'
-                ? 'border-amber-400 text-amber-400 font-semibold'
+                ? 'border-amber-400 text-flame font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -340,7 +431,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('games')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'games'
-                ? 'border-cyan-400 text-cyan-400 font-semibold'
+                ? 'border-cyan-400 text-ice font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -351,7 +442,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('saves')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'saves'
-                ? 'border-emerald-400 text-emerald-400 font-semibold'
+                ? 'border-emerald-400 text-mint font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -366,33 +457,33 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'sync' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                      <Server className="w-4 h-4 text-cyan-400" />
+                      <Server className="w-4 h-4 text-ice" />
                       Repository Integrations
                     </h4>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-mint border border-emerald-500/20">
                       ONLINE
                     </span>
                   </div>
 
                   <div className="space-y-2 text-xs text-zinc-400">
-                    <div className="flex justify-between border-b border-zinc-800/60 pb-1.5">
-                      <span>genizy/web-port (43 Unity/Godot ports):</span>
+                    <div className="flex justify-between border-b border-edge/60 pb-1.5">
+                      <span>genizy/web-port ({GENIZY_WEBPORT_GAMES.length} Unity/Godot ports):</span>
                       <span className="text-zinc-200 font-mono">Stream Proxy Active</span>
                     </div>
-                    <div className="flex justify-between border-b border-zinc-800/60 pb-1.5">
-                      <span>Archive.org + Ruffle Web (40+ Flash Classics):</span>
-                      <span className="text-zinc-200 font-mono">Curated + Live</span>
+                    <div className="flex justify-between border-b border-edge/60 pb-1.5">
+                      <span>quasar mirror ({QUASAR_FLASH_GAMES.length} Flash / {QUASAR_HTML5_GAMES.length} HTML5 / {QUASAR_WEBGL_GAMES.length} WebGL):</span>
+                      <span className="text-zinc-200 font-mono">CDN Stream</span>
                     </div>
-                    <div className="flex justify-between border-b border-zinc-800/60 pb-1.5">
-                      <span>Archive Outage Resilience:</span>
-                      <span className="text-emerald-400 font-bold font-mono">Multi-Mirror & Ruffle Active</span>
+                    <div className="flex justify-between border-b border-edge/60 pb-1.5">
+                      <span>Archive.org ({CURATED_FLASH_COLLECTIONS.length} verified + live search):</span>
+                      <span className="text-zinc-200 font-mono">Direct .swf</span>
                     </div>
                     <div className="flex justify-between">
-                      <span>Quasar & Custom Uploads:</span>
-                      <span className="text-zinc-200 font-mono">Local Public Storage</span>
+                      <span>Flash playback:</span>
+                      <span className="text-mint font-bold font-mono">Ruffle WASM (no embeds)</span>
                     </div>
                   </div>
 
@@ -400,14 +491,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     <button
                       onClick={handleTriggerSync}
                       disabled={isSyncing}
-                      className="px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3.5 py-2 rounded-xl btn-flame text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                       {isSyncing ? 'Synchronizing...' : 'Trigger Sync'}
                     </button>
                     <button
                       onClick={handleClearCache}
-                      className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-all"
+                      className="px-3.5 py-2 rounded-xl btn-ghost text-xs font-medium transition-all"
                     >
                       Purge Cache
                     </button>
@@ -416,12 +507,12 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 {/* Live Console Logs */}
                 <div className="p-4 rounded-xl bg-black border border-zinc-800 flex flex-col">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-zinc-800 text-[11px] font-mono text-zinc-400">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-edge text-[11px] font-mono text-zinc-400">
                     <span className="flex items-center gap-1.5">
-                      <Terminal className="w-3.5 h-3.5 text-amber-400" />
+                      <Terminal className="w-3.5 h-3.5 text-flame" />
                       Sync & Stream Monitor
                     </span>
-                    <span className="text-emerald-400 text-[10px]">LISTENING</span>
+                    <span className="text-mint text-[10px]">LISTENING</span>
                   </div>
                   <div className="flex-1 font-mono text-[11px] text-zinc-400 space-y-1 overflow-y-auto max-h-36">
                     {syncLogs.map((log, i) => (
@@ -437,9 +528,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'accounts' && (
             <div className="space-y-6">
               {/* Add user form */}
-              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+              <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800 space-y-3">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                  <Plus className="w-3.5 h-3.5 text-mint" />
                   Add User Account
                 </h4>
 
@@ -456,34 +547,34 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     placeholder="Username *"
                     value={newUsername}
                     onChange={e => setNewUsername(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                    className="field px-3 py-2 text-xs"
                   />
                   <input
                     type="email"
                     placeholder="Email (optional)"
                     value={newEmail}
                     onChange={e => setNewEmail(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                    className="field px-3 py-2 text-xs"
                   />
                   <input
                     type="text"
                     placeholder="SteamID64 (optional)"
                     value={newSteamId}
                     onChange={e => setNewSteamId(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#66c0f4]"
+                    className="field px-3 py-2 text-xs"
                   />
                   <div className="flex gap-2">
                     <select
                       value={newRole}
                       onChange={e => setNewRole(e.target.value as any)}
-                      className="px-2.5 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white"
+                      className="field px-2.5 py-2 text-xs"
                     >
                       <option value="user">User</option>
                       <option value="admin">Admin</option>
                     </select>
                     <button
                       type="submit"
-                      className="flex-1 px-3 py-2 rounded-lg bg-white hover:bg-zinc-200 text-black font-bold text-xs transition-all"
+                      className="flex-1 px-3 py-2 rounded-lg btn-flame font-bold text-xs transition-all"
                     >
                       Create
                     </button>
@@ -494,9 +585,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               {/* Accounts list */}
               <div className="space-y-2">
                 <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Registered Accounts</span>
-                <div className="border border-zinc-800 rounded-xl overflow-hidden bg-zinc-900/30">
+                <div className="border border-zinc-800 rounded-xl overflow-hidden bg-surface/30">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-zinc-900/80 border-b border-zinc-800 text-zinc-400 font-mono text-[11px]">
+                    <thead className="bg-surface/80 border-b border-edge text-zinc-400 font-mono text-[11px]">
                       <tr>
                         <th className="p-3">Player</th>
                         <th className="p-3">Role</th>
@@ -507,7 +598,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     </thead>
                     <tbody className="divide-y divide-zinc-800/60">
                       {accounts.map(acc => (
-                        <tr key={acc.id} className="hover:bg-zinc-900/50 transition-colors">
+                        <tr key={acc.id} className="hover:bg-surface/50 transition-colors">
                           <td className="p-3">
                             <div className="flex items-center gap-2.5">
                               <img
@@ -526,7 +617,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                               onClick={() => handleToggleRole(acc)}
                               className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                 acc.role === 'admin'
-                                  ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30'
+                                  ? 'bg-flame/15 text-flame border border-flame/30'
                                   : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
                               }`}
                             >
@@ -575,9 +666,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'games' && (
             <div className="space-y-6">
               {/* Add custom game URL */}
-              <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 space-y-3">
+              <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800 space-y-3">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5 text-cyan-400" />
+                  <Plus className="w-3.5 h-3.5 text-ice" />
                   Add Custom Game Port to Hub
                 </h4>
 
@@ -593,21 +684,21 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     placeholder="Game Title (e.g. Portal 2D Web)"
                     value={customTitle}
                     onChange={e => setCustomTitle(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                    className="field px-3 py-2 text-xs"
                   />
                   <input
                     type="text"
                     placeholder="Embed / Play URL (e.g. https://... or /custom/...)"
                     value={customUrl}
                     onChange={e => setCustomUrl(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                    className="field px-3 py-2 text-xs"
                   />
                   <input
                     type="text"
                     placeholder="Thumbnail URL (optional)"
                     value={customThumb}
                     onChange={e => setCustomThumb(e.target.value)}
-                    className="px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                    className="field px-3 py-2 text-xs"
                   />
                   <div className="flex gap-2">
                     <input
@@ -615,7 +706,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       placeholder="Genres (comma separated)"
                       value={customGenres}
                       onChange={e => setCustomGenres(e.target.value)}
-                      className="flex-1 px-3 py-2 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white"
+                      className="flex-1 field px-3 py-2 text-xs"
                     />
                     <button
                       type="submit"
@@ -643,9 +734,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                   </div>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto border border-zinc-800 rounded-xl divide-y divide-zinc-800/60 bg-zinc-900/30">
+                <div className="max-h-80 overflow-y-auto border border-zinc-800 rounded-xl divide-y divide-zinc-800/60 bg-surface/30">
                   {filteredGames.map(game => (
-                    <div key={game.id} className="p-3 flex items-center justify-between gap-4 hover:bg-zinc-900/50 transition-colors">
+                    <div key={game.id} className="p-3 flex items-center justify-between gap-4 hover:bg-surface/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <img
                           src={game.thumbnail}
@@ -672,7 +763,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           game.hidden
                             ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
-                            : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 hover:bg-emerald-500/20'
+                            : 'bg-emerald-500/10 text-mint border border-emerald-500/20 hover:bg-emerald-500/20'
                         }`}
                       >
                         {game.hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -694,14 +785,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                   <p className="text-xs text-zinc-400">Manage all saved game slots stored across player accounts.</p>
                 </div>
 
-                <a
-                  href="/api/saves/export-all"
-                  download="flashhub-all-saves-backup.json"
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold transition-all shadow-lg"
+                <button
+                  onClick={handleExportSaves}
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-flame text-xs font-bold transition-all shadow-lg"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Backup Entire Save DB
-                </a>
+                </button>
               </div>
 
               {savesLoading ? (
@@ -711,9 +801,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                   No saves currently stored on server.
                 </div>
               ) : (
-                <div className="border border-zinc-800 rounded-xl overflow-hidden bg-zinc-900/30">
+                <div className="border border-zinc-800 rounded-xl overflow-hidden bg-surface/30">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-zinc-900/80 border-b border-zinc-800 text-zinc-400 font-mono text-[11px]">
+                    <thead className="bg-surface/80 border-b border-edge text-zinc-400 font-mono text-[11px]">
                       <tr>
                         <th className="p-3">Game</th>
                         <th className="p-3">User ID</th>
@@ -724,7 +814,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     </thead>
                     <tbody className="divide-y divide-zinc-800/60">
                       {allSaves.map(save => (
-                        <tr key={save.id} className="hover:bg-zinc-900/50 transition-colors">
+                        <tr key={save.id} className="hover:bg-surface/50 transition-colors">
                           <td className="p-3 font-bold text-white">{save.gameTitle}</td>
                           <td className="p-3 font-mono text-zinc-400">{save.userId}</td>
                           <td className="p-3">
@@ -739,8 +829,16 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                             <button
                               onClick={async () => {
                                 if (confirm('Delete this save?')) {
-                                  await fetch(`/api/saves/${save.id}`, { method: 'DELETE' });
-                                  setAllSaves(prev => prev.filter(s => s.id !== save.id));
+                                  const res = await fetch(`/api/saves/${save.id}`, {
+                                    method: 'DELETE',
+                                    headers: authHeaders()
+                                  });
+                                  if (res.ok) {
+                                    setAllSaves(prev => prev.filter(s => s.id !== save.id));
+                                  } else {
+                                    const d = await res.json().catch(() => ({}));
+                                    alert(d.error || 'Failed to delete save');
+                                  }
                                 }
                               }}
                               className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"

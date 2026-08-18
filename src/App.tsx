@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Game, UserAccount } from './types';
 import { TopBar } from './components/TopBar';
 import { GenreTabs } from './components/GenreTabs';
@@ -8,10 +8,12 @@ import { UploadModal } from './components/UploadModal';
 import { AdminPanel } from './components/AdminPanel';
 import { AccountModal } from './components/AccountModal';
 import { NotFoundPanel } from './components/NotFoundPanel';
-import { Loader2, Clock, Heart, Timer, X, AlertTriangle } from 'lucide-react';
+import { Loader2, Clock, Heart, Timer, X, Sparkles, Zap, Gamepad2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './lib/hooks';
 import { formatGameInfo } from './utils/gameTitles';
+
+const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3.5';
 
 interface SessionRecap {
   title: string;
@@ -28,6 +30,7 @@ export default function App() {
   const [activeGenre, setActiveGenre] = useState('All');
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [sessionRecap, setSessionRecap] = useState<SessionRecap | null>(null);
+  const recapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   
   // Modals & Panels
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -42,35 +45,31 @@ export default function App() {
   const [favorites, setFavorites] = useLocalStorage<string[]>('flashhub-favorites', []);
   const [recentlyPlayed, setRecentlyPlayed] = useLocalStorage<string[]>('flashhub-recently-played', []);
 
-  // Validate session on launch or sync active user
+  // Validate the stored session on launch and refresh the cached profile
   useEffect(() => {
-    if (authToken) {
-      fetch('/api/auth/me', {
-        headers: { Authorization: `Bearer ${authToken}` }
-      })
-        .then(res => res.ok ? res.json() : null)
-        .then(d => {
-          if (d && d.status === 'ok' && d.user) {
-            setCurrentUser(d.user);
-          } else {
-            // Expired or invalid token
-            setAuthToken(null);
-          }
-        })
-        .catch(() => setAuthToken(null));
-    } else {
-      // Fallback check if accounts exist
-      fetch('/api/accounts')
-        .then(res => res.ok ? res.json() : null)
-        .then(d => {
-          if (d && d.status === 'ok' && Array.isArray(d.data) && d.data.length > 0) {
-            if (!currentUser) {
-              setCurrentUser(d.data[0]);
-            }
-          }
-        })
-        .catch(() => {});
+    if (!authToken) {
+      // No session means no signed-in player; saves fall back to the guest bucket
+      setCurrentUser(null);
+      return;
     }
+
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${authToken}` }
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(d => {
+        if (d && d.status === 'ok' && d.user) {
+          setCurrentUser(d.user);
+        } else {
+          // Expired or invalid token
+          setCurrentUser(null);
+          setAuthToken(null);
+        }
+      })
+      .catch(() => {
+        setCurrentUser(null);
+        setAuthToken(null);
+      });
   }, [authToken]);
 
   const handleUpdateUser = (user: UserAccount | null, token?: string) => {
@@ -96,9 +95,8 @@ export default function App() {
             };
           });
 
-          // Filter out hidden games for regular view unless search matches
-          const visibleGames = formattedList.filter((g: Game) => !g.hidden);
-          setGames(visibleGames.length > 0 ? visibleGames : formattedList);
+          // Games hidden from the admin panel never reach the catalog view
+          setGames(formattedList.filter((g: Game) => !g.hidden));
           if (typeof data.isSyncing === 'boolean') {
             setIsSyncing(data.isSyncing);
           }
@@ -110,6 +108,9 @@ export default function App() {
 
   useEffect(() => {
     fetchGames();
+    return () => {
+      if (recapTimeout.current) clearTimeout(recapTimeout.current);
+    };
   }, []);
 
   // Poll sync status if currently syncing
@@ -130,44 +131,19 @@ export default function App() {
     return () => clearInterval(interval);
   }, [isSyncing]);
 
-  const handleTriggerSync = () => {
-    if (isSyncing) return;
-    setIsSyncing(true);
-    fetch('/api/sync', { method: 'POST' })
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
-        if (data) console.log('Sync trigger response:', data);
-      })
-      .catch((err) => {
-        console.error('Failed to trigger sync:', err);
-        setIsSyncing(false);
-      });
-  };
-
-  const handleSwitchUser = async (username: string) => {
-    try {
-      const res = await fetch('/api/accounts/switch', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username })
-      });
-      if (res.ok) {
-        const d = await res.json();
-        if (d.status === 'ok') {
-          setCurrentUser(d.data || d.user);
-          if (d.token) setAuthToken(d.token);
-        }
-      }
-    } catch (err) {
-      console.error('Failed to switch user:', err);
-    }
-  };
-
   const allGenres = useMemo(() => {
-    const genres = new Set<string>();
-    games.forEach((game) => game.genres.forEach((g) => genres.add(g)));
-    const sorted = Array.from(genres).sort();
-    return ['All', '🛡️ Archive-Safe (HTML5/Mirrors)', ...sorted];
+    // A tag needs a few games behind it to earn a slot in the rail; one-off tags from
+    // Archive.org metadata would otherwise bury the genres people actually browse by.
+    const counts = new Map<string, number>();
+    games.forEach((game) => game.genres.forEach((g) => counts.set(g, (counts.get(g) || 0) + 1)));
+
+    const ranked = Array.from(counts.entries())
+      .filter(([, count]) => count >= 3)
+      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+      .slice(0, 22)
+      .map(([genre]) => genre);
+
+    return ['All', 'Archive-free', ...ranked];
   }, [games]);
 
   const filteredGames = useMemo(() => {
@@ -179,7 +155,7 @@ export default function App() {
         game.genres.some(g => g.toLowerCase().includes(q));
 
       let matchesGenre = activeGenre === 'All';
-      if (activeGenre === '🛡️ Archive-Safe (HTML5/Mirrors)') {
+      if (activeGenre === 'Archive-free') {
         matchesGenre = Boolean(
           game.isArchiveIndependent ||
           game.source === 'webporting' ||
@@ -240,7 +216,8 @@ export default function App() {
       setSessionRecap(recap);
 
       // Auto-dismiss after 6.5 seconds
-      setTimeout(() => {
+      if (recapTimeout.current) clearTimeout(recapTimeout.current);
+      recapTimeout.current = setTimeout(() => {
         setSessionRecap(prev => (prev?.title === recap.title && prev?.seconds === recap.seconds ? null : prev));
       }, 6500);
     }
@@ -258,8 +235,14 @@ export default function App() {
 
   const isDefaultView = searchQuery === '' && activeGenre === 'All' && !show404View;
 
+  // Headline counts for the hero strip
+  const catalogStats = useMemo(() => {
+    const flash = games.filter((g) => g.genres.some((x) => x.toLowerCase() === 'flash')).length;
+    return { total: games.length, flash, ports: games.length - flash };
+  }, [games]);
+
   return (
-    <div className="min-h-screen bg-black text-zinc-100 font-sans selection:bg-white/20 flex flex-col overflow-hidden">
+    <div className="min-h-screen text-zinc-100 flex flex-col">
       <TopBar 
         searchQuery={searchQuery} 
         setSearchQuery={(q) => {
@@ -268,8 +251,6 @@ export default function App() {
         }} 
         onRandomGame={handleRandomGame} 
         onUploadClick={() => setIsUploadModalOpen(true)}
-        onSyncClick={handleTriggerSync}
-        isSyncing={isSyncing}
         currentUser={currentUser}
         onOpenAccount={() => setIsAccountModalOpen(true)}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
@@ -284,11 +265,11 @@ export default function App() {
         />
       )}
 
-      <main className="flex-1 w-full max-w-7xl mx-auto p-4 sm:p-6 overflow-y-auto">
+      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 pb-16">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-32 text-zinc-600">
-            <Loader2 className="w-5 h-5 animate-spin mb-4 text-zinc-400" />
-            <p className="text-[10px] tracking-widest uppercase">Loading catalog...</p>
+          <div className="flex flex-col items-center justify-center py-40 text-zinc-600">
+            <Loader2 className="w-5 h-5 animate-spin mb-4 text-flame" />
+            <p className="eyebrow">Spinning up the cabinet…</p>
           </div>
         ) : show404View ? (
           <div className="py-6">
@@ -306,21 +287,75 @@ export default function App() {
             />
           </div>
         ) : filteredGames.length > 0 ? (
-          <div className="flex flex-col gap-10">
+          <div className="flex flex-col gap-10 pt-6">
+            {isDefaultView && (
+              <section className="panel relative overflow-hidden px-6 py-8 sm:px-10 sm:py-11">
+                <div className="absolute inset-0 grid-drift opacity-[0.55] pointer-events-none" />
+                <div className="absolute -top-24 -left-16 w-80 h-80 rounded-full bg-flame/20 blur-3xl pointer-events-none" />
+                <div className="absolute -bottom-28 right-0 w-80 h-80 rounded-full bg-plasma/15 blur-3xl pointer-events-none" />
+
+                <div className="relative flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+                  <div className="max-w-xl">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-flame/30 bg-flame/10 text-flame font-mono text-[10px] tracking-[0.18em] uppercase">
+                      <Zap className="w-3 h-3" fill="currentColor" />
+                      Ruffle + WebAssembly
+                    </span>
+                    <h1 className="mt-4 font-display text-3xl sm:text-[42px] leading-[1.05] font-bold text-white">
+                      The whole arcade,
+                      <br />
+                      <span className="bg-gradient-to-r from-flame via-ember to-plasma bg-clip-text text-transparent">
+                        nothing to install.
+                      </span>
+                    </h1>
+                    <p className="mt-3 text-sm text-zinc-400 leading-relaxed">
+                      Flash classics streamed straight into Ruffle, plus HTML5 and Unity webports —
+                      all playable in the browser, with cloud saves that follow your account.
+                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-4 lg:items-end">
+                    <div className="flex gap-6">
+                      {[
+                        { label: 'Games', value: catalogStats.total, icon: Gamepad2 },
+                        { label: 'Flash', value: catalogStats.flash, icon: Zap },
+                        { label: 'Webports', value: catalogStats.ports, icon: Sparkles }
+                      ].map(({ label, value, icon: Icon }) => (
+                        <div key={label} className="flex flex-col">
+                          <span className="font-display text-2xl font-bold text-white tabular-nums">{value}</span>
+                          <span className="eyebrow flex items-center gap-1 mt-0.5">
+                            <Icon className="w-2.5 h-2.5" />
+                            {label}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                    <button
+                      onClick={handleRandomGame}
+                      className="btn-flame h-10 px-5 rounded-xl text-xs self-start lg:self-auto"
+                    >
+                      Roll a random game
+                    </button>
+                  </div>
+                </div>
+              </section>
+            )}
+
             {isDefaultView && recentlyPlayedGames.length > 0 && (
               <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <Clock className="w-4 h-4 text-zinc-400" />
-                  <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">Recently Played</h2>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <span className="rule-flame" />
+                  <Clock className="w-3.5 h-3.5 text-flame" />
+                  <h2 className="eyebrow text-zinc-300">Jump back in</h2>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                  {recentlyPlayedGames.map((game) => (
-                    <GameCard 
-                      key={game.id} 
+                <div className={GRID}>
+                  {recentlyPlayedGames.map((game, i) => (
+                    <GameCard
+                      key={game.id}
                       game={game}
+                      index={i}
                       isFavorite={favorites.includes(game.id)}
                       onToggleFavorite={handleToggleFavorite}
-                      onClick={handleGameClick} 
+                      onClick={handleGameClick}
                     />
                   ))}
                 </div>
@@ -329,18 +364,20 @@ export default function App() {
 
             {isDefaultView && favoriteGames.length > 0 && (
               <section>
-                <div className="flex items-center gap-2 mb-3">
-                  <Heart className="w-4 h-4 text-zinc-400" fill="currentColor" />
-                  <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">My Arcade</h2>
+                <div className="flex items-center gap-2.5 mb-4">
+                  <span className="rule-flame" />
+                  <Heart className="w-3.5 h-3.5 text-plasma" fill="currentColor" />
+                  <h2 className="eyebrow text-zinc-300">My arcade</h2>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                  {favoriteGames.map((game) => (
-                    <GameCard 
-                      key={game.id} 
+                <div className={GRID}>
+                  {favoriteGames.map((game, i) => (
+                    <GameCard
+                      key={game.id}
                       game={game}
+                      index={i}
                       isFavorite={favorites.includes(game.id)}
                       onToggleFavorite={handleToggleFavorite}
-                      onClick={handleGameClick} 
+                      onClick={handleGameClick}
                     />
                   ))}
                 </div>
@@ -348,21 +385,30 @@ export default function App() {
             )}
 
             <section>
-              {isDefaultView && (recentlyPlayedGames.length > 0 || favoriteGames.length > 0) && (
-                <div className="flex items-center gap-2 mb-3">
-                  <h2 className="text-[11px] font-semibold uppercase tracking-widest text-zinc-400">
-                    All Games ({games.length})
+              <div className="flex items-center justify-between gap-3 mb-4">
+                <div className="flex items-center gap-2.5">
+                  <span className="rule-flame" />
+                  <h2 className="eyebrow text-zinc-300">
+                    {searchQuery
+                      ? `Results for "${searchQuery}"`
+                      : activeGenre === 'All'
+                        ? 'Every game'
+                        : activeGenre}
                   </h2>
                 </div>
-              )}
-              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
-                {filteredGames.map((game) => (
-                  <GameCard 
-                    key={game.id} 
-                    game={game} 
+                <span className="font-mono text-[10px] text-zinc-600 tabular-nums">
+                  {filteredGames.length} title{filteredGames.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              <div className={GRID}>
+                {filteredGames.map((game, i) => (
+                  <GameCard
+                    key={game.id}
+                    game={game}
+                    index={i}
                     isFavorite={favorites.includes(game.id)}
                     onToggleFavorite={handleToggleFavorite}
-                    onClick={handleGameClick} 
+                    onClick={handleGameClick}
                   />
                 ))}
               </div>
@@ -393,15 +439,15 @@ export default function App() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ duration: 0.25 }}
-            className="fixed bottom-6 right-6 z-40 flex items-center gap-3.5 bg-zinc-950/90 backdrop-blur-xl border border-white/10 text-white px-4 py-3 rounded-xl shadow-2xl max-w-sm"
+            className="panel fixed bottom-6 right-6 z-40 flex items-center gap-3.5 bg-surface/95 backdrop-blur-xl text-white px-4 py-3 shadow-2xl max-w-sm"
           >
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
-              <Timer className="w-4 h-4 text-emerald-400" />
+            <div className="w-8 h-8 rounded-lg bg-flame/15 border border-flame/25 flex items-center justify-center flex-shrink-0">
+              <Timer className="w-4 h-4 text-flame" />
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] uppercase font-mono tracking-wider text-zinc-400">Session Completed</p>
-              <p className="text-xs text-zinc-200 truncate">
-                Played <span className="text-white font-medium">{sessionRecap.title}</span> for <span className="text-emerald-400 font-medium font-mono">{sessionRecap.durationText}</span>
+              <p className="eyebrow">Session complete</p>
+              <p className="text-xs text-zinc-200 truncate mt-0.5">
+                Played <span className="text-white font-semibold">{sessionRecap.title}</span> for <span className="text-flame font-semibold font-mono">{sessionRecap.durationText}</span>
               </p>
             </div>
             <button
@@ -421,6 +467,7 @@ export default function App() {
           game={selectedGame} 
           onClose={handleCloseModal} 
           currentUser={currentUser}
+          authToken={authToken}
         />
       )}
 
@@ -429,6 +476,7 @@ export default function App() {
         <UploadModal 
           onClose={() => setIsUploadModalOpen(false)}
           onUploadComplete={fetchGames}
+          authToken={authToken}
         />
       )}
 
@@ -439,6 +487,7 @@ export default function App() {
           onClose={() => setIsAdminModalOpen(false)}
           onRefreshGames={fetchGames}
           currentUser={currentUser}
+          authToken={authToken}
         />
       )}
 

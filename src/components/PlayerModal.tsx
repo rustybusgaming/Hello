@@ -23,9 +23,10 @@ interface PlayerModalProps {
   game: Game | null;
   onClose: (elapsedSeconds: number) => void;
   currentUser?: UserAccount | null;
+  authToken?: string | null;
 }
 
-export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
+export function PlayerModal({ game, onClose, currentUser, authToken }: PlayerModalProps) {
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isCrtMode, setIsCrtMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
@@ -36,7 +37,6 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   const [selectedMirrorId, setSelectedMirrorId] = useState<string>('');
   const [currentEmbedUrl, setCurrentEmbedUrl] = useState<string>('');
   const [iframeKey, setIframeKey] = useState(0);
-  const [showMirrorBar, setShowMirrorBar] = useState(true);
 
   // Save Keeper state
   const [gameSaves, setGameSaves] = useState<GameSave[]>([]);
@@ -62,9 +62,11 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
         // Offer Ruffle WASM as primary replacement for Archive outages
         mirrors.push({
           id: 'ruffle-wasm',
-          name: 'Ruffle WASM (Zero-Archive)',
+          name: 'Ruffle Player (Load SWF)',
           type: 'ruffle',
-          url: `/play.html?title=${encodeURIComponent(game.title)}&url=${encodeURIComponent(game.embedUrl)}`,
+          url: game.swfUrl
+            ? `/play.html?title=${encodeURIComponent(game.title)}&swf=${encodeURIComponent(game.swfUrl)}&autoplay=1`
+            : `/play.html?title=${encodeURIComponent(game.title)}`,
           isArchiveIndependent: true
         });
         mirrors.push({
@@ -123,8 +125,10 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
   // Load saves for this game
   const fetchGameSaves = () => {
     if (!game?.id) return;
-    const userIdQuery = currentUser?.id ? `userId=${currentUser.id}&` : '';
-    fetch(`/api/saves?${userIdQuery}gameId=${game.id}`)
+    const userIdQuery = currentUser?.id ? `userId=${encodeURIComponent(currentUser.id)}&` : '';
+    fetch(`/api/saves?${userIdQuery}gameId=${encodeURIComponent(game.id)}`, {
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
+    })
       .then(res => res.ok ? res.json() : { status: 'error', data: [] })
       .then(d => {
         if (d && d.status === 'ok') setGameSaves(d.data || []);
@@ -182,15 +186,25 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
 
       const res = await fetch('/api/saves', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(authToken ? { Authorization: `Bearer ${authToken}` } : {})
+        },
         body: JSON.stringify(payload)
       });
 
       const d = await res.json();
-      if (d.status === 'ok') {
-        setSaveMessage('Save state committed to cloud!');
+      if (res.ok && d.status === 'ok') {
+        let successMsg = 'Save state committed to cloud!';
+        if (d.newlyEarned && d.newlyEarned.length > 0) {
+          successMsg += ` You earned ${d.newlyEarned.length} achievement(s)!`;
+        }
+        setSaveMessage(successMsg);
         setTimeout(() => setSaveMessage(''), 3500);
         fetchGameSaves();
+      } else {
+        setSaveMessage(d.error || 'Could not commit save state');
+        setTimeout(() => setSaveMessage(''), 3500);
       }
     } catch (err: any) {
       setSaveMessage(`Error: ${err.message}`);
@@ -214,30 +228,30 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.96, opacity: 0 }}
-          className={`bg-zinc-950 overflow-hidden flex flex-col shadow-2xl transition-all duration-500 ${isTheaterMode ? 'w-full h-full rounded-none border-0' : 'w-full max-w-5xl rounded-2xl border border-zinc-800/80'}`}
+          className={`bg-pit overflow-hidden flex flex-col shadow-2xl transition-all duration-500 ${isTheaterMode ? 'w-full h-full rounded-none border-0' : 'w-full max-w-6xl rounded-2xl border border-edge'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Control Bar */}
-          <div className={`flex flex-wrap items-center justify-between p-3 border-b border-zinc-800/80 gap-2 ${isTheaterMode ? 'bg-black' : 'bg-zinc-900/60'}`}>
+          <div className={`flex flex-wrap items-center justify-between p-3 border-b border-edge gap-2 ${isTheaterMode ? 'bg-void' : 'bg-surface/70'}`}>
             <div className="flex items-center gap-3">
               <h2 className={`font-semibold text-zinc-100 flex items-center gap-2 tracking-tight ${isTheaterMode ? 'text-xs' : 'text-sm'}`}>
                 {game.title}
-                <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase font-mono tracking-wider ${
-                  game.source === 'steam' ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30' :
-                  game.source === 'archive' ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' :
-                  'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                <span className={`chip ${
+                  game.source === 'steam' ? 'chip-steam' :
+                  game.source === 'archive' ? 'chip-archive' :
+                  game.source === 'custom' ? 'chip-custom' : 'chip-web'
                 }`}>
                   {game.source}
                 </span>
                 {game.isArchiveIndependent && (
-                  <span className="hidden sm:inline-flex items-center gap-1 text-[9px] font-semibold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/30">
-                    <ShieldCheck className="w-2.5 h-2.5" /> 100% Archive-Independent
+                  <span className="hidden sm:inline-flex chip chip-flash">
+                    <ShieldCheck className="w-2.5 h-2.5" /> Archive-free
                   </span>
                 )}
               </h2>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-[11px] font-mono text-zinc-300">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-edge text-[11px] font-mono text-zinc-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-mint animate-pulse"></span>
                 <Timer className="w-3 h-3 text-zinc-400" />
                 <span>{formatTimer(elapsedSeconds)}</span>
               </div>
@@ -248,9 +262,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
               <button
                 onClick={() => setShowSaveDrawer(!showSaveDrawer)}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  showSaveDrawer
-                    ? 'bg-emerald-500 text-black'
-                    : 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 hover:bg-emerald-500/20'
+                  showSaveDrawer ? 'btn-flame' : 'btn-ghost'
                 }`}
                 title="Manage Cloud Saves"
               >
@@ -261,7 +273,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
 
               <button
                 onClick={() => setIsCrtMode(!isCrtMode)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isCrtMode ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isCrtMode ? 'bg-flame text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
                 title="Toggle Retro CRT Scanlines"
               >
                 <Tv className="w-3.5 h-3.5" />
@@ -270,7 +282,7 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
 
               <button
                 onClick={() => setIsTheaterMode(!isTheaterMode)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isTheaterMode ? 'bg-white text-black' : 'text-zinc-400 hover:text-white hover:bg-zinc-800'}`}
+                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isTheaterMode ? 'bg-flame text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
                 title="Toggle Theater Mode"
               >
                 <MonitorPlay className="w-3.5 h-3.5" />
@@ -308,12 +320,12 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
           </div>
 
           {/* Secondary Mirrors & Outage Protection Bar */}
-          {showMirrorBar && availableMirrors.length > 1 && (
-            <div className="bg-zinc-900/80 px-3 py-2 border-b border-zinc-800/80 flex flex-wrap items-center justify-between gap-2 text-xs">
+          {availableMirrors.length > 1 && (
+            <div className="bg-surface/60 px-3 py-2 border-b border-edge flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="text-zinc-400 font-semibold flex items-center gap-1 text-[11px] uppercase tracking-wider">
-                  <Server className="w-3 h-3 text-amber-400" />
-                  Active Mirror:
+                <span className="eyebrow flex items-center gap-1.5">
+                  <Server className="w-3 h-3 text-flame" />
+                  Source
                 </span>
                 {availableMirrors.map((m) => {
                   const isActive = selectedMirrorId === m.id || currentEmbedUrl === m.url;
@@ -322,12 +334,10 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                       key={m.id}
                       onClick={() => handleSelectMirror(m)}
                       className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 ${
-                        isActive
-                          ? 'bg-amber-400 text-black shadow-sm'
-                          : 'bg-zinc-800/90 text-zinc-300 hover:bg-zinc-700 hover:text-white border border-zinc-700/60'
+                        isActive ? 'bg-flame text-black shadow-sm' : 'btn-ghost'
                       }`}
                     >
-                      {m.isArchiveIndependent && <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>}
+                      {m.isArchiveIndependent && <span className="w-1.5 h-1.5 rounded-full bg-mint"></span>}
                       {m.name}
                     </button>
                   );
@@ -336,15 +346,15 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
 
               {isCurrentArchive && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-amber-300/90 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded">
-                    ⚠️ Archive.org down?
+                  <span className="text-[11px] text-flame bg-flame/10 border border-flame/25 px-2 py-0.5 rounded">
+                    Archive.org unreliable?
                   </span>
                   <button
                     onClick={() => {
                       const nonArchive = availableMirrors.find(m => m.isArchiveIndependent);
                       if (nonArchive) handleSelectMirror(nonArchive);
                     }}
-                    className="text-[11px] font-bold text-black bg-amber-400 hover:bg-amber-300 px-2.5 py-0.5 rounded transition-all flex items-center gap-1"
+                    className="btn-flame text-[11px] px-2.5 py-0.5 rounded flex items-center gap-1"
                   >
                     <RefreshCw className="w-2.5 h-2.5" /> Switch to Fallback
                   </button>
@@ -360,18 +370,18 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-b border-zinc-800 bg-zinc-950/95 p-4 overflow-hidden"
+                className="border-b border-edge bg-void/95 p-4 overflow-hidden"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Create New Save Slot */}
-                  <form onSubmit={handleCreateSave} className="p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800 space-y-2.5">
+                  <form onSubmit={handleCreateSave} className="panel p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Save className="w-3.5 h-3.5 text-emerald-400" />
+                        <Save className="w-3.5 h-3.5 text-flame" />
                         Create / Overwrite Save Slot
                       </span>
                       {saveMessage && (
-                        <span className="text-[11px] text-emerald-400 font-semibold">{saveMessage}</span>
+                        <span className="text-[11px] text-flame font-semibold">{saveMessage}</span>
                       )}
                     </div>
 
@@ -381,14 +391,14 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                         placeholder="Slot Name (e.g. Slot 1, Level 4)"
                         value={slotName}
                         onChange={e => setSlotName(e.target.value)}
-                        className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500"
+                        className="field px-2.5 py-1.5 text-xs"
                       />
                       <input
                         type="number"
                         placeholder="Score / Checkpoint (optional)"
                         value={saveScore}
                         onChange={e => setSaveScore(e.target.value)}
-                        className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500"
+                        className="field px-2.5 py-1.5 text-xs"
                       />
                     </div>
 
@@ -397,13 +407,13 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                       placeholder="Notes / Boss battle status..."
                       value={saveNotes}
                       onChange={e => setSaveNotes(e.target.value)}
-                      className="w-full px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-xs text-white placeholder-zinc-500"
+                      className="field w-full px-2.5 py-1.5 text-xs"
                     />
 
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="w-full py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all flex items-center justify-center gap-1.5"
+                      className="btn-flame w-full py-1.5 rounded-lg text-xs flex items-center justify-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       {isSaving ? 'Saving to Cloud...' : 'Commit Save State'}
@@ -411,14 +421,14 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                   </form>
 
                   {/* Existing Saves List for this game */}
-                  <div className="p-3.5 rounded-xl bg-zinc-900/70 border border-zinc-800 flex flex-col">
+                  <div className="panel p-3.5 flex flex-col">
                     <span className="text-xs font-bold text-white mb-2">Saved States ({gameSaves.length})</span>
                     <div className="flex-1 overflow-y-auto max-h-28 space-y-1.5">
                       {gameSaves.length === 0 ? (
                         <div className="text-[11px] text-zinc-500 py-4 text-center">No save states stored for this cartridge.</div>
                       ) : (
                         gameSaves.map(s => (
-                          <div key={s.id} className="p-2 rounded-lg bg-zinc-950 border border-zinc-800/80 flex items-center justify-between text-xs">
+                          <div key={s.id} className="p-2 rounded-lg bg-black/40 border border-edge flex items-center justify-between text-xs">
                             <div>
                               <span className="font-bold text-zinc-200">{s.slotName}</span>
                               <span className="text-[10px] text-zinc-500 block">
@@ -433,8 +443,9 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
                                 a.href = url;
                                 a.download = `${game.title}_${s.slotName}.json`;
                                 a.click();
+                                URL.revokeObjectURL(url);
                               }}
-                              className="p-1 rounded bg-zinc-800 text-zinc-300 hover:text-white"
+                              className="btn-ghost p-1 rounded"
                               title="Download JSON save"
                             >
                               <Download className="w-3 h-3" />
@@ -450,9 +461,9 @@ export function PlayerModal({ game, onClose, currentUser }: PlayerModalProps) {
           </AnimatePresence>
           
           {/* Main Game Screen or 404 Diagnostics Panel */}
-          <div className="relative w-full bg-black flex-grow flex items-center justify-center overflow-hidden">
+          <div className="relative w-full bg-void flex-grow flex items-center justify-center overflow-hidden">
             {show404Panel ? (
-              <div className="w-full h-full flex items-center justify-center p-6 bg-zinc-950 overflow-y-auto">
+              <div className="w-full h-full flex items-center justify-center p-6 bg-void overflow-y-auto">
                 <NotFoundPanel
                   errorTitle={`Port Diagnostics: ${game.title}`}
                   errorMessage="If this cartridge fails to boot in the player window, switch mirrors above or drag your own SWF file directly."

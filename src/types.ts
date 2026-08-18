@@ -22,6 +22,18 @@ export interface Game {
   description?: string;
 }
 
+export interface Achievement {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+}
+
+export interface UserAchievement {
+  achievementId: string;
+  earnedAt: string;
+}
+
 export interface UserAccount {
   id: string;
   username: string;
@@ -41,6 +53,7 @@ export interface UserAccount {
   steamLinkedAt?: string;
   savesCount: number;
   totalPlaytimeMinutes?: number;
+  achievements?: UserAchievement[];
 }
 
 export interface StoredUserAccount {
@@ -62,6 +75,7 @@ export interface StoredUserAccount {
   steamLevel?: number;
   steamGamesCount?: number;
   steamLinkedAt?: string;
+  achievements?: UserAchievement[];
 }
 
 export interface AuthResponse {

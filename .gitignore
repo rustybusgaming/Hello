@@ -7,6 +7,9 @@ coverage/
 .env*
 !.env.example
 
+# Local state: password hashes, live session tokens, uploaded game metadata
+data/*.json
+
 # Massive downloaded game assets
 public/gameports
 public/quasar

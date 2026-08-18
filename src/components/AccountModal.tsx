@@ -10,7 +10,6 @@ import {
   Download,
   CheckCircle2,
   Clock,
-  Sparkles,
   Link as LinkIcon,
   Unlink,
   Save,
@@ -21,7 +20,6 @@ import {
   EyeOff,
   LogOut,
   AlertTriangle,
-  Settings,
   Flame,
   Check,
   RefreshCw,
@@ -139,7 +137,9 @@ export function AccountModal({
   useEffect(() => {
     if (currentUser?.id && activeTab === 'saves') {
       setSavesLoading(true);
-      fetch(`/api/saves?userId=${currentUser.id}`)
+      fetch(`/api/saves?userId=${encodeURIComponent(currentUser.id)}`, {
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
+      })
         .then(res => res.ok ? res.json() : null)
         .then(d => {
           if (d && d.status === 'ok') {
@@ -149,7 +149,7 @@ export function AccountModal({
         .catch(() => {})
         .finally(() => setSavesLoading(false));
     }
-  }, [currentUser?.id, activeTab]);
+  }, [currentUser?.id, activeTab, authToken]);
 
   // Handle Login Submit
   const handleLoginSubmit = async (e: React.FormEvent) => {
@@ -463,7 +463,15 @@ export function AccountModal({
   const handleDeleteSave = async (saveId: string) => {
     if (!confirm('Delete this cloud save slot?')) return;
     try {
-      await fetch(`/api/saves/${saveId}`, { method: 'DELETE' });
+      const res = await fetch(`/api/saves/${saveId}`, {
+        method: 'DELETE',
+        headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined
+      });
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Could not delete this save slot');
+        return;
+      }
       setUserSaves(prev => prev.filter(s => s.id !== saveId));
     } catch (err) {
       console.error(err);
@@ -471,15 +479,15 @@ export function AccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-md">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-2xl bg-zinc-950 border border-zinc-800/80 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="w-full max-w-2xl bg-pit border border-edge rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-zinc-800/80 flex items-center justify-between bg-zinc-900/50">
+        <div className="p-4 sm:p-5 border-b border-edge flex items-center justify-between bg-surface/50">
           <div className="flex items-center gap-3">
             <div className="relative">
               <img
@@ -497,7 +505,7 @@ export function AccountModal({
                   {currentUser?.displayName || currentUser?.username || 'Guest Player'}
                 </h3>
                 {currentUser?.role === 'admin' && (
-                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-amber-500/20 border border-amber-500/30 text-amber-300 rounded">
+                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-flame/15 border border-flame/30 text-flame rounded">
                     Admin
                   </span>
                 )}
@@ -526,7 +534,7 @@ export function AccountModal({
             )}
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-white flex items-center justify-center transition-all"
+              className="w-8 h-8 rounded-lg btn-ghost hover:text-white flex items-center justify-center transition-all"
             >
               <X className="w-4 h-4" />
             </button>
@@ -534,7 +542,7 @@ export function AccountModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-zinc-800/80 bg-zinc-900/30 px-4 pt-2 gap-1 sm:gap-2 text-xs font-medium overflow-x-auto">
+        <div className="flex border-b border-edge bg-surface/30 px-4 pt-2 gap-1 sm:gap-2 text-xs font-medium overflow-x-auto">
           {currentUser ? (
             <>
               <button
@@ -563,29 +571,29 @@ export function AccountModal({
                 onClick={() => setActiveTab('saves')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'saves'
-                    ? 'border-emerald-400 text-emerald-400 font-semibold'
+                    ? 'border-emerald-400 text-mint font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <Save className="w-3.5 h-3.5 text-emerald-400" />
+                <Save className="w-3.5 h-3.5 text-mint" />
                 Game Saves ({userSaves.length || currentUser.savesCount || 0})
               </button>
               <button
                 onClick={() => setActiveTab('security')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'security'
-                    ? 'border-amber-400 text-amber-400 font-semibold'
+                    ? 'border-amber-400 text-flame font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                <KeyRound className="w-3.5 h-3.5 text-flame" />
                 Security & Password
               </button>
               <button
                 onClick={() => setActiveTab('switch')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'switch'
-                    ? 'border-cyan-400 text-cyan-400 font-semibold'
+                    ? 'border-cyan-400 text-ice font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -610,7 +618,7 @@ export function AccountModal({
                 onClick={() => setActiveTab('register')}
                 className={`pb-2.5 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
                   activeTab === 'register'
-                    ? 'border-emerald-400 text-emerald-400 font-semibold'
+                    ? 'border-emerald-400 text-mint font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -680,7 +688,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full py-2.5 px-4 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                  className="w-full py-2.5 px-4 rounded-xl btn-flame font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
                 >
                   {loginLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
                   {loginLoading ? 'Authenticating...' : 'Sign In'}
@@ -692,7 +700,7 @@ export function AccountModal({
                   onClick={() => setActiveTab('register')}
                   className="text-xs text-zinc-400 hover:text-white transition-colors"
                 >
-                  Don't have an account? <span className="text-emerald-400 font-medium underline">Create one now</span>
+                  Don't have an account? <span className="text-mint font-medium underline">Create one now</span>
                 </button>
               </div>
             </div>
@@ -904,7 +912,7 @@ export function AccountModal({
                 </div>
               ) : (
                 <form onSubmit={handleSaveProfile} className="p-5 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 space-y-4">
-                  <div className="flex items-center justify-between border-b border-zinc-800 pb-3">
+                  <div className="flex items-center justify-between border-b border-edge pb-3">
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider">Edit Profile Details</h4>
                     <button
                       type="button"
@@ -971,7 +979,7 @@ export function AccountModal({
                     <button
                       type="submit"
                       disabled={profileSaving}
-                      className="px-4 py-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs"
+                      className="px-4 py-1.5 rounded-xl btn-flame font-bold text-xs"
                     >
                       {profileSaving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -981,17 +989,17 @@ export function AccountModal({
 
               {/* Stats Metrics Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
                   <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
                     Cloud Saves
                   </span>
                   <div className="text-sm font-semibold text-white flex items-center gap-1.5">
-                    <Save className="w-4 h-4 text-emerald-400" />
+                    <Save className="w-4 h-4 text-mint" />
                     {userSaves.length || currentUser.savesCount || 0} Slots Active
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
                   <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
                     Steam Connection
                   </span>
@@ -1001,15 +1009,52 @@ export function AccountModal({
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
                   <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
                     Session Security
                   </span>
-                  <div className="text-sm font-semibold text-emerald-400 flex items-center gap-1.5">
+                  <div className="text-sm font-semibold text-mint flex items-center gap-1.5">
                     <Shield className="w-4 h-4" />
                     Encrypted Session
                   </div>
                 </div>
+              </div>
+
+              {/* Achievements Section */}
+              <div className="pt-2">
+                <div className="flex items-center gap-2 mb-3">
+                  <Flame className="w-4 h-4 text-orange-400" />
+                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">Unlocked Achievements</h4>
+                </div>
+                {(!currentUser.achievements || currentUser.achievements.length === 0) ? (
+                  <div className="p-4 rounded-xl border border-dashed border-zinc-800 text-center">
+                    <p className="text-xs text-zinc-500">No achievements unlocked yet. Play some games!</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {currentUser.achievements.map(ach => {
+                      // Hardcoded lookup for display
+                      let icon = '🏆';
+                      let name = ach.achievementId;
+                      let desc = '';
+                      if (ach.achievementId === 'first_play') { icon = '🎮'; name = 'First Play'; desc = 'Played your first game'; }
+                      if (ach.achievementId === 'marathon_player') { icon = '⏳'; name = 'Marathon Player'; desc = '1 hour of total playtime'; }
+                      if (ach.achievementId === 'genre_explorer') { icon = '🌍'; name = 'Genre Explorer'; desc = 'Played 3 different genres'; }
+                      
+                      return (
+                        <div key={ach.achievementId} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800/80">
+                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-lg border border-zinc-700/50">
+                            {icon}
+                          </div>
+                          <div>
+                            <div className="text-xs font-bold text-white">{name}</div>
+                            <div className="text-[10px] text-zinc-400">{desc}</div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
               </div>
 
               {/* Steam Showcase Card */}
@@ -1034,7 +1079,7 @@ export function AccountModal({
                         <p className="text-xs text-zinc-400 font-mono mt-0.5">
                           SteamID64: {currentUser.steamId}
                         </p>
-                        <p className="text-xs text-emerald-400 mt-1 flex items-center gap-1">
+                        <p className="text-xs text-mint mt-1 flex items-center gap-1">
                           <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                           Steam Cloud Saves & Library Synced
                         </p>
@@ -1135,7 +1180,7 @@ export function AccountModal({
                 </div>
 
                 {currentUser?.steamId && (
-                  <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+                  <div className="pt-4 border-t border-edge flex items-center justify-between">
                     <div className="text-xs text-zinc-400">
                       Currently linked to SteamID: <span className="text-zinc-200 font-mono">{currentUser.steamId}</span>
                     </div>
@@ -1188,10 +1233,10 @@ export function AccountModal({
                   {userSaves.map(save => (
                     <div
                       key={save.id}
-                      className="p-3.5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 flex items-center justify-between gap-4"
+                      className="p-3.5 rounded-xl bg-surface/60 border border-zinc-800/80 flex items-center justify-between gap-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-mint">
                           <Save className="w-4 h-4" />
                         </div>
                         <div>
@@ -1207,7 +1252,7 @@ export function AccountModal({
                               {new Date(save.timestamp).toLocaleString()}
                             </span>
                             {save.highScore !== undefined && (
-                              <span className="text-amber-300 font-semibold">
+                              <span className="text-flame font-semibold">
                                 Score: {save.highScore.toLocaleString()}
                               </span>
                             )}
@@ -1268,9 +1313,9 @@ export function AccountModal({
               )}
 
               {/* Change Password Form */}
-              <form onSubmit={handleChangePassword} className="p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-4">
+              <form onSubmit={handleChangePassword} className="p-5 rounded-2xl bg-surface/60 border border-zinc-800/80 space-y-4">
                 <h5 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                  <KeyRound className="w-3.5 h-3.5 text-flame" />
                   Change Password
                 </h5>
 
@@ -1315,7 +1360,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs transition-all disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl btn-flame font-bold text-xs transition-all disabled:opacity-50"
                 >
                   {passwordLoading ? 'Updating Password...' : 'Update Password'}
                 </button>
@@ -1375,7 +1420,7 @@ export function AccountModal({
                       className={`p-3 rounded-xl border text-left flex items-center justify-between gap-3 transition-all ${
                         currentUser?.id === acc.id
                           ? 'bg-white/10 border-white text-white'
-                          : 'bg-zinc-900/50 border-zinc-800 text-zinc-300'
+                          : 'bg-surface/50 border-zinc-800 text-zinc-300'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -1391,7 +1436,7 @@ export function AccountModal({
                       </div>
 
                       {currentUser?.id === acc.id ? (
-                        <span className="text-[10px] font-bold text-emerald-400 px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="text-[10px] font-bold text-mint px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
                           Active
                         </span>
                       ) : (
@@ -1400,7 +1445,7 @@ export function AccountModal({
                             setLoginIdentifier(acc.username);
                             setActiveTab('signin');
                           }}
-                          className="px-2.5 py-1 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium"
+                          className="px-2.5 py-1 rounded-lg btn-ghost text-xs font-medium"
                         >
                           Sign In
                         </button>
@@ -1410,17 +1455,17 @@ export function AccountModal({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between">
+              <div className="pt-4 border-t border-edge flex items-center justify-between">
                 <button
                   onClick={() => setActiveTab('register')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white hover:bg-zinc-200 text-black font-bold text-xs transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl btn-flame font-bold text-xs transition-all"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Create New Account
                 </button>
                 <button
                   onClick={() => setActiveTab('signin')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 font-medium text-xs transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl btn-ghost font-medium text-xs transition-all"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   Sign In with Password

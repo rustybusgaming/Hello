@@ -1,5 +1,7 @@
 import express from 'express';
 import path from 'path';
+import { Readable } from 'stream';
+import { pipeline } from 'stream/promises';
 import { createServer as createViteServer } from 'vite';
 import dotenv from 'dotenv';
 import fs from 'fs';
@@ -7,6 +9,7 @@ import multer from 'multer';
 import { syncGamesLibrary } from './sync-games';
 import { CURATED_FLASH_COLLECTIONS } from './src/data/flashArchives';
 import { GENIZY_WEBPORT_GAMES } from './src/data/webportGames';
+import { QUASAR_GAMES } from './src/data/quasarGames';
 import { formatGameInfo } from './src/utils/gameTitles';
 import {
   getStoredAccounts,
@@ -26,15 +29,80 @@ import {
   removeSession
 } from './server/auth';
 import { UserAccount, StoredUserAccount, GameSave } from './src/types';
+import { checkAchievements, ACHIEVEMENTS } from './server/achievements';
 
 dotenv.config();
 
-const upload = multer({ dest: path.join(process.cwd(), 'public', 'custom_games') });
+const ALLOWED_GAME_EXTENSIONS = ['.swf', '.html', '.htm'];
+const ALLOWED_THUMB_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+
+const upload = multer({
+  dest: path.join(process.cwd(), 'public', 'custom_games'),
+  limits: { fileSize: 100 * 1024 * 1024, files: 2 },
+  fileFilter: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowed = file.fieldname === 'thumbnail' ? ALLOWED_THUMB_EXTENSIONS : ALLOWED_GAME_EXTENSIONS;
+    if (!allowed.includes(ext)) {
+      cb(new Error(`Unsupported ${file.fieldname} file type "${ext || 'unknown'}". Allowed: ${allowed.join(', ')}`));
+      return;
+    }
+    cb(null, true);
+  }
+});
 
 // Ensure custom_games dir exists
 const customGamesDir = path.join(process.cwd(), 'public', 'custom_games');
 if (!fs.existsSync(customGamesDir)) {
   fs.mkdirSync(customGamesDir, { recursive: true });
+}
+
+/**
+ * Forward size/range headers, but only when the bytes on the wire still match them.
+ * fetch() transparently decompresses gzip/br responses while leaving the upstream
+ * Content-Length describing the *compressed* size; forwarding it truncates the asset.
+ */
+function copyLengthHeaders(upstream: Response, res: express.Response) {
+  if (upstream.headers.get('content-encoding')) return;
+
+  const contentLength = upstream.headers.get('content-length');
+  if (contentLength) res.setHeader('Content-Length', contentLength);
+
+  const contentRange = upstream.headers.get('content-range');
+  if (contentRange) {
+    res.setHeader('Content-Range', contentRange);
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.status(206);
+  }
+}
+
+/**
+ * Pipe an upstream fetch body straight to the client instead of buffering it.
+ * Returns false if the client hung up mid-transfer, which is normal when a player
+ * closes a game while its assets are still downloading.
+ */
+async function streamUpstream(upstream: Response, res: express.Response): Promise<boolean> {
+  if (!upstream.body) {
+    res.end();
+    return true;
+  }
+
+  try {
+    await pipeline(Readable.fromWeb(upstream.body as any), res);
+    return true;
+  } catch (err: any) {
+    if (err?.code === 'ERR_STREAM_PREMATURE_CLOSE' || err?.code === 'EPIPE') return false;
+    throw err;
+  }
+}
+
+// Escape untrusted text before interpolating it into HTML/SVG responses
+function escapeHtml(value: string): string {
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
 }
 
 // Track syncing status
@@ -90,6 +158,41 @@ const MOCK_GAMES = [
   }
 ];
 
+// itemId -> best .swf filename inside that Archive.org item (null = item has no playable SWF)
+const archiveSwfCache = new Map<string, string | null>();
+
+async function resolveArchiveSwf(itemId: string): Promise<string | null> {
+  if (archiveSwfCache.has(itemId)) return archiveSwfCache.get(itemId)!;
+
+  try {
+    const res = await fetch(`https://archive.org/metadata/${encodeURIComponent(itemId)}`, {
+      headers: { 'User-Agent': 'FlashHub/2.0' },
+      signal: AbortSignal.timeout(6000)
+    });
+    if (res.ok) {
+      const data: any = await res.json();
+      const swfFiles: string[] = (data?.files || [])
+        .map((f: any) => f.name as string)
+        .filter((name: string) => name.toLowerCase().endsWith('.swf'));
+
+      // Prefer the plain release over hacked/beta/"made easy" re-uploads
+      swfFiles.sort((a, b) => {
+        const score = (n: string) =>
+          (/hack/i.test(n) ? 4 : 0) + (/beta/i.test(n) ? 2 : 0) + (/easy|cheat/i.test(n) ? 1 : 0);
+        return score(a) - score(b) || a.length - b.length;
+      });
+
+      const best = swfFiles[0] || null;
+      archiveSwfCache.set(itemId, best);
+      return best;
+    }
+  } catch {
+    // Metadata API unavailable; fall through without caching so it can be retried later
+  }
+
+  return null;
+}
+
 // In-memory cache for Archive.org results
 let cachedArchiveGames: any[] = [...CURATED_FLASH_COLLECTIONS];
 let lastArchiveFetchTime = 0;
@@ -131,24 +234,40 @@ async function fetchArchiveGames() {
           }
         }
         
-        genres = genres.map(g => g.charAt(0).toUpperCase() + g.slice(1));
+        // Archive.org subjects are free text: some are useful tags, others are whole
+        // sentences. Keep only short, tag-shaped values so the genre rail stays readable.
+        genres = genres
+          .map(g => g.trim())
+          .filter(g => g.length > 1 && g.length <= 18 && !/[?!.]/.test(g) && g.split(/\s+/).length <= 2)
+          .map(g => g.charAt(0).toUpperCase() + g.slice(1));
+
+        const title = doc.title || 'Unknown Title';
+        // Play the item's own .swf through Ruffle. The Archive embed player is only offered
+        // as a secondary mirror because some items are video captures of the game.
+        const playUrl = `/play.html?title=${encodeURIComponent(title)}&swf=/api/archive-swf/${encodeURIComponent(doc.identifier)}&autoplay=1`;
 
         return {
           id: doc.identifier,
-          title: doc.title || 'Unknown Title',
+          title,
           thumbnail: `/api/archive-img/${doc.identifier}`,
           rating: 4.8,
           source: 'archive',
-          embedUrl: `https://archive.org/embed/${doc.identifier}`,
+          embedUrl: playUrl,
           genres: genres.length > 0 ? genres : ['Flash'],
+          isArchiveIndependent: false,
+          mirrors: [
+            { id: `${doc.identifier}-ruffle`, name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: playUrl, isArchiveIndependent: true },
+            { id: `${doc.identifier}-embed`, name: 'Archive.org Player', type: 'archive', url: `https://archive.org/embed/${doc.identifier}`, isArchiveIndependent: false }
+          ]
         };
       });
 
       if (games.length > 0) {
-        // Merge with curated collection for maximum variety and redundancy
+        // Merge live results with the curated collection. Curated entries are hand-verified
+        // (exact .swf filename, working mirrors), so they take precedence on id collisions.
         const map = new Map<string, any>();
-        CURATED_FLASH_COLLECTIONS.forEach(g => map.set(g.id, g));
         games.forEach(g => map.set(g.id, g));
+        CURATED_FLASH_COLLECTIONS.forEach(g => map.set(g.id, g));
         
         const merged = Array.from(map.values());
         cachedArchiveGames = merged;
@@ -192,7 +311,7 @@ async function fetchLocalWebports() {
             id: `gameports-${dir}`,
             title: info.title,
             description: info.description,
-            thumbnail: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80',
+            thumbnail: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(info.title)}&backgroundColor=09090b`,
             rating: info.rating || 4.8,
             source: 'webporting',
             embedUrl: `/gameports/${encodeURIComponent(dir)}/index.html`,
@@ -261,10 +380,10 @@ async function fetchLocalWebports() {
 
 async function startServer() {
   const app = express();
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT) || 3000;
 
-  // Middleware to parse JSON
-  app.use(express.json());
+  // Middleware to parse JSON (cloud saves and backup imports can be sizeable)
+  app.use(express.json({ limit: '10mb' }));
 
   // MIME types for webports proxy
   const MIME_TYPES: Record<string, string> = {
@@ -283,6 +402,16 @@ async function startServer() {
     '.pck': 'application/octet-stream',
     '.data': 'application/octet-stream',
     '.unityweb': 'application/octet-stream',
+    '.swf': 'application/x-shockwave-flash',
+    '.webp': 'image/webp',
+    '.txt': 'text/plain; charset=utf-8',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.ttf': 'font/ttf',
+    '.mp4': 'video/mp4',
+    '.webm': 'video/webm',
+    '.br': 'application/octet-stream',
+    '.gz': 'application/octet-stream',
     '.mp3': 'audio/mpeg',
     '.ogg': 'audio/ogg',
     '.wav': 'audio/wav',
@@ -305,7 +434,7 @@ async function startServer() {
             <body>
               <div style="text-align:center;">
                 <h2>Game port not found</h2>
-                <p>Could not load game "${gameId}" from repository (Status ${response.status}).</p>
+                <p>Could not load game "${escapeHtml(gameId)}" from repository (Status ${response.status}).</p>
               </div>
             </body>
           </html>
@@ -315,19 +444,20 @@ async function startServer() {
       let html = await response.text();
 
       // Replace jsdelivr base URL with local proxy base
+      const baseHref = `/api/webport-proxy/${encodeURIComponent(gameId)}/`;
       if (html.includes('<base href=')) {
-        html = html.replace(/<base href="[^"]*">/i, `<base href="/api/webport-proxy/${gameId}/">`);
+        html = html.replace(/<base href="[^"]*">/i, `<base href="${baseHref}">`);
       } else if (html.includes('<head>')) {
-        html = html.replace('<head>', `<head><base href="/api/webport-proxy/${gameId}/">`);
+        html = html.replace('<head>', `<head><base href="${baseHref}">`);
       } else {
-        html = `<base href="/api/webport-proxy/${gameId}/">` + html;
+        html = `<base href="${baseHref}">` + html;
       }
 
       res.setHeader('Content-Type', 'text/html; charset=utf-8');
       res.send(html);
     } catch (err: any) {
       console.error(`Error loading webport ${gameId}:`, err);
-      res.status(500).send(`Error loading game: ${err.message}`);
+      res.status(500).type('text/plain').send(`Error loading game: ${err.message}`);
     }
   });
 
@@ -335,6 +465,11 @@ async function startServer() {
   app.get('/api/webport-proxy/:gameId/*', async (req, res) => {
     const { gameId } = req.params;
     const assetPath = req.params[0];
+
+    // Never let a crafted asset path climb out of the game's folder upstream
+    if (assetPath.split('/').some(segment => segment === '..')) {
+      return res.status(400).type('text/plain').send('Invalid asset path');
+    }
 
     try {
       const targetUrl = `https://raw.githubusercontent.com/genizy/web-port/main/${encodeURIComponent(gameId)}/${encodeURI(assetPath)}`;
@@ -347,7 +482,7 @@ async function startServer() {
       });
 
       if (!upstreamRes.ok) {
-        return res.status(upstreamRes.status).send(`Asset not found: ${assetPath}`);
+        return res.status(upstreamRes.status).type('text/plain').send(`Asset not found: ${assetPath}`);
       }
 
       const ext = path.extname(assetPath.split('?')[0]).toLowerCase();
@@ -356,21 +491,213 @@ async function startServer() {
       res.setHeader('Content-Type', contentType);
       res.setHeader('Access-Control-Allow-Origin', '*');
       res.setHeader('Cache-Control', 'public, max-age=86400');
-      if (upstreamRes.headers.get('content-length')) {
-        res.setHeader('Content-Length', upstreamRes.headers.get('content-length')!);
-      }
-      if (upstreamRes.headers.get('content-range')) {
-        res.setHeader('Content-Range', upstreamRes.headers.get('content-range')!);
-        res.status(206);
-      } else {
-        res.status(upstreamRes.status);
-      }
+      res.status(upstreamRes.status === 206 ? 206 : upstreamRes.status);
+      copyLengthHeaders(upstreamRes, res);
 
-      const arrayBuf = await upstreamRes.arrayBuffer();
-      res.send(Buffer.from(arrayBuf));
+      await streamUpstream(upstreamRes, res);
     } catch (err: any) {
       console.error(`Error proxying webport asset for ${gameId}/${assetPath}:`, err);
-      res.status(500).send(`Error proxying asset: ${err.message}`);
+      if (!res.headersSent) res.status(500).type('text/plain').send(`Error proxying asset: ${err.message}`);
+      else res.end();
+    }
+  });
+
+  // --- ARCHIVE.ORG SWF PROXY ---
+  // Streams a single .swf out of an Archive.org item so Ruffle can play the actual game.
+  // Embedding archive.org/embed/<id> is deliberately avoided: several items are video
+  // captures, and embedding those plays a video instead of the game.
+  const streamArchiveSwf = async (req: express.Request, res: express.Response) => {
+    const { itemId } = req.params;
+    let fileName = req.params.fileName;
+
+    if (!/^[A-Za-z0-9._-]+$/.test(itemId)) {
+      return res.status(400).type('text/plain').send('Invalid archive item');
+    }
+
+    // Without an explicit filename, look up the item's best .swf from its metadata
+    if (!fileName) {
+      const resolved = await resolveArchiveSwf(itemId);
+      if (!resolved) {
+        return res.status(404).type('text/plain').send('This Archive.org item does not contain a playable SWF');
+      }
+      fileName = resolved;
+    }
+
+    if (fileName.includes('/') || !/\.swf$/i.test(fileName)) {
+      return res.status(400).type('text/plain').send('Invalid archive file');
+    }
+
+    try {
+      const upstream = await fetch(
+        `https://archive.org/download/${encodeURIComponent(itemId)}/${encodeURIComponent(fileName)}`,
+        {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 FlashHub/2.0',
+            ...(req.headers.range ? { range: req.headers.range as string } : {})
+          }
+        }
+      );
+
+      if (!upstream.ok) {
+        return res.status(upstream.status).type('text/plain').send('SWF not available from the Internet Archive');
+      }
+
+      res.setHeader('Content-Type', 'application/x-shockwave-flash');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      copyLengthHeaders(upstream, res);
+
+      await streamUpstream(upstream, res);
+    } catch (err: any) {
+      console.error(`Error proxying archive SWF ${itemId}/${fileName}:`, err);
+      if (!res.headersSent) res.status(502).type('text/plain').send(`Error fetching SWF: ${err.message}`);
+      else res.end();
+    }
+  };
+
+  app.get('/api/archive-swf/:itemId', streamArchiveSwf);
+  app.get('/api/archive-swf/:itemId/:fileName', streamArchiveSwf);
+
+  // --- GENERATED COVER ART ---
+  // Deterministic poster art for games whose upstream thumbnail is gone, so the grid never
+  // shows a broken image. Colours derive from the id, so a game always gets the same cover.
+  app.get('/api/cover/:seed', (req, res) => {
+    const seed = req.params.seed;
+    const rawTitle = typeof req.query.title === 'string' && req.query.title.trim()
+      ? req.query.title.trim()
+      : seed.replace(/[-_]+/g, ' ');
+
+    let hash = 0;
+    for (let i = 0; i < seed.length; i++) {
+      hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
+    }
+    const hue = hash % 360;
+    const hue2 = (hue + 42 + (hash % 60)) % 360;
+    const angle = hash % 2 === 0 ? 135 : 45;
+
+    const words = rawTitle.split(/\s+/).filter(Boolean);
+    const lines: string[] = [];
+    let current = '';
+    for (const word of words) {
+      if ((current + ' ' + word).trim().length > 15 && current) {
+        lines.push(current);
+        current = word;
+      } else {
+        current = (current + ' ' + word).trim();
+      }
+      if (lines.length === 2) break;
+    }
+    if (current && lines.length < 3) lines.push(current);
+
+    const fontSize = lines.length > 2 ? 30 : 38;
+    const startY = 150 - (lines.length - 1) * (fontSize * 0.55);
+    const textNodes = lines
+      .map((line, i) => `<text x="200" y="${(startY + i * fontSize * 1.05).toFixed(1)}" fill="#fff" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="${fontSize}" font-weight="800" text-anchor="middle" letter-spacing="-1">${escapeHtml(line)}</text>`)
+      .join('');
+
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
+      <defs>
+        <linearGradient id="g" x1="0" y1="0" x2="${angle === 135 ? 1 : 0}" y2="1">
+          <stop offset="0%" stop-color="hsl(${hue}, 72%, 46%)"/>
+          <stop offset="100%" stop-color="hsl(${hue2}, 68%, 22%)"/>
+        </linearGradient>
+        <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
+          <circle cx="2" cy="2" r="1.4" fill="rgba(255,255,255,0.16)"/>
+        </pattern>
+      </defs>
+      <rect width="400" height="300" fill="url(#g)"/>
+      <rect width="400" height="300" fill="url(#dots)"/>
+      <rect width="400" height="300" fill="rgba(9,9,11,0.28)"/>
+      ${textNodes}
+    </svg>`;
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=604800');
+    res.send(svg);
+  });
+
+  // --- QUASAR MIRROR PROXY ---
+  // Streams Flash/HTML5 games out of the slqntdevss/quasar repository on demand. jsDelivr is
+  // the primary source (fast, CORS-friendly, correct MIME); raw.githubusercontent is the
+  // fallback for files jsDelivr will not serve. Nothing here needs Archive.org.
+  const QUASAR_REPO_PATH = 'slqntdevss/quasar';
+  const QUASAR_REF = 'main';
+  const QUASAR_ROOT = 'public/assets';
+
+  const quasarSources = (assetPath: string) => [
+    `https://cdn.jsdelivr.net/gh/${QUASAR_REPO_PATH}@${QUASAR_REF}/${QUASAR_ROOT}/${assetPath}`,
+    `https://raw.githubusercontent.com/${QUASAR_REPO_PATH}/${QUASAR_REF}/${QUASAR_ROOT}/${assetPath}`
+  ];
+
+  app.get('/api/quasar/*', async (req, res) => {
+    const assetPath = (req.params as any)[0] as string;
+
+    if (!assetPath || assetPath.split('/').some(segment => segment === '..')) {
+      return res.status(400).type('text/plain').send('Invalid asset path');
+    }
+
+    const ext = path.extname(assetPath.split('?')[0]).toLowerCase();
+    const isEntryDocument = /(^|\/)index\.html?$/i.test(assetPath);
+
+    try {
+      let upstreamRes: Response | null = null;
+      for (const candidate of quasarSources(assetPath)) {
+        const attempt = await fetch(candidate, {
+          headers: {
+            'User-Agent': 'FlashHub/2.0',
+            ...(req.headers.range && !isEntryDocument ? { range: req.headers.range as string } : {})
+          }
+        });
+        if (attempt.ok) {
+          upstreamRes = attempt;
+          break;
+        }
+      }
+
+      if (!upstreamRes) {
+        return res.status(404).type('text/plain').send('Game asset not found in mirror');
+      }
+
+      res.setHeader('Cache-Control', 'public, max-age=86400');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+
+      // Rewrite the entry document so the game's relative asset URLs resolve back through
+      // this proxy instead of hitting the CDN (which serves HTML as text/plain).
+      if (isEntryDocument) {
+        let html = await upstreamRes.text();
+        const existingBase = html.match(/<base\s+href="([^"]*)"/i);
+
+        // Many entries in this mirror are thin launchers whose assets live on another CDN,
+        // declared with an absolute <base href>. Rewriting that would break them, so only
+        // relative or missing bases get pointed back at this proxy.
+        const hasExternalBase = !!existingBase && /^https?:\/\//i.test(existingBase[1]);
+
+        if (!hasExternalBase) {
+          const baseHref = `/api/quasar/${assetPath.replace(/index\.html?$/i, '')}`;
+          if (existingBase) {
+            html = html.replace(/<base\s+href="[^"]*"\s*\/?>/i, `<base href="${baseHref}">`);
+          } else if (/<head[^>]*>/i.test(html)) {
+            html = html.replace(/<head[^>]*>/i, match => `${match}<base href="${baseHref}">`);
+          } else {
+            html = `<base href="${baseHref}">` + html;
+          }
+        }
+
+        res.setHeader('Content-Type', 'text/html; charset=utf-8');
+        return res.send(html);
+      }
+
+      res.setHeader(
+        'Content-Type',
+        MIME_TYPES[ext] || upstreamRes.headers.get('content-type') || 'application/octet-stream'
+      );
+      copyLengthHeaders(upstreamRes, res);
+
+      await streamUpstream(upstreamRes, res);
+    } catch (err: any) {
+      console.error(`Error proxying quasar asset ${assetPath}:`, err);
+      if (!res.headersSent) res.status(502).type('text/plain').send(`Error proxying asset: ${err.message}`);
+      else res.end();
     }
   });
 
@@ -387,9 +714,18 @@ async function startServer() {
         ...(settings.customGames || []),
         ...GENIZY_WEBPORT_GAMES,
         ...localGames,
+        ...QUASAR_GAMES,
         ...archiveGames,
         ...MOCK_GAMES
       ];
+
+      // Deduplicate games by ID
+      const seenIds = new Set<string>();
+      allGames = allGames.filter(g => {
+        if (seenIds.has(g.id)) return false;
+        seenIds.add(g.id);
+        return true;
+      });
 
       // Format titles and mark hidden games
       const games = allGames.map(g => {
@@ -413,18 +749,45 @@ async function startServer() {
 
   // --- AUTHENTICATION & REAL USER ACCOUNT ENDPOINTS ---
   
+  // Helper to read the session token off a request
+  const getAuthToken = (req: express.Request): string => {
+    const authHeader = (req.headers['authorization'] as string) || '';
+    return authHeader.startsWith('Bearer ')
+      ? authHeader.substring(7).trim()
+      : ((req.headers['x-auth-token'] as string) || (req.query.token as string) || '');
+  };
+
   // Helper to extract session user from request header
   const getAuthUser = (req: express.Request): StoredUserAccount | null => {
-    const authHeader = req.headers['authorization'] || '';
-    const token = authHeader.startsWith('Bearer ')
-      ? authHeader.substring(7).trim()
-      : (req.headers['x-auth-token'] as string || req.query.token as string || '');
-
-    const userId = getUserIdFromToken(token);
+    const userId = getUserIdFromToken(getAuthToken(req));
     if (!userId) return null;
 
     const stored = getStoredAccounts();
     return stored.find(u => u.id === userId) || null;
+  };
+
+  // Guard: any signed-in player
+  const requireUser = (req: express.Request, res: express.Response): StoredUserAccount | null => {
+    const user = getAuthUser(req);
+    if (!user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return null;
+    }
+    return user;
+  };
+
+  // Guard: signed-in player holding the admin role
+  const requireAdmin = (req: express.Request, res: express.Response): StoredUserAccount | null => {
+    const user = getAuthUser(req);
+    if (!user) {
+      res.status(401).json({ error: 'Authentication required' });
+      return null;
+    }
+    if (user.role !== 'admin') {
+      res.status(403).json({ error: 'Admin privileges required' });
+      return null;
+    }
+    return user;
   };
 
   // Register a new real account
@@ -571,12 +934,7 @@ async function startServer() {
   // Logout session
   app.post('/api/auth/logout', (req, res) => {
     try {
-      const authHeader = req.headers['authorization'] || '';
-      const token = authHeader.startsWith('Bearer ')
-        ? authHeader.substring(7).trim()
-        : (req.headers['x-auth-token'] as string || req.query.token as string || '');
-
-      removeSession(token);
+      removeSession(getAuthToken(req));
       res.json({ status: 'ok', message: 'Logged out successfully' });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -759,9 +1117,7 @@ async function startServer() {
       saveSaves(saves);
 
       // Clear session
-      const authHeader = req.headers['authorization'] || '';
-      const token = authHeader.startsWith('Bearer ') ? authHeader.substring(7).trim() : '';
-      removeSession(token);
+      removeSession(getAuthToken(req));
 
       res.json({ status: 'ok', message: 'Account and associated data deleted' });
     } catch (err: any) {
@@ -777,6 +1133,15 @@ async function startServer() {
 
   // Archive.org thumbnail proxy with resilient fallback
   const imgCache = new Map<string, { buffer: Buffer; contentType: string; timestamp: number }>();
+  const IMG_CACHE_MAX_ENTRIES = 500;
+  const cacheImage = (id: string, buffer: Buffer, contentType: string) => {
+    // Simple FIFO eviction so a long-running server cannot grow this map without bound
+    if (imgCache.size >= IMG_CACHE_MAX_ENTRIES) {
+      const oldestKey = imgCache.keys().next().value;
+      if (oldestKey !== undefined) imgCache.delete(oldestKey);
+    }
+    imgCache.set(id, { buffer, contentType, timestamp: Date.now() });
+  };
   app.get('/api/archive-img/:id', async (req, res) => {
     const { id } = req.params;
     const cached = imgCache.get(id);
@@ -799,7 +1164,7 @@ async function startServer() {
         const cType = upstream.headers.get('content-type') || 'image/jpeg';
         const arrayBuf = await upstream.arrayBuffer();
         const buf = Buffer.from(arrayBuf);
-        imgCache.set(id, { buffer: buf, contentType: cType, timestamp: Date.now() });
+        cacheImage(id, buf, cType);
         res.setHeader('Content-Type', cType);
         res.setHeader('Cache-Control', 'public, max-age=86400');
         return res.send(buf);
@@ -829,12 +1194,12 @@ async function startServer() {
       <rect x="12" y="12" width="376" height="216" rx="10" fill="none" stroke="#27272a" stroke-width="1.5"/>
       <circle cx="200" cy="95" r="36" fill="#27272a" opacity="0.6"/>
       <polygon points="190,80 218,95 190,110" fill="url(#accent)"/>
-      <text x="200" y="165" fill="#f4f4f5" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="0.5">${readableTitle}</text>
+      <text x="200" y="165" fill="#f4f4f5" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="0.5">${escapeHtml(readableTitle)}</text>
       <text x="200" y="190" fill="#71717a" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">FLASH ARCADE CLASSIC</text>
     </svg>`;
 
     const buf = Buffer.from(svgFallback, 'utf-8');
-    imgCache.set(id, { buffer: buf, contentType: 'image/svg+xml', timestamp: Date.now() });
+    cacheImage(id, buf, 'image/svg+xml');
     res.setHeader('Content-Type', 'image/svg+xml');
     res.setHeader('Cache-Control', 'public, max-age=86400');
     return res.send(buf);
@@ -843,52 +1208,31 @@ async function startServer() {
   // List all accounts (public directory)
   app.get('/api/accounts', (req, res) => {
     try {
+      const viewer = getAuthUser(req);
       const publicAccounts = getPublicAccounts();
-      res.json({ status: 'ok', data: publicAccounts });
+
+      // Only admins see e-mail addresses; the directory itself is public so players can
+      // pick their account on the sign-in screen.
+      const data = viewer?.role === 'admin'
+        ? publicAccounts
+        : publicAccounts.map(({ email, ...rest }) => rest);
+
+      res.json({ status: 'ok', data });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
   });
 
-  // Switch or login quick user
-  const handleUserSwitch = (req: express.Request, res: express.Response) => {
-    try {
-      const { username, id } = req.body;
-      const storedAccounts = getStoredAccounts();
-      const user = storedAccounts.find(
-        a => (id && a.id === id) || (username && a.username.toLowerCase() === username.toLowerCase())
-      );
-
-      if (!user) {
-        return res.status(404).json({ error: 'User account not found' });
-      }
-
-      const token = createSession(user.id);
-      const saves = getSaves().filter(s => s.userId === user.id);
-      const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
-      const publicAcc = toPublicAccount(user, saves.length, totalPlaytime);
-
-      res.json({ status: 'ok', token, user: publicAcc, data: publicAcc });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
-    }
-  };
-
-  app.post('/api/accounts/switch', handleUserSwitch);
-  app.post('/api/accounts/login', handleUserSwitch);
-
   // Admin: Update user role
   app.put('/api/admin/users/:id/role', (req, res) => {
     try {
-      const adminUser = getAuthUser(req);
-      if (!adminUser || adminUser.role !== 'admin') {
-        // Fallback for dev ease if no token provided but session is admin
-        const accounts = getStoredAccounts();
-        const firstAdmin = accounts.find(a => a.role === 'admin');
-        if (!firstAdmin) return res.status(403).json({ error: 'Admin privileges required' });
-      }
+      const adminUser = requireAdmin(req, res);
+      if (!adminUser) return;
 
       const { id } = req.params;
+      if (adminUser.id === id && req.body.role !== 'admin') {
+        return res.status(400).json({ error: 'You cannot remove your own admin role' });
+      }
       const { role } = req.body;
       if (role !== 'admin' && role !== 'user') {
         return res.status(400).json({ error: 'Invalid role. Must be admin or user' });
@@ -910,8 +1254,18 @@ async function startServer() {
   // Admin: Delete user
   app.delete('/api/admin/users/:id', (req, res) => {
     try {
+      const adminUser = requireAdmin(req, res);
+      if (!adminUser) return;
+
       const { id } = req.params;
+      if (adminUser.id === id) {
+        return res.status(400).json({ error: 'Use the account settings page to delete your own account' });
+      }
+
       let storedAccounts = getStoredAccounts();
+      if (!storedAccounts.some(a => a.id === id)) {
+        return res.status(404).json({ error: 'User not found' });
+      }
       storedAccounts = storedAccounts.filter(a => a.id !== id);
       saveStoredAccounts(storedAccounts);
 
@@ -972,6 +1326,30 @@ async function startServer() {
           ? `https://steamcommunity.com/id/${customUrl}/`
           : `https://steamcommunity.com/profiles/${finalSteamId}`;
 
+        let parsedLevel = 1;
+        let parsedGamesCount = 0;
+        
+        try {
+          // Fetch HTML page to scrape level and games count
+          const htmlRes = await fetch(profileUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            signal: AbortSignal.timeout(4000)
+          });
+          const htmlText = await htmlRes.text();
+          
+          const levelMatch = htmlText.match(/friendPlayerLevelNum">([0-9]+)</);
+          if (levelMatch) {
+            parsedLevel = parseInt(levelMatch[1], 10);
+          }
+          
+          const gamesMatch = htmlText.match(/<span class="count_link_label">Games<\/span>\s*<span class="profile_count_link_total">\s*([0-9,]+)\s*<\/span>/);
+          if (gamesMatch) {
+            parsedGamesCount = parseInt(gamesMatch[1].replace(/,/g, ''), 10);
+          }
+        } catch (scrapeErr) {
+          console.warn('Could not scrape HTML profile info');
+        }
+
         return res.json({
           status: 'ok',
           data: {
@@ -979,8 +1357,8 @@ async function startServer() {
             steamPersonaName: personaName,
             steamAvatar: avatarUrl,
             steamProfileUrl: profileUrl,
-            steamLevel: 32,
-            steamGamesCount: 94,
+            steamLevel: parsedLevel,
+            steamGamesCount: parsedGamesCount,
             onlineState: stateMatch ? stateMatch[1] : 'online',
             stateMessage: stateMsgMatch ? stateMsgMatch[1].replace(/<[^>]*>/g, ' ') : undefined,
             location: locationMatch ? locationMatch[1] : undefined,
@@ -1014,10 +1392,20 @@ async function startServer() {
   app.get('/api/saves', (req, res) => {
     try {
       const { userId, gameId } = req.query;
+      const sessionUser = getAuthUser(req);
+      const isAdmin = sessionUser?.role === 'admin';
+      const ownerId = sessionUser ? sessionUser.id : 'guest';
+
+      // Admins can browse the whole repository; everyone else only sees their own slots
+      const scopedUserId = isAdmin ? (userId as string | undefined) : ownerId;
+      if (!isAdmin && userId && userId !== ownerId) {
+        return res.status(403).json({ error: 'Cannot read saves for another account' });
+      }
+
       let saves = getSaves();
 
-      if (userId) {
-        saves = saves.filter(s => s.userId === userId);
+      if (scopedUserId) {
+        saves = saves.filter(s => s.userId === scopedUserId);
       }
       if (gameId) {
         saves = saves.filter(s => s.gameId === gameId);
@@ -1037,14 +1425,24 @@ async function startServer() {
         return res.status(400).json({ error: 'Missing required save fields' });
       }
 
+      // A signed-in player may only write their own saves; guests stay in the guest bucket
+      const sessionUser = getAuthUser(req);
+      const ownerId = sessionUser ? sessionUser.id : 'guest';
+      if (userId !== ownerId) {
+        return res.status(403).json({ error: 'Cannot write saves for another account' });
+      }
+
       const saves = getSaves();
       const existingIndex = id ? saves.findIndex(s => s.id === id) : -1;
+      if (existingIndex >= 0 && saves[existingIndex].userId !== ownerId) {
+        return res.status(403).json({ error: 'Cannot overwrite another player\'s save' });
+      }
 
       const saveEntry: GameSave = {
         id: id || `save-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
         gameId,
         gameTitle: gameTitle || 'Untitled Game',
-        userId,
+        userId: ownerId,
         slotName: slotName || 'Quick Save',
         saveData: typeof saveData === 'string' ? saveData : JSON.stringify(saveData),
         timestamp: new Date().toISOString(),
@@ -1060,7 +1458,30 @@ async function startServer() {
       }
 
       saveSaves(saves);
-      res.json({ status: 'ok', data: saveEntry });
+
+      const newlyEarned = checkAchievements(ownerId);
+      
+      res.json({ status: 'ok', data: saveEntry, newlyEarned });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  // Achievements
+  app.get('/api/achievements', (req, res) => {
+    res.json({ status: 'ok', data: ACHIEVEMENTS });
+  });
+
+  app.post('/api/achievements/check', (req, res) => {
+    try {
+      const userId = getUserIdFromToken(getAuthToken(req));
+
+      if (!userId) {
+        return res.status(401).json({ status: 'unauthorized', error: 'No active session' });
+      }
+
+      const newlyEarned = checkAchievements(userId);
+      res.json({ status: 'ok', data: newlyEarned });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
     }
@@ -1069,8 +1490,22 @@ async function startServer() {
   // Delete save slot
   app.delete('/api/saves/:id', (req, res) => {
     try {
+      const user = requireUser(req, res);
+      if (!user) return;
+
       const { id } = req.params;
       let saves = getSaves();
+      
+      const saveToDelete = saves.find(s => s.id === id);
+      if (!saveToDelete) {
+        return res.status(404).json({ error: 'Save not found' });
+      }
+
+      // Check ownership if not admin
+      if (user.role !== 'admin' && saveToDelete.userId !== user.id) {
+        return res.status(403).json({ error: 'You do not own this save' });
+      }
+
       saves = saves.filter(s => s.id !== id);
       saveSaves(saves);
       res.json({ status: 'ok' });
@@ -1082,6 +1517,8 @@ async function startServer() {
   // Export all saves for backup
   app.get('/api/saves/export-all', (req, res) => {
     try {
+      if (!requireAdmin(req, res)) return;
+
       const saves = getSaves();
       res.setHeader('Content-Disposition', 'attachment; filename="flashhub-cloud-saves-backup.json"');
       res.setHeader('Content-Type', 'application/json');
@@ -1094,6 +1531,8 @@ async function startServer() {
   // Import saves backup
   app.post('/api/saves/import-all', (req, res) => {
     try {
+      if (!requireAdmin(req, res)) return;
+
       const imported = req.body;
       if (!Array.isArray(imported)) {
         return res.status(400).json({ error: 'Expected array of saves' });
@@ -1119,12 +1558,21 @@ async function startServer() {
   // --- ADMIN PANEL CONTROL ENDPOINTS ---
 
   // Admin stats
-  app.get('/api/admin/stats', (req, res) => {
+  app.get('/api/admin/stats', async (req, res) => {
     try {
+      if (!requireAdmin(req, res)) return;
+
       const accounts = getStoredAccounts();
       const saves = getSaves();
       const mem = process.memoryUsage();
-      const totalGames = GENIZY_WEBPORT_GAMES.length + 45; // total catalog size
+      const settings = getGameSettings();
+      const localGames = await fetchLocalWebports();
+      const totalGames =
+        GENIZY_WEBPORT_GAMES.length +
+        cachedArchiveGames.length +
+        localGames.length +
+        (settings.customGames || []).length +
+        MOCK_GAMES.length;
 
       res.json({
         status: 'ok',
@@ -1132,7 +1580,7 @@ async function startServer() {
           totalGames,
           activeAccounts: accounts.length,
           totalSaves: saves.length,
-          cachedProxyItems: 43,
+          cachedProxyItems: imgCache.size,
           memoryUsageMb: Math.round(mem.rss / 1024 / 1024),
           uptimeSeconds: Math.round(process.uptime()),
           isSyncing,
@@ -1146,7 +1594,9 @@ async function startServer() {
 
   // Clear cache
   app.post('/api/admin/cache/clear', (req, res) => {
+    if (!requireAdmin(req, res)) return;
     cachedArchiveGames = [];
+    imgCache.clear();
     lastArchiveFetchTime = 0;
     res.json({ status: 'ok', message: 'All in-memory proxy & games cache purged successfully.' });
   });
@@ -1154,6 +1604,8 @@ async function startServer() {
   // Toggle game hidden status
   app.post('/api/admin/games/toggle', (req, res) => {
     try {
+      if (!requireAdmin(req, res)) return;
+
       const { gameId, hide } = req.body;
       if (!gameId) return res.status(400).json({ error: 'gameId required' });
 
@@ -1178,6 +1630,8 @@ async function startServer() {
   // Custom add game to catalog
   app.post('/api/admin/games/custom-add', (req, res) => {
     try {
+      if (!requireAdmin(req, res)) return;
+
       const { title, embedUrl, thumbnail, genres, rating, source } = req.body;
       if (!title || !embedUrl) {
         return res.status(400).json({ error: 'Title and embed URL required' });
@@ -1188,7 +1642,7 @@ async function startServer() {
         id: `custom-admin-${Date.now()}`,
         title,
         embedUrl,
-        thumbnail: thumbnail || 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=400&q=80',
+        thumbnail: thumbnail || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(title)}&backgroundColor=09090b`,
         genres: Array.isArray(genres) && genres.length ? genres : ['Custom', 'Web Port'],
         rating: Number(rating) || 5.0,
         source: source || 'webporting'
@@ -1206,6 +1660,7 @@ async function startServer() {
 
   // API Route to trigger background games sync
   app.post('/api/sync', (req, res) => {
+    if (!requireAdmin(req, res)) return;
     if (isSyncing) {
       return res.json({ status: 'in_progress', message: syncProgressMessage });
     }
@@ -1222,13 +1677,36 @@ async function startServer() {
   });
 
   // API Route to upload games
-  app.post('/api/upload', upload.single('game'), (req, res) => {
-    if (!req.file || !req.body.title) {
+  const uploadFields = upload.fields([{ name: 'game', maxCount: 1 }, { name: 'thumbnail', maxCount: 1 }]);
+
+  app.post('/api/upload', (req, res) => {
+    // Uploaded HTML is served from this origin, so only signed-in players may publish games
+    if (!requireUser(req, res)) return;
+
+    uploadFields(req, res, (uploadErr: any) => {
+      if (uploadErr) {
+        const isTooLarge = uploadErr.code === 'LIMIT_FILE_SIZE';
+        return res.status(400).json({
+          error: isTooLarge ? 'File is too large (100 MB maximum)' : uploadErr.message || 'Upload failed'
+        });
+      }
+      handleUpload(req, res);
+    });
+  });
+
+  const handleUpload = (req: express.Request, res: express.Response) => {
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
+    const gameFile = files?.['game']?.[0];
+    const thumbFile = files?.['thumbnail']?.[0];
+
+    const title = typeof req.body.title === 'string' ? req.body.title.trim() : '';
+    if (!gameFile || !title) {
+      // Drop any partial upload that arrived without the rest of the form
+      [gameFile, thumbFile].forEach(f => { if (f) fs.rmSync(f.path, { force: true }); });
       return res.status(400).json({ error: 'Missing file or title' });
     }
 
-    const title = req.body.title;
-    const originalName = req.file.originalname;
+    const originalName = gameFile.originalname;
     const ext = path.extname(originalName).toLowerCase();
     
     // Create a folder for the new game
@@ -1238,23 +1716,39 @@ async function startServer() {
 
     // Move file
     const targetFile = ext === '.swf' ? 'game.swf' : 'index.html';
-    fs.renameSync(req.file.path, path.join(gameDir, targetFile));
+    fs.renameSync(gameFile.path, path.join(gameDir, targetFile));
+
+    let thumbnailUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(title)}&backgroundColor=09090b`;
+    if (thumbFile) {
+      const thumbExt = path.extname(thumbFile.originalname).toLowerCase();
+      const thumbName = `thumb${thumbExt}`;
+      fs.renameSync(thumbFile.path, path.join(gameDir, thumbName));
+      thumbnailUrl = `/custom_games/${gameId}/${thumbName}`;
+    }
 
     // Create metadata.json for the game
     const meta = {
       id: gameId,
-      title: title,
+      title,
       source: 'custom',
       embedUrl: ext === '.swf' ? `/play.html?swf=/custom_games/${gameId}/game.swf` : `/custom_games/${gameId}/index.html`,
       genres: ['Custom', 'Uploaded'],
-      thumbnail: 'https://images.unsplash.com/photo-1552820728-8b83bb6b773f?w=400&q=80',
+      thumbnail: thumbnailUrl,
       rating: 5.0
     };
     
     fs.writeFileSync(path.join(gameDir, 'metadata.json'), JSON.stringify(meta));
 
+    const settings = getGameSettings();
+    if (!settings.customGames) settings.customGames = [];
+    settings.customGames.push(meta);
+    saveGameSettings(settings);
+
     res.json({ status: 'ok', game: meta });
-  });
+  };
+
+  // Serve custom games directly
+  app.use('/custom_games', express.static(customGamesDir));
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== 'production') {
@@ -1266,10 +1760,76 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (req, res) => {
+    app.get('/api/*', (_req, res) => {
+      res.status(404).json({ error: 'Unknown API endpoint' });
+    });
+    app.get('*', (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
+
+  // Background Sync for Steam Profiles every 15 minutes (900000 ms)
+  setInterval(async () => {
+    console.log('[Steam Sync] Starting scheduled update of linked Steam profiles...');
+    const accounts = getStoredAccounts();
+    const updates = new Map<string, Partial<StoredUserAccount>>();
+
+    for (const account of accounts) {
+      if (account.steamId) {
+        try {
+          const isNumericId = /^\d{17}$/.test(account.steamId);
+          const xmlUrl = isNumericId
+            ? `https://steamcommunity.com/profiles/${encodeURIComponent(account.steamId)}/?xml=1`
+            : `https://steamcommunity.com/id/${encodeURIComponent(account.steamId)}/?xml=1`;
+
+          const response = await fetch(xmlUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            signal: AbortSignal.timeout(4500)
+          });
+
+          if (response.ok) {
+            const xmlText = await response.text();
+            const personaMatch = xmlText.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/) || xmlText.match(/<steamID>(.*?)<\/steamID>/);
+            const avatarMatch = xmlText.match(/<avatarFull><!\[CDATA\[(.*?)\]\]><\/avatarFull>/) || xmlText.match(/<avatarFull>(.*?)<\/avatarFull>/);
+
+            const update: Partial<StoredUserAccount> = {};
+            if (personaMatch) update.steamPersonaName = personaMatch[1];
+            if (avatarMatch) update.steamAvatar = avatarMatch[1];
+
+            const profileUrl = account.steamProfileUrl || `https://steamcommunity.com/profiles/${account.steamId}`;
+
+            // Fetch HTML for level and games
+            try {
+              const htmlRes = await fetch(profileUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(4000) });
+              const htmlText = await htmlRes.text();
+              const levelMatch = htmlText.match(/friendPlayerLevelNum">([0-9]+)</);
+              if (levelMatch) update.steamLevel = parseInt(levelMatch[1], 10);
+              const gamesMatch = htmlText.match(/<span class="count_link_label">Games<\/span>\s*<span class="profile_count_link_total">\s*([0-9,]+)\s*<\/span>/);
+              if (gamesMatch) update.steamGamesCount = parseInt(gamesMatch[1].replace(/,/g, ''), 10);
+            } catch (e) {
+              // Ignore HTML scrape error for background task
+            }
+
+            if (Object.keys(update).length > 0) {
+              updates.set(account.id, update);
+            }
+          }
+        } catch (e) {
+          console.warn(`[Steam Sync] Failed to update user ${account.username}`);
+        }
+      }
+    }
+    
+    if (updates.size > 0) {
+      const current = getStoredAccounts();
+      const merged = current.map(acc => {
+        const update = updates.get(acc.id);
+        return update ? { ...acc, ...update } : acc;
+      });
+      saveStoredAccounts(merged);
+      console.log(`[Steam Sync] Updated ${updates.size} profiles.`);
+    }
+  }, 15 * 60 * 1000); // 15 mins
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);

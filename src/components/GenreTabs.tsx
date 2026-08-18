@@ -8,21 +8,33 @@ interface GenreTabsProps {
 
 export function GenreTabs({ genres, activeGenre, onSelectGenre }: GenreTabsProps) {
   return (
-    <div className="flex overflow-x-auto px-4 py-3 bg-black border-b border-white/5 no-scrollbar whitespace-nowrap text-[10px] font-medium tracking-wide items-center z-20">
-      <div className="flex gap-1.5 w-full max-w-6xl mx-auto">
-        {genres.map((genre) => (
-          <button
-            key={genre}
-            onClick={() => onSelectGenre(genre)}
-            className={`px-3 py-1 rounded-md transition-all duration-300 ${
-              activeGenre === genre
-                ? 'bg-white text-black'
-                : 'bg-transparent text-zinc-500 hover:text-zinc-200 hover:bg-white/5'
-            }`}
-          >
-            {genre}
-          </button>
-        ))}
+    <div className="sticky top-16 z-20 border-b border-edge/70 bg-void/70 backdrop-blur-lg">
+      {/* The fade mask hints that the rail keeps scrolling past the viewport edge */}
+      <div
+        className="max-w-[1400px] mx-auto px-4 sm:px-6"
+        style={{
+          maskImage: 'linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 24px), transparent)',
+          WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 24px), transparent)'
+        }}
+      >
+        <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5">
+          {genres.map((genre) => {
+            const isActive = activeGenre === genre;
+            return (
+              <button
+                key={genre}
+                onClick={() => onSelectGenre(genre)}
+                className={`flex-shrink-0 px-3 h-7 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all duration-200 ${
+                  isActive
+                    ? 'bg-flame text-black shadow-[0_6px_18px_-8px_rgba(255,138,0,0.9)]'
+                    : 'text-zinc-500 hover:text-white hover:bg-white/[0.06]'
+                }`}
+              >
+                {genre}
+              </button>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

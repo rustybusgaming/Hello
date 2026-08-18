@@ -1,41 +1,166 @@
 @import "tailwindcss";
 
+/*
+ * FlashHub design tokens.
+ * The palette is built around the ⚡ mark in the favicon: a hot amber primary against a
+ * near-black arcade backdrop, with a magenta secondary for anything "live".
+ */
+@theme {
+  --color-void: #08070a;
+  --color-pit: #0d0c11;
+  --color-surface: #131218;
+  --color-edge: #221f2b;
+
+  --color-flame: #ff8a00;
+  --color-ember: #ff5a1f;
+  --color-plasma: #ff2e88;
+  --color-mint: #3ddc97;
+  --color-ice: #58c4ff;
+
+  --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+
 @layer base {
+  html {
+    background-color: var(--color-void);
+  }
+
   body {
-    @apply antialiased bg-zinc-950 text-zinc-100;
+    @apply antialiased text-zinc-200;
+    font-family: var(--font-sans);
+    background-color: var(--color-void);
+    /* Two soft light sources keep the near-black background from reading as flat grey */
+    background-image:
+      radial-gradient(900px 520px at 12% -8%, rgba(255, 138, 0, 0.13), transparent 62%),
+      radial-gradient(760px 460px at 92% 4%, rgba(255, 46, 136, 0.1), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  h1, h2, h3, h4 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  ::selection {
+    background: rgba(255, 138, 0, 0.28);
+    color: #fff;
+  }
+
+  input, textarea, select, button {
+    font-family: inherit;
   }
 }
 
-/* Custom Scrollbar for Genre Tabs */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;  /* IE and Edge */
-  scrollbar-width: none;  /* Firefox */
+@layer components {
+  /* Panel: the one surface treatment every card, modal and section shares */
+  .panel {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+    border: 1px solid var(--color-edge);
+    border-radius: 14px;
+  }
+
+  .panel-hover {
+    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .panel-hover:hover {
+    border-color: rgba(255, 138, 0, 0.45);
+    box-shadow: 0 14px 40px -18px rgba(255, 138, 0, 0.55);
+    transform: translateY(-2px);
+  }
+
+  /* Section eyebrow: a short flame rule + tight caps, used above every game row */
+  .eyebrow {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #8b8794;
+  }
+
+  .rule-flame {
+    width: 18px;
+    height: 2px;
+    border-radius: 2px;
+    background: linear-gradient(90deg, var(--color-flame), var(--color-plasma));
+  }
+
+  .btn-flame {
+    background: linear-gradient(135deg, var(--color-flame), var(--color-ember));
+    color: #150c02;
+    font-weight: 700;
+    box-shadow: 0 8px 26px -12px rgba(255, 138, 0, 0.9);
+    transition: filter 0.18s ease, transform 0.18s ease;
+  }
+  .btn-flame:hover { filter: brightness(1.08); }
+  .btn-flame:active { transform: translateY(1px); }
+
+  .btn-ghost {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--color-edge);
+    color: #c4c0cc;
+    transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  }
+  .btn-ghost:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 138, 0, 0.4);
+  }
+
+  .field {
+    background: rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--color-edge);
+    border-radius: 10px;
+    color: #f4f4f5;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+  }
+  .field::placeholder { color: #6c6878; }
+  .field:focus {
+    outline: none;
+    border-color: rgba(255, 138, 0, 0.55);
+    box-shadow: 0 0 0 3px rgba(255, 138, 0, 0.12);
+  }
+
+  /* Source chips - one colour per catalogue origin so the grid is readable at a glance */
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 7px;
+    border-radius: 6px;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    backdrop-filter: blur(6px);
+  }
+  .chip-flash   { background: rgba(255, 138, 0, 0.16); color: #ffb454; border: 1px solid rgba(255, 138, 0, 0.32); }
+  .chip-web     { background: rgba(61, 220, 151, 0.14); color: #6ee7b7; border: 1px solid rgba(61, 220, 151, 0.3); }
+  .chip-archive { background: rgba(88, 196, 255, 0.14); color: #93d3ff; border: 1px solid rgba(88, 196, 255, 0.3); }
+  .chip-steam   { background: rgba(102, 192, 244, 0.16); color: #9bd6ff; border: 1px solid rgba(102, 192, 244, 0.32); }
+  .chip-custom  { background: rgba(255, 46, 136, 0.16); color: #ff87ba; border: 1px solid rgba(255, 46, 136, 0.32); }
 }
 
-/* Global scrollbar styling */
-::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
-}
+/* Horizontal chip rails hide their scrollbar but stay swipeable */
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-::-webkit-scrollbar-track {
-  @apply bg-zinc-950;
-}
-
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--color-void); }
 ::-webkit-scrollbar-thumb {
-  @apply bg-zinc-800 rounded-full border-2 border-zinc-950;
+  background: #2a2733;
+  border: 2px solid var(--color-void);
+  border-radius: 9999px;
 }
+::-webkit-scrollbar-thumb:hover { background: #3b3747; }
 
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-zinc-700;
-}
-
-/* Retro CRT Effects */
+/* Retro CRT effects for the player */
 .crt-overlay {
-  background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+  background:
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
   background-size: 100% 2px, 3px 100%;
   pointer-events: none;
 }
@@ -43,11 +168,30 @@
 .scanlines {
   background: linear-gradient(
     to bottom,
-    rgba(255,255,255,0),
-    rgba(255,255,255,0) 50%,
-    rgba(0,0,0,0.2) 50%,
-    rgba(0,0,0,0.2)
+    rgba(255, 255, 255, 0),
+    rgba(255, 255, 255, 0) 50%,
+    rgba(0, 0, 0, 0.2) 50%,
+    rgba(0, 0, 0, 0.2)
   );
   background-size: 100% 4px;
   pointer-events: none;
+}
+
+/* Slow drift for the hero's backdrop grid */
+@keyframes grid-drift {
+  from { background-position: 0 0; }
+  to   { background-position: 44px 44px; }
+}
+
+.grid-drift {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
+  background-size: 44px 44px;
+  animation: grid-drift 14s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grid-drift { animation: none; }
+  .panel-hover:hover { transform: none; }
 }

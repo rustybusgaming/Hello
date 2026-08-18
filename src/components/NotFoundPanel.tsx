@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, Home, RefreshCw, Shuffle, HelpCircle, ArrowLeft, Bug, ShieldAlert } from 'lucide-react';
+import { RefreshCw, Shuffle, HelpCircle, ArrowLeft, Bug, ShieldAlert } from 'lucide-react';
 import { motion } from 'motion/react';
 
 interface NotFoundPanelProps {
@@ -30,7 +30,7 @@ export function NotFoundPanel({
       <div className="absolute inset-0 bg-[radial-gradient(#ef4444_1px,transparent_1px)] [background-size:16px_16px] opacity-5 pointer-events-none" />
 
       <div className="relative z-10">
-        <div className="flex items-center justify-between border-b border-zinc-800/80 pb-4 mb-6">
+        <div className="flex items-center justify-between border-b border-edge pb-4 mb-6">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-xl bg-red-500/10 border border-red-500/30 flex items-center justify-center text-red-400">
               <ShieldAlert className="w-5 h-5" />
@@ -61,9 +61,9 @@ export function NotFoundPanel({
         )}
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-8">
-          <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+          <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
             <h3 className="text-xs font-semibold text-zinc-200 mb-1 flex items-center gap-1.5">
-              <Bug className="w-3.5 h-3.5 text-amber-400" />
+              <Bug className="w-3.5 h-3.5 text-flame" />
               Possible Explanations
             </h3>
             <ul className="text-xs text-zinc-400 space-y-1 list-disc list-inside">
@@ -73,9 +73,9 @@ export function NotFoundPanel({
             </ul>
           </div>
 
-          <div className="p-4 rounded-xl bg-zinc-900/60 border border-zinc-800/60">
+          <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
             <h3 className="text-xs font-semibold text-zinc-200 mb-1 flex items-center gap-1.5">
-              <HelpCircle className="w-3.5 h-3.5 text-cyan-400" />
+              <HelpCircle className="w-3.5 h-3.5 text-ice" />
               Quick Troubleshooting
             </h3>
             <ul className="text-xs text-zinc-400 space-y-1 list-disc list-inside">
@@ -86,7 +86,7 @@ export function NotFoundPanel({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-zinc-800/80">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-4 border-t border-edge">
           <button
             onClick={onGoHome}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-medium transition-all"
@@ -99,7 +99,7 @@ export function NotFoundPanel({
             {onRetry && (
               <button
                 onClick={onRetry}
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium transition-all"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl btn-ghost text-xs font-medium transition-all"
               >
                 <RefreshCw className="w-3.5 h-3.5" />
                 Retry Loading

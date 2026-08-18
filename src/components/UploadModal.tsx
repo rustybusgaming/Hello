@@ -5,25 +5,37 @@ import { motion, AnimatePresence } from 'motion/react';
 interface UploadModalProps {
   onClose: () => void;
   onUploadComplete: () => void;
+  authToken: string | null;
 }
 
-export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
+export function UploadModal({ onClose, onUploadComplete, authToken }: UploadModalProps) {
   const [file, setFile] = useState<File | null>(null);
+  const [thumb, setThumb] = useState<File | null>(null);
   const [title, setTitle] = useState('');
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file || !title) return;
-
+    if (!authToken) {
+      setUploadError('Sign in from the account menu to upload a game.');
+      return;
+    }
     setIsUploading(true);
+    setUploadError('');
+
     const formData = new FormData();
     formData.append('game', file);
+    if (thumb) {
+      formData.append('thumbnail', thumb);
+    }
     formData.append('title', title);
 
     try {
       const res = await fetch('/api/upload', {
         method: 'POST',
+        headers: { Authorization: `Bearer ${authToken}` },
         body: formData,
       });
 
@@ -31,10 +43,11 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         onUploadComplete();
         onClose();
       } else {
-        console.error('Upload failed');
+        const errorData = await res.json().catch(() => ({}));
+        setUploadError(errorData.error || 'Upload failed');
       }
-    } catch (err) {
-      console.error(err);
+    } catch (err: any) {
+      setUploadError(err.message || 'An error occurred during upload');
     } finally {
       setIsUploading(false);
     }
@@ -46,14 +59,14 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-void/90 backdrop-blur-md p-4"
         onClick={onClose}
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 10 }}
-          className="bg-zinc-950 border border-white/10 rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl"
+          className="bg-pit border border-edge rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between p-4 border-b border-white/5">
@@ -70,6 +83,11 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
           </div>
           
           <form onSubmit={handleSubmit} className="p-5 space-y-5">
+            {uploadError && (
+              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 font-medium text-center">
+                {uploadError}
+              </div>
+            )}
             <div>
               <label className="block text-[10px] font-medium text-zinc-500 mb-1.5 tracking-wider uppercase">
                 Game Title
@@ -91,8 +109,19 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
               <input
                 type="file"
                 required
-                accept=".swf,.html"
+                accept=".swf,.html,.htm"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
+                className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 transition-colors cursor-pointer text-xs"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] font-medium text-zinc-500 mb-1.5 tracking-wider uppercase">
+                Thumbnail (Optional, .png or .jpg)
+              </label>
+              <input
+                type="file"
+                accept=".png,.jpg,.jpeg,.gif,.webp"
+                onChange={(e) => setThumb(e.target.files?.[0] || null)}
                 className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 transition-colors cursor-pointer text-xs"
               />
             </div>
@@ -100,7 +129,7 @@ export function UploadModal({ onClose, onUploadComplete }: UploadModalProps) {
             <button
               type="submit"
               disabled={isUploading || !file || !title}
-              className="w-full bg-white hover:bg-zinc-200 text-black disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs py-2.5 rounded-lg transition-all flex justify-center items-center gap-2 mt-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              className="w-full btn-flame disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs py-2.5 rounded-lg transition-all flex justify-center items-center gap-2 mt-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
             >
               {isUploading ? (
                 <>

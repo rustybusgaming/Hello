@@ -274,7 +274,7 @@ export const KNOWN_GAME_ALIASES: Record<string, ResolvedGameInfo> = {
   },
 
   // Sugar, Sugar Series
-  'ss': {
+  'sugarsugar': {
     title: "Sugar, Sugar",
     genres: ['Physics', 'Puzzle', 'Flash'],
     description: "Draw ramps and guide falling sugar granules into matching coffee cups in Bart Bonte's masterpiece.",
@@ -344,7 +344,7 @@ export const KNOWN_GAME_ALIASES: Record<string, ResolvedGameInfo> = {
     description: "Command soldiers with customizable weapon loadouts, killstreaks, and intense campaign missions.",
     rating: 4.9
   },
-  'sth2': {
+  'strikeforceheroes2': {
     title: "Strike Force Heroes 2",
     genres: ['Shooter', 'Action', 'Flash'],
     description: "Custom classes, deep weapon crafting, outer space orbital combat, and an epic story.",
@@ -370,7 +370,7 @@ export const KNOWN_GAME_ALIASES: Record<string, ResolvedGameInfo> = {
     description: "We Create Stuff's legendary 2D recreation of Aperture Science's portal gun test chambers.",
     rating: 4.9
   },
-  'stm': {
+  'supertosstheturtle': {
     title: "Super Toss The Turtle",
     genres: ['Action', 'Arcade', 'Launch'],
     description: "Fire turtles out of cannons, drop bombs, shoot rockets, and bounce across insane hazard distances.",
@@ -552,6 +552,23 @@ export const KNOWN_GAME_ALIASES: Record<string, ResolvedGameInfo> = {
   }
 };
 
+// The quasar mirror uses its own short slugs; point them at the curated entries above so
+// those games inherit the proper titles, genres and descriptions.
+const QUASAR_SLUG_ALIASES: Record<string, string> = {
+  pburg: 'pburger',
+  pchee: 'pcheese',
+  pcupc: 'pcupcake',
+  pbake: 'pbaker',
+  fpw2: 'fpa2'
+};
+
+for (const [slug, target] of Object.entries(QUASAR_SLUG_ALIASES)) {
+  const source = KNOWN_GAME_ALIASES[target];
+  if (source && !KNOWN_GAME_ALIASES[slug]) {
+    KNOWN_GAME_ALIASES[slug] = source;
+  }
+}
+
 export function cleanGameSlug(raw: string): string {
   if (!raw) return '';
   return raw
@@ -576,13 +593,14 @@ export function formatGameInfo(rawId: string, currentTitle: string, currentGenre
     };
   }
 
-  // General formatting for unmapped titles
+  // General formatting for unmapped titles. Capitalise the first letter of each word only:
+  // a plain \b\w also matches the letter after an apostrophe and yields "Papa'S Pizzeria".
   let prettyTitle = currentTitle || rawId || 'Retro Game';
   prettyTitle = prettyTitle
     .replace(/^quasar-/, '')
     .replace(/^gameports-/, '')
     .replace(/[-_]+/g, ' ')
-    .replace(/\b\w/g, (c) => c.toUpperCase());
+    .replace(/(^|\s)(\w)/g, (_match, lead, letter) => lead + letter.toUpperCase());
 
   return {
     title: prettyTitle,
