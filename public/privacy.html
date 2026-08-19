@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Privacy Policy | FlashHub</title>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <link rel="stylesheet" href="/pages.css">
+</head>
+<body>
+  <header class="masthead">
+    <a class="wordmark" href="/">FLASHHUB</a>
+    <nav>
+      <a href="/credits.html">Credits</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/privacy.html" aria-current="page">Privacy</a>
+    </nav>
+  </header>
+
+  <main>
+    <div class="kicker">Policy</div>
+    <h1>Privacy policy.</h1>
+    <p class="updated">Last updated 20 August 2026</p>
+
+    <h2>Who runs this</h2>
+    <p>FlashHub is operated by <strong>rustybusgaming</strong>. It is a personal, non-commercial project run from New Zealand.
+      Questions about this policy or your data go through
+      <a href="https://github.com/rustybusgaming" rel="noopener">github.com/rustybusgaming</a>.</p>
+
+    <h2>What is collected</h2>
+    <p>You can browse and play the entire catalogue without an account. Nothing below is collected
+      until you choose to create one.</p>
+    <dl>
+      <dt>Account</dt>
+      <dd>Username, email address, and a password. The password is never stored — only a
+        PBKDF2-SHA512 hash with a per-account random salt. Optionally a display name, a short bio
+        and an avatar choice.</dd>
+
+      <dt>Session</dt>
+      <dd>A random session token in an httpOnly, SameSite=Strict cookie, valid for 30 days. It is
+        not readable by page scripts and is not used for tracking or advertising.</dd>
+
+      <dt>Play data</dt>
+      <dd>Cumulative playtime in minutes, achievements earned, and any save slots you create. A
+        save slot stores the game's own progress data, plus the slot name, notes and score you
+        type.</dd>
+
+      <dt>Steam link (optional)</dt>
+      <dd>If you connect Steam, your Steam ID, persona name, avatar, profile URL, level and game
+        count are stored. Library and achievement data is fetched live and not retained. You can
+        unlink at any time, which deletes all of it.</dd>
+
+      <dt>In your browser only</dt>
+      <dd>Favourites, recently played, and per-game progress are kept in your browser's local
+        storage. They never reach the server unless you are signed in and save a slot.</dd>
+    </dl>
+    <p>There are no analytics, no advertising, no tracking pixels and no third-party cookies set
+      by FlashHub itself. IP addresses are held briefly in memory to rate-limit sign-in attempts,
+      and are not written to disk or linked to your account.</p>
+
+    <h2>Third parties</h2>
+    <p>Games are streamed from other people's servers, so playing one causes requests to them. Your
+      browser or this server contacts:</p>
+    <ul>
+      <li><strong>archive.org</strong>, <strong>cdn.jsdelivr.net</strong> and
+        <strong>raw.githubusercontent.com</strong> — game files. These are proxied through this
+        server, so those hosts see the server's address rather than yours.</li>
+      <li><strong>unpkg.com</strong> — the Ruffle Flash runtime, loaded directly by your browser.</li>
+      <li><strong>fonts.googleapis.com</strong> and <strong>fonts.gstatic.com</strong> — the
+        typeface, loaded directly by your browser.</li>
+      <li><strong>api.dicebear.com</strong> — generated avatars, loaded directly by your browser.</li>
+      <li><strong>api.steampowered.com</strong> and <strong>steamcommunity.com</strong> — only if
+        you link a Steam account.</li>
+    </ul>
+    <div class="notice">
+      <strong>Games are third-party code.</strong>
+      A game may contain its own analytics or advertising from whenever it was made. FlashHub runs
+      every game in a sandboxed frame on a separate origin so it cannot read your account or
+      session, but it cannot control what a game requests from its own authors' servers.
+    </div>
+
+    <h2>Where it is kept</h2>
+    <p>Account, session and save data are stored as files on the server this hub runs on. Data is
+      kept for as long as your account exists, and is deleted with it.</p>
+    <p>If that server sits outside New Zealand, your information is held overseas and protected by
+      that provider's arrangements rather than by New Zealand law directly — principle 12 of the
+      Privacy Act 2020 covers this.</p>
+
+    <h2>Your choices</h2>
+    <ul>
+      <li><strong>Export</strong> — every save slot can be downloaded as JSON from the player.</li>
+      <li><strong>Correct</strong> — display name, bio and avatar are editable at any time.</li>
+      <li><strong>Delete</strong> — deleting your account from Account → Security removes the
+        account and all of its save slots immediately and permanently. Browser-local data is
+        cleared by clearing site data.</li>
+    </ul>
+    <p>Under the Privacy Act 2020 you have the right to ask what personal information is held
+      about you and to ask for it to be corrected. For anything you cannot do from the account
+      screen, get in touch through
+      <a href="https://github.com/rustybusgaming" rel="noopener">github.com/rustybusgaming</a>.
+      If you are not happy with the response, you can complain to the
+      <a href="https://www.privacy.org.nz" rel="noopener">Office of the Privacy Commissioner</a>.</p>
+
+    <h2>Children</h2>
+    <p>FlashHub is not directed at children under 13, and accounts are not knowingly created for
+      them. If you believe a child under 13 has created an account, get in touch and it will be
+      removed.</p>
+
+    <h2>Changes</h2>
+    <p>Material changes will be noted by updating the date at the top of this page.</p>
+  </main>
+
+  <footer>
+    <a href="/">← Back to the catalogue</a>
+  </footer>
+</body>
+</html>

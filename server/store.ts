@@ -84,12 +84,17 @@ export function saveStoredAccounts(accounts: StoredUserAccount[]) {
   }
 }
 
-export function toPublicAccount(stored: StoredUserAccount, savesCount?: number, totalPlaytime?: number): UserAccount {
+/*
+ * Playtime is the account's own banked counter, not a sum over save slots. Slots are
+ * overwritten in place (so their minutes replace rather than accumulate) and only Flash
+ * titles have them at all, which made the old derived figure meaningless.
+ */
+export function toPublicAccount(stored: StoredUserAccount, savesCount?: number): UserAccount {
   const { passwordHash, passwordSalt, ...safe } = stored;
   return {
     ...safe,
     savesCount: typeof savesCount === 'number' ? savesCount : 0,
-    totalPlaytimeMinutes: typeof totalPlaytime === 'number' ? totalPlaytime : 0,
+    totalPlaytimeMinutes: stored.totalPlaytimeMinutes || 0,
     achievements: stored.achievements || []
   };
 }
@@ -97,11 +102,7 @@ export function toPublicAccount(stored: StoredUserAccount, savesCount?: number, 
 export function getPublicAccounts(): UserAccount[] {
   const stored = getStoredAccounts();
   const saves = getSaves();
-  return stored.map(acc => {
-    const userSaves = saves.filter(s => s.userId === acc.id);
-    const totalPlaytime = userSaves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
-    return toPublicAccount(acc, userSaves.length, totalPlaytime);
-  });
+  return stored.map(acc => toPublicAccount(acc, saves.filter(s => s.userId === acc.id).length));
 }
 
 export function getSaves(): GameSave[] {

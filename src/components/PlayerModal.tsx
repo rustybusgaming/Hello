@@ -97,7 +97,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
         // Offer Ruffle WASM as primary replacement for Archive outages
         mirrors.push({
           id: 'ruffle-wasm',
-          name: 'Ruffle Player (Load SWF)',
+          name: 'Ruffle',
           type: 'ruffle',
           url: game.swfUrl
             ? `/play.html?title=${encodeURIComponent(game.title)}&swf=${encodeURIComponent(game.swfUrl)}&autoplay=1`
@@ -106,7 +106,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
         });
         mirrors.push({
           id: 'archive-org',
-          name: 'Internet Archive Embed',
+          name: 'Archive.org',
           type: 'archive',
           url: game.embedUrl,
           isArchiveIndependent: false
@@ -114,7 +114,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
       } else {
         mirrors.push({
           id: 'primary-webport',
-          name: 'HTML5 WebPort (Primary)',
+          name: 'Web port',
           type: 'webport',
           url: game.embedUrl,
           isArchiveIndependent: true
@@ -125,7 +125,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
     // Always include Custom Ruffle File Player fallback
     mirrors.push({
       id: 'local-ruffle',
-      name: 'Custom File / Drag & Drop',
+      name: 'Your own file',
       type: 'custom',
       url: `/play.html?title=${encodeURIComponent(game.title)}`,
       isArchiveIndependent: true
@@ -714,7 +714,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                     }}
                     className="mt-2.5 font-display text-[11px] font-extrabold text-accent-lit hover:text-paper transition-colors"
                   >
-                    Archive.org unreliable? Switch →
+                    Try a different runtime →
                   </button>
                 )}
                 {isolationBlocked && (

@@ -1,0 +1,32 @@
+{
+  "id": "custom-fbwg-forest-temple",
+  "title": "Fireboy & Watergirl: The Forest Temple",
+  "thumbnail": "/api/cover/custom-fbwg-forest-temple?title=Fireboy%20%26%20Watergirl%3A%20The%20Forest%20Temple",
+  "rating": 5.0,
+  "source": "custom",
+  "genres": [
+    "Co-Op",
+    "Puzzle",
+    "Flash"
+  ],
+  "embedUrl": "/play.html?title=Fireboy%20%26%20Watergirl%3A%20The%20Forest%20Temple&swf=/custom_games/custom-fbwg-forest-temple/game.swf&autoplay=1",
+  "swfUrl": "/custom_games/custom-fbwg-forest-temple/game.swf",
+  "isArchiveIndependent": true,
+  "description": "Work together to collect diamonds and solve puzzle switches in the ancient Forest Temple.",
+  "mirrors": [
+    {
+      "id": "custom-fbwg-forest-temple-ruffle",
+      "name": "Ruffle WASM (local)",
+      "type": "ruffle",
+      "url": "/play.html?title=Fireboy%20%26%20Watergirl%3A%20The%20Forest%20Temple&swf=/custom_games/custom-fbwg-forest-temple/game.swf&autoplay=1",
+      "isArchiveIndependent": true
+    },
+    {
+      "id": "custom-fbwg-forest-temple-swf",
+      "name": "Direct .swf File",
+      "type": "mirror",
+      "url": "/custom_games/custom-fbwg-forest-temple/game.swf",
+      "isArchiveIndependent": true
+    }
+  ]
+}

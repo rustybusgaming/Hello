@@ -35,7 +35,7 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     description: 'Decompiled Super Mario 64 running natively in WebAssembly with full gamepad support.',
     mirrors: [
-      { id: 'sm64-primary', name: 'WASM Port (Primary)', type: 'webport', url: 'https://mario64.netlify.app/', isArchiveIndependent: true }
+      { id: 'sm64-primary', name: 'Web port', type: 'webport', url: 'https://mario64.netlify.app/', isArchiveIndependent: true }
     ]
   },
   {
@@ -64,9 +64,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     swfUrl: '/api/archive-swf/super-smash-flash-2/super-smash-flash-2.swf',
     description: 'The definitive fan-made Super Smash Bros Flash game featuring Goku, Naruto, Sora, and Nintendo icons.',
     mirrors: [
-      { id: 'super-smash-flash-2-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Super%20Smash%20Flash%202&swf=/api/archive-swf/super-smash-flash-2/super-smash-flash-2.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'super-smash-flash-2-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/super-smash-flash-2/super-smash-flash-2.swf', isArchiveIndependent: true },
-      { id: 'super-smash-flash-2-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/super-smash-flash-2', isArchiveIndependent: false }
+      { id: 'super-smash-flash-2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Super%20Smash%20Flash%202&swf=/api/archive-swf/super-smash-flash-2/super-smash-flash-2.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'super-smash-flash-2-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/super-smash-flash-2/super-smash-flash-2.swf', isArchiveIndependent: true },
+      { id: 'super-smash-flash-2-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/super-smash-flash-2', isArchiveIndependent: false }
     ]
   },
   {
@@ -80,9 +80,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/swords-and-sandals-2/Swords%20and%20Sandals%202%20%28v%202.1.0%29.swf',
     mirrors: [
-      { id: 'swords-and-sandals-2-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Swords%20and%20Sandals%202&swf=/api/archive-swf/swords-and-sandals-2/Swords%20and%20Sandals%202%20%28v%202.1.0%29.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'swords-and-sandals-2-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/swords-and-sandals-2/Swords%20and%20Sandals%202%20%28v%202.1.0%29.swf', isArchiveIndependent: true },
-      { id: 'swords-and-sandals-2-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/swords-and-sandals-2', isArchiveIndependent: false }
+      { id: 'swords-and-sandals-2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Swords%20and%20Sandals%202&swf=/api/archive-swf/swords-and-sandals-2/Swords%20and%20Sandals%202%20%28v%202.1.0%29.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'swords-and-sandals-2-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/swords-and-sandals-2/Swords%20and%20Sandals%202%20%28v%202.1.0%29.swf', isArchiveIndependent: true },
+      { id: 'swords-and-sandals-2-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/swords-and-sandals-2', isArchiveIndependent: false }
     ]
   },
   {
@@ -96,9 +96,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/strike-force-heroes-2/strike-force-heroes-2.swf',
     mirrors: [
-      { id: 'strike-force-heroes-2-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Strike%20Force%20Heroes%202&swf=/api/archive-swf/strike-force-heroes-2/strike-force-heroes-2.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'strike-force-heroes-2-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/strike-force-heroes-2/strike-force-heroes-2.swf', isArchiveIndependent: true },
-      { id: 'strike-force-heroes-2-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/strike-force-heroes-2', isArchiveIndependent: false }
+      { id: 'strike-force-heroes-2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Strike%20Force%20Heroes%202&swf=/api/archive-swf/strike-force-heroes-2/strike-force-heroes-2.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'strike-force-heroes-2-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/strike-force-heroes-2/strike-force-heroes-2.swf', isArchiveIndependent: true },
+      { id: 'strike-force-heroes-2-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/strike-force-heroes-2', isArchiveIndependent: false }
     ]
   },
   {
@@ -112,9 +112,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/raze-2/Raze%202.swf',
     mirrors: [
-      { id: 'raze-2-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Raze%202&swf=/api/archive-swf/raze-2/Raze%202.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'raze-2-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/raze-2/Raze%202.swf', isArchiveIndependent: true },
-      { id: 'raze-2-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/raze-2', isArchiveIndependent: false }
+      { id: 'raze-2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Raze%202&swf=/api/archive-swf/raze-2/Raze%202.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'raze-2-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/raze-2/Raze%202.swf', isArchiveIndependent: true },
+      { id: 'raze-2-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/raze-2', isArchiveIndependent: false }
     ]
   },
   {
@@ -129,9 +129,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     swfUrl: '/api/archive-swf/super-mario-63/Super_Mario_63.swf',
     description: 'Runouw\'s magnum opus 2D homage to Super Mario 64 and Sunshine with the FLUDD pack and level editor.',
     mirrors: [
-      { id: 'super-mario-63-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Super%20Mario%2063&swf=/api/archive-swf/super-mario-63/Super_Mario_63.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'super-mario-63-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/super-mario-63/Super_Mario_63.swf', isArchiveIndependent: true },
-      { id: 'super-mario-63-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/super-mario-63', isArchiveIndependent: false }
+      { id: 'super-mario-63-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Super%20Mario%2063&swf=/api/archive-swf/super-mario-63/Super_Mario_63.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'super-mario-63-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/super-mario-63/Super_Mario_63.swf', isArchiveIndependent: true },
+      { id: 'super-mario-63-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/super-mario-63', isArchiveIndependent: false }
     ]
   },
   {
@@ -145,9 +145,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/stick-war/Stick%20War.swf',
     mirrors: [
-      { id: 'stick-war-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Stick%20War&swf=/api/archive-swf/stick-war/Stick%20War.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'stick-war-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/stick-war/Stick%20War.swf', isArchiveIndependent: true },
-      { id: 'stick-war-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/stick-war', isArchiveIndependent: false }
+      { id: 'stick-war-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Stick%20War&swf=/api/archive-swf/stick-war/Stick%20War.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'stick-war-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/stick-war/Stick%20War.swf', isArchiveIndependent: true },
+      { id: 'stick-war-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/stick-war', isArchiveIndependent: false }
     ]
   },
   {
@@ -161,9 +161,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/sugar-sugar/SugarSugar.swf',
     mirrors: [
-      { id: 'sugar-sugar-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Sugar%2C%20Sugar&swf=/api/archive-swf/sugar-sugar/SugarSugar.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'sugar-sugar-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/sugar-sugar/SugarSugar.swf', isArchiveIndependent: true },
-      { id: 'sugar-sugar-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/sugar-sugar', isArchiveIndependent: false }
+      { id: 'sugar-sugar-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Sugar%2C%20Sugar&swf=/api/archive-swf/sugar-sugar/SugarSugar.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'sugar-sugar-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/sugar-sugar/SugarSugar.swf', isArchiveIndependent: true },
+      { id: 'sugar-sugar-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/sugar-sugar', isArchiveIndependent: false }
     ]
   },
   {
@@ -177,9 +177,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/bad-ice-cream/Bad-Ice-Cream.swf',
     mirrors: [
-      { id: 'bad-ice-cream-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Bad%20Ice%20Cream&swf=/api/archive-swf/bad-ice-cream/Bad-Ice-Cream.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'bad-ice-cream-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/bad-ice-cream/Bad-Ice-Cream.swf', isArchiveIndependent: true },
-      { id: 'bad-ice-cream-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/bad-ice-cream', isArchiveIndependent: false }
+      { id: 'bad-ice-cream-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bad%20Ice%20Cream&swf=/api/archive-swf/bad-ice-cream/Bad-Ice-Cream.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'bad-ice-cream-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/bad-ice-cream/Bad-Ice-Cream.swf', isArchiveIndependent: true },
+      { id: 'bad-ice-cream-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/bad-ice-cream', isArchiveIndependent: false }
     ]
   },
   {
@@ -193,9 +193,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/plazma-burst-2/PlazmaBurst%202%20%281%29.swf',
     mirrors: [
-      { id: 'plazma-burst-2-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Plazma%20Burst%202&swf=/api/archive-swf/plazma-burst-2/PlazmaBurst%202%20%281%29.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'plazma-burst-2-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/plazma-burst-2/PlazmaBurst%202%20%281%29.swf', isArchiveIndependent: true },
-      { id: 'plazma-burst-2-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/plazma-burst-2', isArchiveIndependent: false }
+      { id: 'plazma-burst-2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Plazma%20Burst%202&swf=/api/archive-swf/plazma-burst-2/PlazmaBurst%202%20%281%29.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'plazma-burst-2-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/plazma-burst-2/PlazmaBurst%202%20%281%29.swf', isArchiveIndependent: true },
+      { id: 'plazma-burst-2-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/plazma-burst-2', isArchiveIndependent: false }
     ]
   },
   {
@@ -210,9 +210,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     swfUrl: '/api/archive-swf/breaking-the-bank/BreakingTheBank.swf',
     description: 'The hilarious origin story of Henry Stickmin trying to break into a bank vault in the desert.',
     mirrors: [
-      { id: 'breaking-the-bank-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Breaking%20the%20Bank&swf=/api/archive-swf/breaking-the-bank/BreakingTheBank.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'breaking-the-bank-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/breaking-the-bank/BreakingTheBank.swf', isArchiveIndependent: true },
-      { id: 'breaking-the-bank-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/breaking-the-bank', isArchiveIndependent: false }
+      { id: 'breaking-the-bank-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Breaking%20the%20Bank&swf=/api/archive-swf/breaking-the-bank/BreakingTheBank.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'breaking-the-bank-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/breaking-the-bank/BreakingTheBank.swf', isArchiveIndependent: true },
+      { id: 'breaking-the-bank-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/breaking-the-bank', isArchiveIndependent: false }
     ]
   },
   {
@@ -226,9 +226,9 @@ export const CURATED_FLASH_COLLECTIONS: FlashGameEntry[] = [
     isArchiveIndependent: true,
     swfUrl: '/api/archive-swf/effing-worms/EffingWorms.swf',
     mirrors: [
-      { id: 'effing-worms-ruffle', name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: '/play.html?title=Effing%20Worms&swf=/api/archive-swf/effing-worms/EffingWorms.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'effing-worms-file', name: 'Raw .swf File', type: 'mirror', url: '/api/archive-swf/effing-worms/EffingWorms.swf', isArchiveIndependent: true },
-      { id: 'effing-worms-details', name: 'Archive.org Item Page', type: 'archive', url: 'https://archive.org/details/effing-worms', isArchiveIndependent: false }
+      { id: 'effing-worms-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Effing%20Worms&swf=/api/archive-swf/effing-worms/EffingWorms.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'effing-worms-file', name: 'Direct file', type: 'mirror', url: '/api/archive-swf/effing-worms/EffingWorms.swf', isArchiveIndependent: true },
+      { id: 'effing-worms-details', name: 'Archive.org', type: 'archive', url: 'https://archive.org/details/effing-worms', isArchiveIndependent: false }
     ]
   },
 ];

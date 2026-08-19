@@ -48,9 +48,9 @@ export function checkAchievements(userId: string) {
     awardAchievement('first_play');
   }
 
-  // 2. Marathon Player (1 hour = 60 minutes)
-  const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
-  if (totalPlaytime >= 60) {
+  // 2. Marathon Player (1 hour = 60 minutes), from the account's banked playtime rather
+  //    than a sum over slots that get overwritten in place
+  if ((account.totalPlaytimeMinutes || 0) >= 60) {
     awardAchievement('marathon_player');
   }
 

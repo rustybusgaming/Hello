@@ -7,14 +7,16 @@ coverage/
 .env*
 !.env.example
 
-# Local state: password hashes, live session tokens, uploaded game metadata
+# Local state: password hashes, live session tokens, cloud saves
 data/*.json
 
 # Massive downloaded game assets
 public/gameports
 public/quasar
-public/custom_games
 temp_quasar
+
+# Uploaded games ARE committed: each folder carries its own metadata.json, so checking one
+# in is all it takes to share it. Keep an eye on size — the upload limit is 100 MB a file.
 
 # Cached copies of proxied game assets
 data/asset-cache/

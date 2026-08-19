@@ -210,7 +210,7 @@ export default function App() {
       .slice(0, 22)
       .map(([genre]) => genre);
 
-    return ['All', 'Archive-free', ...ranked];
+    return ['All', ...ranked];
   }, [games]);
 
   const filteredGames = useMemo(() => {
@@ -221,16 +221,7 @@ export default function App() {
         (game.description && game.description.toLowerCase().includes(q)) ||
         game.genres.some(g => g.toLowerCase().includes(q));
 
-      let matchesGenre = activeGenre === 'All';
-      if (activeGenre === 'Archive-free') {
-        matchesGenre = Boolean(
-          game.isArchiveIndependent ||
-          game.source === 'webporting' ||
-          (game.mirrors && game.mirrors.some(m => m.isArchiveIndependent))
-        );
-      } else if (activeGenre !== 'All') {
-        matchesGenre = game.genres.includes(activeGenre);
-      }
+      const matchesGenre = activeGenre === 'All' || game.genres.includes(activeGenre);
       return matchesSearch && matchesGenre;
     });
   }, [games, searchQuery, activeGenre]);
@@ -279,6 +270,19 @@ export default function App() {
   };
 
   const handleCloseModal = (elapsedSeconds: number) => {
+    // Bank the sitting so the profile's playtime covers every game, not just the Flash
+    // titles that have save slots. Rounded up, so a short session still counts as one.
+    if (currentUser && elapsedSeconds >= 30) {
+      fetch('/api/auth/playtime', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ minutes: Math.max(1, Math.round(elapsedSeconds / 60)) })
+      })
+        .then(res => (res.ok ? res.json() : null))
+        .then(d => { if (d?.status === 'ok' && d.user) setCurrentUser(d.user); })
+        .catch(() => { /* the session is still over; the counter can miss one */ });
+    }
+
     // Restore the scroll position the grid had before it was hidden. The <main> is still
     // `hidden` at this point, so the document has no height to scroll to yet — the restore
     // has to wait for the frame *after* React has painted the grid back in.
@@ -341,13 +345,12 @@ export default function App() {
 
   const isDefaultView = searchQuery === '' && activeGenre === 'All' && !show404View;
 
-  // The four figures the stat band reports
+  // The figures the stat band reports
   const catalogStats = useMemo(() => {
     const flash = games.filter((g) => g.genres.some((x) => x.toLowerCase() === 'flash')).length;
-    const archiveFree = games.filter(
-      (g) => g.isArchiveIndependent || g.source === 'webporting'
-    ).length;
-    return { total: games.length, flash, ports: games.length - flash, archiveFree };
+    const genres = new Set<string>();
+    games.forEach((g) => g.genres.forEach((x) => genres.add(x)));
+    return { total: games.length, flash, ports: games.length - flash, genres: genres.size };
   }, [games]);
 
   return (
@@ -409,7 +412,7 @@ export default function App() {
                 <Stat label="Titles" value={catalogStats.total} />
                 <Stat label="Ruffle-playable" value={catalogStats.flash} />
                 <Stat label="Webports" value={catalogStats.ports} />
-                <Stat label="Archive-free" value={catalogStats.archiveFree} accent />
+                <Stat label="Genres" value={catalogStats.genres} accent />
               </section>
             )}
 
@@ -522,6 +525,25 @@ export default function App() {
           </div>
         )}
       </main>
+
+      {/* The site's one footer: attribution and the two policy pages, ruled off like everything
+          else. Hidden while a game is open so it cannot appear under the player. */}
+      {!selectedGame && (
+        <footer className="border-t-2 border-rule bg-paper mt-auto">
+          <div className="max-w-[1480px] mx-auto px-4 sm:px-7 py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
+            <span className="font-display text-[13px] font-extrabold tracking-[-0.02em]">FLASHHUB</span>
+            <p className="text-[12px] text-ink/55 max-w-lg leading-relaxed">
+              A preservation front end. Every game belongs to its original authors — see the
+              credits for who preserved and ported them.
+            </p>
+            <nav className="sm:ml-auto flex items-center gap-5 text-[12px] font-semibold">
+              <a href="/credits.html" className="text-ink hover:text-accent transition-colors">Credits</a>
+              <a href="/terms.html" className="text-ink hover:text-accent transition-colors">Terms</a>
+              <a href="/privacy.html" className="text-ink hover:text-accent transition-colors">Privacy</a>
+            </nav>
+          </div>
+        </footer>
+      )}
 
       {/* Floating Session Duration Toast / Display when player modal is closed */}
       <AnimatePresence>
