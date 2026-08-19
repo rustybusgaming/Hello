@@ -31,9 +31,9 @@ function formatDate(iso: string | null): string {
 /** Steam publishes global unlock rates, which is what makes an achievement feel rare. */
 function rarityLabel(percent: number | null): { text: string; className: string } | null {
   if (percent === null) return null;
-  if (percent < 5) return { text: `${percent.toFixed(1)}% ultra rare`, className: 'text-punch border-punch/40 bg-punch/10' };
-  if (percent < 20) return { text: `${percent.toFixed(1)}% rare`, className: 'text-volt border-volt/40 bg-volt/10' };
-  return { text: `${percent.toFixed(0)}% of players`, className: 'text-zinc-400 border-edge bg-white/5' };
+  if (percent < 5) return { text: `${percent.toFixed(1)}% ultra rare`, className: 'text-accent border-accent/40 bg-accent/10' };
+  if (percent < 20) return { text: `${percent.toFixed(1)}% rare`, className: 'text-accent border-accent/40 bg-accent/10' };
+  return { text: `${percent.toFixed(0)}% of players`, className: 'text-ink/60 border-rule bg-ink/5' };
 }
 
 export function SteamPanel({ steamId }: SteamPanelProps) {
@@ -123,7 +123,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 text-zinc-500 gap-2">
+      <div className="flex items-center justify-center py-12 text-ink/55 gap-2">
         <Loader2 className="w-4 h-4 animate-spin" style={{ color: STEAM_BLUE }} />
         <span className="text-xs">Reading your Steam library…</span>
       </div>
@@ -134,15 +134,15 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
   if (error?.needsKey) {
     return (
       <div className="panel p-5 space-y-3">
-        <div className="flex items-center gap-2 text-sm font-bold text-white">
+        <div className="flex items-center gap-2 text-sm font-bold text-ink">
           <KeyRound className="w-4 h-4" style={{ color: STEAM_BLUE }} />
           Steam Web API key required
         </div>
-        <p className="text-xs text-zinc-400 leading-relaxed">
+        <p className="text-xs text-ink/60 leading-relaxed">
           Steam retired the public endpoints for libraries and achievements, so this section needs
           a Web API key. Your profile link above keeps working without one.
         </p>
-        <ol className="text-xs text-zinc-400 space-y-1.5 list-decimal list-inside">
+        <ol className="text-xs text-ink/60 space-y-1.5 list-decimal list-inside">
           <li>
             Get a key at{' '}
             <a
@@ -155,10 +155,10 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
               steamcommunity.com/dev/apikey
             </a>
           </li>
-          <li>Add <code className="text-zinc-300">STEAM_API_KEY="your-key"</code> to your <code className="text-zinc-300">.env</code></li>
+          <li>Add <code className="text-ink/80">STEAM_API_KEY="your-key"</code> to your <code className="text-ink/80">.env</code></li>
           <li>Restart the server and reopen this tab</li>
         </ol>
-        <p className="text-[11px] text-zinc-600">
+        <p className="text-[11px] text-ink/45">
           Your Steam profile also has to be public for Steam to share the library.
         </p>
       </div>
@@ -168,8 +168,8 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
   if (error) {
     return (
       <div className="panel p-5 space-y-3">
-        <p className="text-xs text-rose">{error.message}</p>
-        <button onClick={load} className="btn-ghost px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5">
+        <p className="text-xs text-accent">{error.message}</p>
+        <button onClick={load} className="btn-ghost px-3 py-1.5 text-xs inline-flex items-center gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" />
           Try again
         </button>
@@ -184,7 +184,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
   return (
     <div className="space-y-5">
       {notice && (
-        <div className="p-3 rounded-xl border text-xs" style={{ borderColor: `${STEAM_BLUE}40`, background: `${STEAM_BLUE}14`, color: STEAM_BLUE }}>
+        <div className="p-3 border text-xs" style={{ borderColor: `${STEAM_BLUE}40`, background: `${STEAM_BLUE}14`, color: STEAM_BLUE }}>
           {notice}
         </div>
       )}
@@ -195,15 +195,15 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
           <img
             src={profile.avatar}
             alt=""
-            className="w-16 h-16 rounded-xl object-cover bg-surface"
+            className="w-16 h-16 object-cover bg-shade"
             style={{ boxShadow: `0 0 0 2px ${STEAM_BLUE}55` }}
           />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h4 className="text-base font-bold text-white truncate">{profile.personaName}</h4>
+              <h4 className="text-base font-bold text-ink truncate">{profile.personaName}</h4>
               {library?.level !== null && library?.level !== undefined && (
                 <span
-                  className="px-2 py-0.5 rounded-full text-[10px] font-bold border"
+                  className="px-2 py-0.5 text-[10px] font-bold border"
                   style={{ color: STEAM_BLUE, borderColor: `${STEAM_BLUE}55`, background: `${STEAM_BLUE}14` }}
                 >
                   LEVEL {library.level}
@@ -213,7 +213,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                 {profile.playingNow ? `In ${profile.playingNow}` : profile.state}
               </span>
             </div>
-            <p className="text-[11px] text-zinc-500 mt-1 font-mono">
+            <p className="text-[11px] text-ink/55 mt-1 font-mono">
               {profile.steamId}
               {profile.createdAt && ` · joined ${formatDate(profile.createdAt)}`}
               {profile.countryCode && ` · ${profile.countryCode}`}
@@ -223,7 +223,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
             href={profile.profileUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="btn-ghost px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5"
+            className="btn-ghost px-3 py-1.5 text-xs inline-flex items-center gap-1.5"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             Steam profile
@@ -244,7 +244,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
               <Icon className="w-2.5 h-2.5" />
               {label}
             </span>
-            <div className="font-display text-lg font-bold text-white mt-1 tabular-nums">{value}</div>
+            <div className="font-display text-lg font-bold text-ink mt-1 tabular-nums">{value}</div>
           </div>
         ))}
       </div>
@@ -256,12 +256,12 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
             <span className="eyebrow">Completion across tracked games</span>
             <span className="font-mono text-xs" style={{ color: STEAM_BLUE }}>{completion}%</span>
           </div>
-          <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+          <div className="h-1.5 bg-ink/5 overflow-hidden">
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${completion}%` }}
               transition={{ duration: 0.6 }}
-              className="h-full rounded-full"
+              className="h-full"
               style={{ background: `linear-gradient(90deg, ${STEAM_BLUE}, #ff8a00)` }}
             />
           </div>
@@ -272,7 +272,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
       {overview && overview.recent.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="rule-accent" />
+            <span className="hr-accent" />
             <span className="eyebrow">Latest unlocks</span>
           </div>
           <div className="space-y-1.5">
@@ -280,15 +280,15 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
               const rarity = rarityLabel(a.globalPercent);
               return (
                 <div key={`${a.appId}-${a.id}`} className="panel p-2.5 flex items-center gap-3">
-                  {a.icon && <img src={a.icon} alt="" className="w-8 h-8 rounded-md bg-surface flex-shrink-0" />}
+                  {a.icon && <img src={a.icon} alt="" className="w-8 h-8 bg-shade flex-shrink-0" />}
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-zinc-100 truncate">{a.name}</div>
-                    <div className="text-[10px] text-zinc-500 truncate">
+                    <div className="text-xs font-semibold text-ink truncate">{a.name}</div>
+                    <div className="text-[10px] text-ink/55 truncate">
                       {a.gameName} · {formatDate(a.unlockedAt)}
                     </div>
                   </div>
                   {rarity && (
-                    <span className={`hidden sm:inline text-[9px] px-1.5 py-0.5 rounded border font-mono ${rarity.className}`}>
+                    <span className={`hidden sm:inline text-[9px] px-1.5 py-0.5  border font-mono ${rarity.className}`}>
                       {rarity.text}
                     </span>
                   )}
@@ -303,7 +303,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
       {library && library.topGames.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="rule-accent" />
+            <span className="hr-accent" />
             <span className="eyebrow">Most played · pick a game for its achievements</span>
           </div>
 
@@ -315,27 +315,27 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                 <button
                   key={game.appId}
                   onClick={() => setSelectedApp(isOpen ? null : game.appId)}
-                  className={`panel panel-hover w-full p-2.5 flex items-center gap-3 text-left ${isOpen ? 'border-volt/50' : ''}`}
+                  className={`panel panel-hover w-full p-2.5 flex items-center gap-3 text-left ${isOpen ? 'border-accent/50' : ''}`}
                 >
                   <img
                     src={game.headerUrl}
                     alt=""
-                    className="w-16 h-8 rounded object-cover bg-surface flex-shrink-0"
+                    className="w-16 h-8 object-cover bg-shade flex-shrink-0"
                     onError={e => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
                   />
                   <div className="min-w-0 flex-1">
-                    <div className="text-xs font-semibold text-zinc-100 truncate">{game.name}</div>
-                    <div className="h-1 rounded-full bg-white/5 mt-1.5 overflow-hidden">
+                    <div className="text-xs font-semibold text-ink truncate">{game.name}</div>
+                    <div className="h-1 bg-ink/5 mt-1.5 overflow-hidden">
                       <div
-                        className="h-full rounded-full"
+                        className="h-full"
                         style={{ width: `${Math.max(3, (game.playtimeMinutes / mostPlayed) * 100)}%`, background: STEAM_BLUE }}
                       />
                     </div>
                   </div>
                   <div className="text-right flex-shrink-0">
-                    <div className="font-mono text-[11px] text-zinc-300">{formatHours(game.playtimeMinutes)}</div>
+                    <div className="font-mono text-[11px] text-ink/80">{formatHours(game.playtimeMinutes)}</div>
                     {perGame && (
-                      <div className="font-mono text-[10px] text-zinc-600">{perGame.unlocked}/{perGame.total} 🏆</div>
+                      <div className="font-mono text-[10px] text-ink/45">{perGame.unlocked}/{perGame.total} 🏆</div>
                     )}
                   </div>
                 </button>
@@ -349,20 +349,20 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
       {selectedApp && (
         <div className="panel p-4 space-y-3">
           {achievementsLoading && (
-            <div className="flex items-center gap-2 text-xs text-zinc-500">
+            <div className="flex items-center gap-2 text-xs text-ink/55">
               <Loader2 className="w-3.5 h-3.5 animate-spin" />
               Loading achievements…
             </div>
           )}
 
-          {achievementError && <p className="text-xs text-zinc-400">{achievementError}</p>}
+          {achievementError && <p className="text-xs text-ink/60">{achievementError}</p>}
 
           {achievementSet && (
             <>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h4 className="text-sm font-bold text-white">{achievementSet.gameName}</h4>
-                  <p className="text-[11px] text-zinc-500">
+                  <h4 className="text-sm font-bold text-ink">{achievementSet.gameName}</h4>
+                  <p className="text-[11px] text-ink/55">
                     {achievementSet.unlocked} of {achievementSet.total} unlocked
                     {achievementSet.total > 0 && ` · ${Math.round((achievementSet.unlocked / achievementSet.total) * 100)}%`}
                   </p>
@@ -372,8 +372,8 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                     <button
                       key={f}
                       onClick={() => setFilter(f)}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold capitalize transition-all ${
-                        filter === f ? 'bg-volt text-white' : 'btn-ghost'
+                      className={`px-2.5 py-1  text-[11px] font-semibold capitalize transition-all ${
+                        filter === f ? 'bg-accent text-ink' : 'btn-ghost'
                       }`}
                     >
                       {f}
@@ -388,33 +388,33 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                   return (
                     <div
                       key={a.id}
-                      className={`p-2.5 rounded-lg border flex items-start gap-2.5 ${
-                        a.unlocked ? 'bg-white/[0.04] border-edge' : 'bg-black/30 border-edge/60 opacity-70'
+                      className={`p-2.5  border flex items-start gap-2.5 ${
+                        a.unlocked ? 'bg-paper/[0.04] border-rule' : 'bg-shade border-rule/60 opacity-70'
                       }`}
                     >
                       <div className="relative flex-shrink-0">
                         {a.icon ? (
-                          <img src={a.icon} alt="" className={`w-9 h-9 rounded-md bg-surface ${a.unlocked ? '' : 'grayscale'}`} />
+                          <img src={a.icon} alt="" className={`w-9 h-9  bg-shade ${a.unlocked ? '' : 'grayscale'}`} />
                         ) : (
-                          <div className="w-9 h-9 rounded-md bg-surface flex items-center justify-center">
-                            <Trophy className="w-4 h-4 text-zinc-600" />
+                          <div className="w-9 h-9 bg-shade flex items-center justify-center">
+                            <Trophy className="w-4 h-4 text-ink/45" />
                           </div>
                         )}
                         {!a.unlocked && (
-                          <span className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-void border border-edge flex items-center justify-center">
-                            <Lock className="w-2 h-2 text-zinc-500" />
+                          <span className="absolute -bottom-1 -right-1 w-4 h-4 bg-ground border border-rule flex items-center justify-center">
+                            <Lock className="w-2 h-2 text-ink/55" />
                           </span>
                         )}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-semibold text-zinc-100 truncate">{a.name}</div>
-                        {a.description && <p className="text-[10px] text-zinc-500 leading-snug line-clamp-2">{a.description}</p>}
+                        <div className="text-xs font-semibold text-ink truncate">{a.name}</div>
+                        {a.description && <p className="text-[10px] text-ink/55 leading-snug line-clamp-2">{a.description}</p>}
                         <div className="flex items-center gap-2 mt-1">
                           {a.unlocked && a.unlockedAt && (
-                            <span className="text-[9px] font-mono text-mint">{formatDate(a.unlockedAt)}</span>
+                            <span className="text-[9px] font-mono text-accent">{formatDate(a.unlockedAt)}</span>
                           )}
                           {rarity && (
-                            <span className={`text-[9px] px-1.5 py-0.5 rounded border font-mono ${rarity.className}`}>
+                            <span className={`text-[9px] px-1.5 py-0.5  border font-mono ${rarity.className}`}>
                               {rarity.text}
                             </span>
                           )}

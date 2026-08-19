@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Game } from '../types';
-import { Heart, Play, Star } from 'lucide-react';
+import { Heart } from 'lucide-react';
+import { isFlashGame } from '../lib/games';
 
 interface GameCardProps {
   game: Game;
@@ -8,61 +9,67 @@ interface GameCardProps {
   onToggleFavorite?: (e: React.MouseEvent, gameId: string) => void;
   onClick: (game: Game) => void;
   index?: number;
+  showRuntimeBadges?: boolean;
+  showRatings?: boolean;
 }
 
-/** One colour per catalogue origin, so the grid is scannable without reading labels. */
-const SOURCE_CHIP: Record<string, { className: string; label: string }> = {
-  webporting: { className: 'chip-web', label: 'Web' },
-  archive: { className: 'chip-archive', label: 'Archive' },
-  steam: { className: 'chip-steam', label: 'Steam' },
-  custom: { className: 'chip-custom', label: 'Custom' }
-};
+/**
+ * The runtime a title actually plays under. The mockup carries this as one accent-filled
+ * badge rather than a colour per source — the label does the distinguishing, not a hue.
+ */
+function runtimeOf(game: Game): string {
+  if (isFlashGame(game)) return 'RUFFLE';
+  if (game.source === 'archive') return 'ARCHIVE';
+  if (game.source === 'steam') return 'STEAM';
+  if (game.source === 'custom') return 'CUSTOM';
+  return 'WEBPORT';
+}
 
-export function GameCard({ game, isFavorite = false, onToggleFavorite, onClick, index = 0 }: GameCardProps) {
+/** One cell of the 1b modular grid: hairline-ruled, duotone cover, meta beneath. */
+export function GameCard({
+  game,
+  isFavorite = false,
+  onToggleFavorite,
+  onClick,
+  index = 0,
+  showRuntimeBadges = true,
+  showRatings = true
+}: GameCardProps) {
   const [imageFailed, setImageFailed] = useState(false);
-  const isFlash = game.genres?.some((g) => g.toLowerCase() === 'flash');
-  const chip = isFlash
-    ? { className: 'chip-flash', label: 'Flash' }
-    : SOURCE_CHIP[game.source] || SOURCE_CHIP.webporting;
 
   // Generated cover art beats a broken-image icon when an upstream thumbnail disappears
   const fallbackCover = `/api/cover/${encodeURIComponent(game.id)}?title=${encodeURIComponent(game.title)}`;
+  const genre = game.genres.filter((g) => g.toLowerCase() !== 'flash')[0] || 'Arcade';
 
   return (
     <button
       type="button"
-      style={{ animationDelay: `${Math.min(index, 12) * 15}ms` }}
+      style={{ animationDelay: `${Math.min(index, 12) * 12}ms` }}
       onClick={() => onClick(game)}
       aria-label={`Play ${game.title}`}
-      className="panel panel-hover card-enter group relative text-left overflow-hidden flex flex-col focus:outline-none focus-visible:border-volt"
+      className="card-enter row-hover group relative text-left flex flex-col border-r border-b border-hair p-4 focus:outline-none focus-visible:outline-2 focus-visible:outline-accent focus-visible:-outline-offset-2"
     >
-      <div className="relative aspect-[4/3] overflow-hidden bg-pit">
+      <div className="relative aspect-[4/3] overflow-hidden hatch">
         <img
           src={imageFailed ? fallbackCover : game.thumbnail}
           alt=""
           loading="lazy"
           onError={() => setImageFailed(true)}
-          className="w-full h-full object-cover transition-transform duration-[600ms] ease-out group-hover:scale-[1.08]"
+          className="w-full h-full object-cover duotone"
         />
 
-        {/* Base scrim keeps the badges legible; the tinted wash only appears on hover */}
-        <div className="absolute inset-0 bg-gradient-to-t from-void/85 via-void/10 to-void/25" />
-        <div className="absolute inset-0 bg-gradient-to-t from-volt/45 via-transparent to-beam/15 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-        {/* Play affordance on hover */}
-        <div className="absolute inset-0 flex items-center justify-center opacity-0 translate-y-1.5 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-200">
-          <span className="flex items-center justify-center w-12 h-12 rounded-full bg-white/95 text-void shadow-[0_14px_36px_-10px_rgba(0,0,0,0.9)] ring-4 ring-white/15">
-            <Play className="w-5 h-5 ml-0.5" fill="currentColor" />
+        {/* Nothing floats over the cover until the pointer is on it */}
+        <span className="absolute inset-0 flex items-end p-2 bg-ink/0 group-hover:bg-ink/70 transition-colors duration-100">
+          <span className="font-display text-[11px] font-extrabold tracking-[0.1em] text-paper opacity-0 group-hover:opacity-100">
+            PLAY →
           </span>
-        </div>
-
-        <span className={`chip ${chip.className} absolute top-2.5 left-2.5`}>{chip.label}</span>
+        </span>
 
         {onToggleFavorite && (
           <span
             role="button"
             tabIndex={0}
-            aria-label={isFavorite ? 'Remove from My Arcade' : 'Add to My Arcade'}
+            aria-label={isFavorite ? 'Remove from shelf' : 'Add to shelf'}
             onClick={(e) => onToggleFavorite(e, game.id)}
             onKeyDown={(e) => {
               if (e.key === 'Enter' || e.key === ' ') {
@@ -71,10 +78,10 @@ export function GameCard({ game, isFavorite = false, onToggleFavorite, onClick, 
                 onToggleFavorite(e as unknown as React.MouseEvent, game.id);
               }
             }}
-            className={`absolute top-2.5 right-2.5 w-7 h-7 rounded-lg flex items-center justify-center border backdrop-blur-md transition-all ${
+            className={`absolute top-0 right-0 w-7 h-7 flex items-center justify-center transition-colors ${
               isFavorite
-                ? 'bg-punch/25 border-punch/55 text-punch'
-                : 'bg-black/45 border-white/10 text-zinc-300 opacity-0 group-hover:opacity-100 hover:text-white hover:border-white/30'
+                ? 'bg-accent text-paper'
+                : 'bg-paper/90 text-ink opacity-0 group-hover:opacity-100 hover:bg-ink hover:text-paper'
             }`}
           >
             <Heart className="w-3.5 h-3.5" fill={isFavorite ? 'currentColor' : 'none'} />
@@ -82,19 +89,18 @@ export function GameCard({ game, isFavorite = false, onToggleFavorite, onClick, 
         )}
       </div>
 
-      <div className="px-3.5 py-3 flex flex-col gap-1.5">
-        <h3 className="font-display text-[13.5px] font-semibold text-zinc-100 truncate group-hover:text-white">
-          {game.title}
-        </h3>
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-[10.5px] text-zinc-500 truncate">
-            {game.genres.filter((g) => g.toLowerCase() !== 'flash').slice(0, 2).join(' · ') || 'Arcade'}
-          </span>
-          <span className="flex items-center gap-1 font-mono text-[10px] text-zinc-400 flex-shrink-0">
-            <Star className="w-2.5 h-2.5 text-amber" fill="currentColor" />
+      <div className="flex items-baseline justify-between gap-2 mt-3">
+        <span className="font-display text-[15px] font-semibold truncate">{game.title}</span>
+        {showRatings && (
+          <span className="font-mono text-[11px] text-ink/55 flex-shrink-0">
             {(game.rating || 5).toFixed(1)}
           </span>
-        </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-2 mt-2">
+        {showRuntimeBadges && <span className="chip chip-accent">{runtimeOf(game)}</span>}
+        <span className="text-[11px] text-ink/55 truncate">{genre}</span>
       </div>
     </button>
   );

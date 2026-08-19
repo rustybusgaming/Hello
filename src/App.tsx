@@ -8,12 +8,13 @@ import { UploadModal } from './components/UploadModal';
 import { AdminPanel } from './components/AdminPanel';
 import { AccountModal } from './components/AccountModal';
 import { NotFoundPanel } from './components/NotFoundPanel';
-import { Loader2, Clock, Heart, Timer, X, Sparkles, Zap, Gamepad2, Shuffle, ShieldCheck } from 'lucide-react';
+import { Loader2, Clock, Heart, Timer, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './lib/hooks';
 import { formatGameInfo } from './utils/gameTitles';
 
-const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4';
+// 1b: equal-width cells, no gaps — the hairline borders on each cell draw the grid.
+const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 border-t border-l border-hair';
 
 /**
  * Loopback has two names, and they are separate origins to the browser. Framing games from
@@ -29,33 +30,40 @@ function deriveGameOrigin(): string {
   return '';
 }
 
-/** The header every game row shares: accent rule, eyebrow, display title, count. */
-function SectionHeader({
-  icon,
-  eyebrow,
+/**
+ * The shelf header from 1b: a mono kicker, then the shelf's statement set flush left and
+ * solid. The count sits opposite it on the same baseline.
+ */
+function ShelfHeader({
+  kicker,
   title,
   count
 }: {
-  icon?: React.ReactNode;
-  eyebrow: string;
+  kicker: string;
   title: string;
   count: number;
 }) {
   return (
-    <div className="flex items-end justify-between gap-4 mb-5">
+    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 sm:gap-6 px-1 pb-5 pt-9">
       <div className="min-w-0">
-        <span className="flex items-center gap-2.5">
-          <span className="rule-accent" />
-          {icon}
-          <span className="eyebrow">{eyebrow}</span>
-        </span>
-        <h2 className="mt-2 font-display text-[19px] sm:text-[22px] font-bold text-white truncate">
+        <div className="eyebrow mb-2.5">{kicker}</div>
+        <h2 className="font-display text-[28px] sm:text-[34px] font-extrabold leading-[1.05] tracking-[-0.025em] max-w-[22ch] text-pretty">
           {title}
         </h2>
       </div>
-      <span className="flex-shrink-0 font-mono text-[10px] text-zinc-500 tabular-nums px-2.5 py-1 rounded-lg border border-edge bg-white/[0.03]">
-        {count} title{count === 1 ? '' : 's'}
+      <span className="flex-shrink-0 font-mono text-[11px] text-ink/55 sm:pb-1.5">
+        {count.toLocaleString()} title{count === 1 ? '' : 's'}
       </span>
+    </div>
+  );
+}
+
+/** One cell of the stat band under the masthead (1a). */
+function Stat({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
+  return (
+    <div className="stat border-r-2 border-rule [&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r-2 lg:last:border-r-0">
+      <div className="eyebrow mb-1.5">{label}</div>
+      <div className={`stat-value ${accent ? 'text-accent' : ''}`}>{value.toLocaleString()}</div>
     </div>
   );
 }
@@ -333,14 +341,17 @@ export default function App() {
 
   const isDefaultView = searchQuery === '' && activeGenre === 'All' && !show404View;
 
-  // Headline counts for the hero strip
+  // The four figures the stat band reports
   const catalogStats = useMemo(() => {
     const flash = games.filter((g) => g.genres.some((x) => x.toLowerCase() === 'flash')).length;
-    return { total: games.length, flash, ports: games.length - flash };
+    const archiveFree = games.filter(
+      (g) => g.isArchiveIndependent || g.source === 'webporting'
+    ).length;
+    return { total: games.length, flash, ports: games.length - flash, archiveFree };
   }, [games]);
 
   return (
-    <div className="min-h-screen text-zinc-100 flex flex-col">
+    <div className="min-h-screen text-ink flex flex-col">
       <TopBar 
         searchQuery={searchQuery} 
         setSearchQuery={(q) => {
@@ -353,13 +364,15 @@ export default function App() {
         onOpenAccount={() => setIsAccountModalOpen(true)}
         onOpenAdmin={() => setIsAdminModalOpen(true)}
         onTrigger404={() => setShow404View(prev => !prev)}
+        totalTitles={games.length}
       />
       
       {!show404View && (
-        <GenreTabs 
-          genres={allGenres} 
-          activeGenre={activeGenre} 
-          onSelectGenre={setActiveGenre} 
+        <GenreTabs
+          genres={allGenres}
+          activeGenre={activeGenre}
+          onSelectGenre={setActiveGenre}
+          resultCount={filteredGames.length}
         />
       )}
 
@@ -368,12 +381,9 @@ export default function App() {
         hidden={!!selectedGame}
       >
         {selectedGame ? null : loading ? (
-          <div className="flex flex-col items-center justify-center py-40 text-zinc-600">
-            <span className="relative flex items-center justify-center w-14 h-14 mb-5">
-              <span className="absolute inset-0 rounded-2xl bg-volt/20 blur-xl" />
-              <Loader2 className="relative w-6 h-6 animate-spin text-volt" />
-            </span>
-            <p className="eyebrow">Spinning up the cabinet…</p>
+          <div className="flex flex-col items-start justify-center py-40">
+            <Loader2 className="w-5 h-5 animate-spin text-accent mb-4" />
+            <p className="eyebrow">Reading the catalogue…</p>
           </div>
         ) : show404View ? (
           <div className="py-6">
@@ -391,74 +401,23 @@ export default function App() {
             />
           </div>
         ) : filteredGames.length > 0 ? (
-          <div className="flex flex-col gap-12 pt-7">
+          <div className="flex flex-col">
             {isDefaultView && (
-              <section className="panel relative overflow-hidden px-6 py-9 sm:px-11 sm:py-14">
-                <div className="absolute inset-0 grid-drift opacity-60 pointer-events-none" />
-                <div className="absolute -top-32 -left-24 w-[26rem] h-[26rem] rounded-full bg-volt/25 blur-[110px] pointer-events-none" />
-                <div className="absolute -bottom-40 right-[-6rem] w-[26rem] h-[26rem] rounded-full bg-beam/15 blur-[110px] pointer-events-none" />
-                <div className="absolute top-1/3 left-1/2 w-72 h-72 rounded-full bg-punch/10 blur-[100px] pointer-events-none" />
-                {/* A marquee light sweeping across the cabinet glass */}
-                <div className="absolute inset-y-0 -left-1/3 w-1/3 marquee-sweep pointer-events-none" />
-                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-void/70 to-transparent pointer-events-none" />
-
-                <div className="relative flex flex-col gap-9">
-                  <div className="max-w-2xl">
-                    <h1 className="font-display text-[32px] sm:text-[58px] leading-[1.02] sm:leading-[0.98] font-extrabold text-white">
-                      The whole arcade,
-                      <br />
-                      <span className="text-gradient">nothing to install.</span>
-                    </h1>
-                    <p className="mt-4 text-[15px] text-zinc-400 leading-relaxed max-w-lg">
-                      Flash classics streamed straight into Ruffle, plus HTML5 and Unity webports —
-                      all playable in the browser, with cloud saves that follow your account.
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col-reverse sm:flex-row sm:items-end justify-between gap-6">
-                    <div className="flex flex-wrap gap-2.5">
-                      <button
-                        onClick={handleRandomGame}
-                        className="btn-volt h-11 px-6 rounded-2xl text-[13px] flex items-center gap-2"
-                      >
-                        <Shuffle className="w-4 h-4" />
-                        Roll a random game
-                      </button>
-                      <button
-                        onClick={() => setActiveGenre('Archive-free')}
-                        className="btn-ghost h-11 px-5 rounded-2xl text-[13px] font-semibold flex items-center gap-2"
-                      >
-                        <ShieldCheck className="w-4 h-4 text-mint" />
-                        Browse archive-free
-                      </button>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2.5">
-                      {[
-                        { label: 'Games', value: catalogStats.total, icon: Gamepad2, tint: 'text-volt' },
-                        { label: 'Flash', value: catalogStats.flash, icon: Zap, tint: 'text-amber' },
-                        { label: 'Webports', value: catalogStats.ports, icon: Sparkles, tint: 'text-beam' }
-                      ].map(({ label, value, icon: Icon, tint }) => (
-                        <div key={label} className="stat">
-                          <span className="stat-value">{value}</span>
-                          <span className="eyebrow flex items-center gap-1.5">
-                            <Icon className={`w-2.5 h-2.5 ${tint}`} />
-                            {label}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
+              /* 1a's stat band: four equal cells, divided by 2px rules, sitting directly
+                 under the masthead with no card around them. */
+              <section className="grid grid-cols-2 lg:grid-cols-4 border-b-2 border-rule [&>*:nth-child(-n+2)]:border-b-2 [&>*:nth-child(-n+2)]:border-rule lg:[&>*]:border-b-0">
+                <Stat label="Titles" value={catalogStats.total} />
+                <Stat label="Ruffle-playable" value={catalogStats.flash} />
+                <Stat label="Webports" value={catalogStats.ports} />
+                <Stat label="Archive-free" value={catalogStats.archiveFree} accent />
               </section>
             )}
 
             {isDefaultView && recentlyPlayedGames.length > 0 && (
               <section>
-                <SectionHeader
-                  icon={<Clock className="w-3.5 h-3.5 text-volt" />}
-                  eyebrow="Recently played"
-                  title="Jump back in"
+                <ShelfHeader
+                  kicker="Shelf 01 — recently played"
+                  title="Where you left off."
                   count={recentlyPlayedGames.length}
                 />
                 <div className={GRID}>
@@ -478,10 +437,9 @@ export default function App() {
 
             {isDefaultView && favoriteGames.length > 0 && (
               <section>
-                <SectionHeader
-                  icon={<Heart className="w-3.5 h-3.5 text-punch" fill="currentColor" />}
-                  eyebrow="Favourites"
-                  title="My arcade"
+                <ShelfHeader
+                  kicker="Shelf 02 — your shelf"
+                  title="Titles you kept."
                   count={favoriteGames.length}
                 />
                 <div className={GRID}>
@@ -500,15 +458,20 @@ export default function App() {
             )}
 
             <section>
-              <SectionHeader
-                icon={<Gamepad2 className="w-3.5 h-3.5 text-beam" />}
-                eyebrow={searchQuery ? 'Search' : activeGenre === 'All' ? 'Catalogue' : 'Genre'}
+              <ShelfHeader
+                kicker={
+                  searchQuery
+                    ? 'Search results'
+                    : activeGenre === 'All'
+                      ? 'Shelf 03 — most played, all years'
+                      : `Shelf 03 — ${activeGenre.toLowerCase()}`
+                }
                 title={
                   searchQuery
-                    ? `Results for "${searchQuery}"`
+                    ? `Titles matching "${searchQuery}".`
                     : activeGenre === 'All'
-                      ? 'Every game'
-                      : activeGenre
+                      ? `${filteredGames.length.toLocaleString()} games that outlived their plugin.`
+                      : `Everything filed under ${activeGenre.toLowerCase()}.`
                 }
                 count={filteredGames.length}
               />
@@ -526,12 +489,18 @@ export default function App() {
               </div>
 
               {hasMore && (
-                <div ref={loadMoreRef} className="flex justify-center py-10">
+                <div
+                  ref={loadMoreRef}
+                  className="flex items-center justify-between gap-4 border-t-2 border-rule px-1 py-4"
+                >
+                  <span className="text-[11px] text-ink/55">
+                    Showing {visibleCount.toLocaleString()} of {filteredGames.length.toLocaleString()}
+                  </span>
                   <button
                     onClick={() => setVisibleCount(c => Math.min(c + PAGE_SIZE, filteredGames.length))}
-                    className="btn-ghost px-5 h-11 rounded-2xl text-xs font-semibold"
+                    className="btn-ghost px-4 h-9 text-[12px]"
                   >
-                    Show more · {filteredGames.length - visibleCount} left
+                    Load next {Math.min(PAGE_SIZE, filteredGames.length - visibleCount)}
                   </button>
                 </div>
               )}
@@ -558,24 +527,26 @@ export default function App() {
       <AnimatePresence>
         {sessionRecap && (
           <motion.div
-            initial={{ opacity: 0, y: 30, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            transition={{ duration: 0.25 }}
-            className="sheet fixed bottom-6 right-6 z-40 flex items-center gap-3.5 backdrop-blur-2xl text-white px-4 py-3.5 max-w-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.14 }}
+            className="fixed bottom-0 right-0 z-40 flex items-stretch max-w-md bg-paper border-t-2 border-l-2 border-ink"
           >
-            <div className="w-9 h-9 rounded-xl bg-volt/15 border border-volt/30 flex items-center justify-center flex-shrink-0">
-              <Timer className="w-4 h-4 text-volt" />
+            <div className="w-9 flex items-center justify-center bg-accent text-paper flex-shrink-0">
+              <Timer className="w-4 h-4" />
             </div>
-            <div className="flex-1 min-w-0">
+            <div className="flex-1 min-w-0 px-4 py-3">
               <p className="eyebrow">Session complete</p>
-              <p className="text-xs text-zinc-200 truncate mt-0.5">
-                Played <span className="text-white font-semibold">{sessionRecap.title}</span> for <span className="text-volt font-semibold font-mono">{sessionRecap.durationText}</span>
+              <p className="text-[13px] truncate mt-1">
+                <span className="font-semibold">{sessionRecap.title}</span>
+                <span className="text-ink/55"> · </span>
+                <span className="font-mono">{sessionRecap.durationText}</span>
               </p>
             </div>
             <button
               onClick={() => setSessionRecap(null)}
-              className="text-zinc-500 hover:text-white p-1 rounded-md hover:bg-white/5 transition-colors"
+              className="w-9 flex items-center justify-center text-ink/55 hover:bg-shade hover:text-ink transition-colors flex-shrink-0"
               title="Dismiss"
             >
               <X className="w-3.5 h-3.5" />

@@ -1,14 +1,22 @@
 # Flash Game Hub
 
-A neon-dark retro game hub: HTML5/WASM webports, Ruffle-powered Flash classics from the
+A modernist Flash archive: HTML5/WASM webports, Ruffle-powered Flash classics from the
 Internet Archive, player accounts with cloud saves, Steam profile linking, and an admin
 console for catalogue and sync operations.
 
-The interface runs on one small design system ("Midnight Arcade"), defined entirely in
-`src/index.css`: a blue-black canvas, a violet → cyan primary, lime for anything live, and
-amber reserved for the Flash category so a Flash badge still means something at a glance.
-Components compose the shared `.panel` / `.sheet` / `.btn-volt` / `.field` / `.chip`
-classes rather than one-off colours, so retheming is a token edit.
+The interface implements the **Modernist** design system from the `Flash Archive Mockups`
+Claude Design project — flat, architectural, set entirely in Archivo: ink on a light ground
+with a single red accent (#ec3013), a visible modular grid, zero corner radius and strong
+2px rules. Nothing floats and nothing is decorated; alignment and the strength of the
+dividers do the organising, button labels sit flush left, and cover art prints in pure
+black and white through `.duotone`.
+
+The tokens live in `src/index.css`, and components compose the shared `.panel` / `.sheet` /
+`.btn-primary` / `.btn-ghost` / `.field` / `.rail-pill` / `.chip` / `.stat` classes rather
+than one-off colours. Two screens were built from specific mockup options: the home page is
+option **1b** (modular cover grid) under the stat band, search masthead and FILTER rail from
+option **1a**, and the player is option **1e** (ink surround with a 300px sidecar rail) —
+the one place the system inverts, so the game is the only lit thing on screen.
 
 The Express server in `server.ts` serves the API and mounts Vite in middleware mode, so a
 single process runs both the front end and the back end.

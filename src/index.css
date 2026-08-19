@@ -1,66 +1,84 @@
 @import "tailwindcss";
 
 /*
- * FlashHub design tokens — "Midnight Arcade".
+ * FlashHub design tokens — "Modernist", per the Flash Archive mockups.
  *
- * The hub is a dark room with the cabinets lit up in it: a blue-black canvas, a violet →
- * cyan primary that reads as a neon tube, lime for anything live, and amber kept aside as
- * the Flash *category* colour so a Flash badge still means something at a glance.
+ * Flat, architectural, set entirely in Archivo: ink on a light ground with a single red
+ * accent, a visible modular grid, zero corner radius and strong 2px rules. Nothing floats
+ * and nothing is decorated — alignment and the strength of the dividers do the organising.
+ * Photography prints in pure black and white.
  */
 @theme {
-  /* Canvas → foreground, darkest to lightest */
-  --color-void: #06070f;
-  --color-pit: #0a0c18;
-  --color-surface: #111428;
-  --color-edge: #232845;
+  /* Ground → paper, the two surfaces the whole layout is built from */
+  --color-ground: #e6e4e3;  /* the page behind the cards */
+  --color-paper: #f3f2f2;   /* every card, panel and sheet */
+  --color-shade: #eae9e9;   /* secondary bands inside a card */
+  --color-ink: #201e1d;
 
-  /* Accents */
-  --color-volt: #8b5cf6;   /* primary */
-  --color-beam: #22d3ee;   /* primary's gradient partner */
-  --color-punch: #f43f8e;  /* secondary / "live" highlight */
-  --color-mint: #a3e635;   /* success, archive-free, online */
-  --color-ice: #38bdf8;    /* informational */
-  --color-amber: #ffb02e;  /* the Flash category */
-  --color-rose: #fb5c72;   /* destructive */
+  /* A mono scheme: one accent, no second hue. */
+  --color-accent: #ec3013;
+  --color-accent-lit: #ff563c;   /* the accent on an ink ground */
+  --color-accent-deep: #ae1800;  /* accent-sized text, pressed states */
 
-  --font-display: "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  /* Rules. 2px between major sections, 1px hairlines between rows. */
+  --color-rule: rgba(32, 30, 29, 0.4);
+  --color-hair: rgba(32, 30, 29, 0.18);
+  /* Their counterparts inside the ink-surround player */
+  --color-rule-lit: rgba(243, 242, 242, 0.25);
+  --color-hair-lit: rgba(243, 242, 242, 0.14);
+
+  /* Neutral ramp, generated in OKLCH on one shared lightness scale */
+  --color-neutral-100: #f8f4f4;
+  --color-neutral-200: #eae7e7;
+  --color-neutral-300: #d7d3d3;
+  --color-neutral-400: #bab6b6;
+  --color-neutral-500: #9b9797;
+  --color-neutral-600: #7d7979;
+  --color-neutral-700: #605d5d;
+  --color-neutral-800: #444141;
+  --color-neutral-900: #2d2b2b;
+
+  --font-display: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: ui-monospace, Menlo, "SF Mono", monospace;
+
+  --radius-none: 0px;
 }
 
 @layer base {
   html {
-    background-color: var(--color-void);
+    background-color: var(--color-ground);
   }
 
   body {
-    @apply antialiased text-zinc-200;
+    @apply antialiased;
     font-family: var(--font-sans);
-    background-color: var(--color-void);
-    /* Three cold light sources: the room is lit by the screens, not by a bulb */
-    background-image:
-      radial-gradient(1100px 600px at 8% -10%, rgba(139, 92, 246, 0.20), transparent 60%),
-      radial-gradient(900px 520px at 96% -4%, rgba(34, 211, 238, 0.13), transparent 58%),
-      radial-gradient(700px 700px at 50% 118%, rgba(244, 63, 142, 0.09), transparent 62%);
-    background-attachment: fixed;
+    font-size: 15px;
+    line-height: 1.55;
+    background-color: var(--color-ground);
+    color: var(--color-ink);
   }
 
-  h1, h2, h3, h4 {
+  h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    letter-spacing: -0.025em;
+    font-weight: 800;
+    line-height: 1.12;
+    letter-spacing: -0.015em;
   }
 
   ::selection {
-    background: rgba(139, 92, 246, 0.35);
-    color: #fff;
+    background: rgba(236, 48, 19, 0.3);
+    color: var(--color-ink);
   }
 
   input, textarea, select, button {
     font-family: inherit;
   }
 
+  /* Keyboard focus is themed, never the browser default */
+  :focus { outline: none; }
   :focus-visible {
-    outline: 2px solid var(--color-volt);
+    outline: 2px solid var(--color-accent);
     outline-offset: 2px;
   }
 }
@@ -68,215 +86,229 @@
 @layer components {
   /* ---- Surfaces -------------------------------------------------------------------- */
 
-  /* Panel: the one surface treatment every card, modal and section shares */
+  /* Panel: the one surface every card, section and sheet shares. Squared, ruled, flat. */
   .panel {
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012)),
-      rgba(10, 12, 24, 0.72);
-    border: 1px solid var(--color-edge);
-    border-radius: 16px;
+    background: var(--color-paper);
+    border: 2px solid var(--color-rule);
+    border-radius: 0;
   }
 
-  /* Sheet: a panel that floats above a scrim — modals and drawers */
+  /* Sheet: a panel that sits over a scrim. Same surface — it does not float, it stacks. */
   .sheet {
     position: relative;
-    background:
-      linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.008)),
-      var(--color-pit);
-    border: 1px solid var(--color-edge);
-    border-radius: 20px;
-    box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
+    background: var(--color-paper);
+    border: 2px solid var(--color-ink);
+    border-radius: 0;
     overflow: hidden;
   }
-  /* A lit filament along the top edge, so a sheet reads as the front-most surface */
-  .sheet::before {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 1px;
-    background: linear-gradient(90deg, transparent, var(--color-volt), var(--color-beam), transparent);
-    opacity: 0.7;
-    pointer-events: none;
+
+  /* Row hover across grids and tables, from the readme's table spec */
+  .row-hover {
+    transition: background 0.12s linear;
+  }
+  .row-hover:hover {
+    background: var(--color-shade);
   }
 
-  .panel-hover {
-    transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
-  }
-  .panel-hover:hover {
-    border-color: rgba(139, 92, 246, 0.55);
-    box-shadow: 0 18px 46px -20px rgba(139, 92, 246, 0.75);
-    transform: translateY(-3px);
-  }
-
-  .hairline {
-    border-color: var(--color-edge);
+  .hr {
+    height: 2px;
+    border: 0;
+    background: var(--color-rule);
   }
 
   /* ---- Type ------------------------------------------------------------------------ */
 
-  /* Section eyebrow: a short accent rule + tight caps, used above every game row */
+  /* The micro-label that sits above every band, column and section */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 10px;
-    font-weight: 500;
-    letter-spacing: 0.2em;
+    font-weight: 400;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    color: #7d81a3;
+    color: rgba(32, 30, 29, 0.55);
+  }
+  /* On the ink ground of the player */
+  .eyebrow-lit {
+    color: rgba(243, 242, 242, 0.5);
   }
 
-  .rule-accent {
-    width: 20px;
-    height: 2px;
-    border-radius: 2px;
-    background: linear-gradient(90deg, var(--color-volt), var(--color-beam));
-  }
-
-  .text-gradient {
-    background: linear-gradient(100deg, var(--color-volt) 5%, var(--color-beam) 55%, var(--color-punch) 100%);
-    -webkit-background-clip: text;
-    background-clip: text;
-    color: transparent;
+  .mono {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: rgba(32, 30, 29, 0.6);
   }
 
   /* ---- Controls -------------------------------------------------------------------- */
 
-  .btn-volt {
-    position: relative;
-    background: linear-gradient(135deg, var(--color-volt), #6d3ff0 55%, #4f46e5);
-    color: #fff;
-    font-weight: 600;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    box-shadow: 0 10px 30px -12px rgba(139, 92, 246, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.18);
-    transition: filter 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  /*
+   * Button labels are flush left: a button wider than its label starts the text at the
+   * left padding edge, trailing icon and all — never centred.
+   */
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    text-align: left;
+    font-family: var(--font-display);
+    font-weight: 800;
+    background: var(--color-accent);
+    color: var(--color-paper);
+    border: 1px solid transparent;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background 0.12s linear;
   }
-  .btn-volt:hover {
-    filter: brightness(1.1);
-    box-shadow: 0 14px 38px -12px rgba(139, 92, 246, 1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
-  }
-  .btn-volt:active { transform: translateY(1px); }
-  .btn-volt:disabled { filter: grayscale(0.5) brightness(0.8); box-shadow: none; }
+  .btn-primary:hover { background: #dd2b0f; }
+  .btn-primary:active { background: var(--color-accent-deep); }
+  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
 
   .btn-ghost {
-    background: rgba(255, 255, 255, 0.035);
-    border: 1px solid var(--color-edge);
-    color: #b9bcd4;
-    transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    text-align: left;
+    font-family: var(--font-display);
+    font-weight: 800;
+    background: transparent;
+    border: 1px solid var(--color-rule);
+    border-radius: 0;
+    color: var(--color-ink);
+    cursor: pointer;
+    transition: background 0.12s linear, border-color 0.12s linear;
   }
-  .btn-ghost:hover {
-    color: #fff;
-    background: rgba(139, 92, 246, 0.12);
-    border-color: rgba(139, 92, 246, 0.5);
+  .btn-ghost:hover { background: rgba(32, 30, 29, 0.07); }
+  .btn-ghost:active { background: rgba(32, 30, 29, 0.14); }
+  .btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+
+  /* The same two buttons where they sit on the player's ink ground */
+  .btn-ghost-lit {
+    border-color: rgba(243, 242, 242, 0.35);
+    color: var(--color-paper);
   }
+  .btn-ghost-lit:hover { background: rgba(243, 242, 242, 0.1); }
 
   .btn-danger {
-    background: rgba(251, 92, 114, 0.12);
-    border: 1px solid rgba(251, 92, 114, 0.32);
-    color: #ffa6b1;
-    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 6px;
+    font-family: var(--font-display);
+    font-weight: 800;
+    background: transparent;
+    border: 1px solid var(--color-accent);
+    border-radius: 0;
+    color: var(--color-accent-deep);
+    cursor: pointer;
+    transition: background 0.12s linear;
   }
-  .btn-danger:hover {
-    background: rgba(251, 92, 114, 0.2);
-    border-color: rgba(251, 92, 114, 0.55);
-    color: #fff;
-  }
+  .btn-danger:hover { background: rgba(236, 48, 19, 0.1); }
 
   .field {
-    background: rgba(3, 4, 10, 0.6);
-    border: 1px solid var(--color-edge);
-    border-radius: 12px;
-    color: #f4f4f5;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
+    background: var(--color-shade);
+    border: 1px solid var(--color-rule);
+    border-radius: 0;
+    color: var(--color-ink);
+    caret-color: var(--color-accent);
+    transition: border-color 0.12s linear;
   }
-  .field::placeholder { color: #6b6f8d; }
+  .field::placeholder { color: rgba(32, 30, 29, 0.45); }
+  .field:hover { border-color: rgba(32, 30, 29, 0.45); }
   .field:focus {
-    outline: none;
-    background: rgba(3, 4, 10, 0.8);
-    border-color: rgba(139, 92, 246, 0.65);
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16);
+    outline: 2px solid var(--color-accent);
+    outline-offset: 0;
+    border-color: var(--color-accent);
   }
 
-  /* Rail pill: the genre selector, and any other single-choice row */
+  /* Filter rail: the active option is an ink fill, the rest are outlined */
   .rail-pill {
     flex-shrink: 0;
-    height: 30px;
-    padding: 0 13px;
-    border-radius: 9px;
-    font-size: 11.5px;
+    padding: 4px 10px;
+    border-radius: 0;
+    font-family: var(--font-display);
+    font-size: 11px;
     font-weight: 600;
     white-space: nowrap;
-    color: #85899f;
-    border: 1px solid transparent;
-    transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+    color: var(--color-ink);
+    border: 1px solid var(--color-rule);
+    background: transparent;
+    cursor: pointer;
+    transition: background 0.12s linear, color 0.12s linear;
   }
-  .rail-pill:hover {
-    color: #fff;
-    background: rgba(255, 255, 255, 0.055);
-  }
+  .rail-pill:hover { background: rgba(32, 30, 29, 0.07); }
   .rail-pill[data-active='true'] {
-    color: #fff;
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(79, 70, 229, 0.85));
-    border-color: rgba(167, 139, 250, 0.5);
-    box-shadow: 0 8px 22px -10px rgba(139, 92, 246, 1);
+    font-weight: 800;
+    background: var(--color-ink);
+    color: var(--color-paper);
+    border-color: var(--color-ink);
   }
 
-  /* ---- Chips ----------------------------------------------------------------------- */
+  /* ---- Tags ------------------------------------------------------------------------ */
 
-  /* Source chips - one colour per catalogue origin so the grid is readable at a glance */
+  /*
+   * One accent, so a runtime badge is an accent fill and everything else is outlined ink.
+   * The catalogue's source is carried by the label, not by a second hue.
+   */
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2.5px 7px;
-    border-radius: 7px;
-    font-family: var(--font-mono);
+    padding: 3px 6px;
+    border-radius: 0;
+    font-family: var(--font-display);
     font-size: 9px;
     font-weight: 600;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    backdrop-filter: blur(8px);
     white-space: nowrap;
   }
-  .chip-flash   { background: rgba(255, 176, 46, 0.15); color: #ffc76b; border: 1px solid rgba(255, 176, 46, 0.32); }
-  .chip-web     { background: rgba(163, 230, 53, 0.13); color: #c5f04f; border: 1px solid rgba(163, 230, 53, 0.3); }
-  .chip-archive { background: rgba(56, 189, 248, 0.14); color: #8ed6ff; border: 1px solid rgba(56, 189, 248, 0.3); }
-  .chip-steam   { background: rgba(102, 192, 244, 0.16); color: #9bd6ff; border: 1px solid rgba(102, 192, 244, 0.32); }
-  .chip-custom  { background: rgba(244, 63, 142, 0.16); color: #ff8ec0; border: 1px solid rgba(244, 63, 142, 0.34); }
-  .chip-volt    { background: rgba(139, 92, 246, 0.16); color: #c4b1ff; border: 1px solid rgba(139, 92, 246, 0.34); }
+  .chip-accent  { background: var(--color-accent); color: var(--color-paper); }
+  .chip-ink     { background: var(--color-ink); color: var(--color-paper); }
+  .chip-outline { border: 1px solid var(--color-rule); color: var(--color-ink); }
+  .chip-quiet   { border: 1px solid var(--color-hair); color: rgba(32, 30, 29, 0.55); }
 
-  /* ---- Stat block ------------------------------------------------------------------ */
+  /* ---- Stat band ------------------------------------------------------------------- */
 
+  /* Equal-width cells divided by 2px rules — the band under the masthead */
   .stat {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    padding: 11px 15px;
-    border-radius: 13px;
-    border: 1px solid var(--color-edge);
-    background: rgba(3, 4, 12, 0.5);
-    min-width: 96px;
+    padding: 20px 28px;
   }
   .stat-value {
     font-family: var(--font-display);
-    font-size: 22px;
-    font-weight: 700;
-    line-height: 1.1;
-    color: #fff;
-    font-variant-numeric: tabular-nums;
+    font-size: 30px;
+    font-weight: 800;
+    line-height: 1;
+    color: var(--color-ink);
+  }
+
+  /* ---- Imagery --------------------------------------------------------------------- */
+
+  /* Every content photograph goes through this: pure black and white, never tinted */
+  .duotone {
+    filter: grayscale(1) contrast(1.08);
+  }
+
+  /* The placeholder hatch standing in for a cover that has not loaded */
+  .hatch {
+    background: repeating-linear-gradient(45deg, #d7d3d3 0 8px, #bab6b6 8px 16px);
+  }
+  .hatch-lit {
+    background: repeating-linear-gradient(45deg, #605d5d 0 5px, #444141 5px 10px);
   }
 }
 
-/* Horizontal chip rails hide their scrollbar but stay swipeable */
+/* Horizontal rails hide their scrollbar but stay swipeable */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
-::-webkit-scrollbar { width: 10px; height: 10px; }
-::-webkit-scrollbar-track { background: var(--color-void); }
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--color-ground); }
 ::-webkit-scrollbar-thumb {
-  background: #262b47;
-  border: 2px solid var(--color-void);
-  border-radius: 9999px;
+  background: var(--color-neutral-400);
+  border: 3px solid var(--color-ground);
 }
-::-webkit-scrollbar-thumb:hover { background: #39406a; }
+::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-600); }
 
 /* Retro CRT effects for the player */
 .crt-overlay {
@@ -299,45 +331,16 @@
   pointer-events: none;
 }
 
-/* Card entrance. Done in CSS so a few hundred cards cost nothing at runtime. */
+/* Card entrance. A short fade only — nothing in this system slides or floats. */
 @keyframes card-enter {
-  from { opacity: 0; transform: translateY(14px); }
-  to   { opacity: 1; transform: none; }
+  from { opacity: 0; }
+  to   { opacity: 1; }
 }
 
 .card-enter {
-  animation: card-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-/* Slow drift for the hero's backdrop grid */
-@keyframes grid-drift {
-  from { background-position: 0 0; }
-  to   { background-position: 48px 48px; }
-}
-
-.grid-drift {
-  background-image:
-    linear-gradient(rgba(139, 92, 246, 0.11) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(34, 211, 238, 0.08) 1px, transparent 1px);
-  background-size: 48px 48px;
-  animation: grid-drift 18s linear infinite;
-}
-
-/* A slow sweep of light across the hero, like a cabinet marquee */
-@keyframes marquee-sweep {
-  0%   { transform: translateX(-40%) skewX(-14deg); opacity: 0; }
-  35%  { opacity: 0.5; }
-  100% { transform: translateX(340%) skewX(-14deg); opacity: 0; }
-}
-
-.marquee-sweep {
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.075), transparent);
-  animation: marquee-sweep 7s ease-in-out infinite;
+  animation: card-enter 0.18s linear both;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .grid-drift { animation: none; }
   .card-enter { animation: none; }
-  .marquee-sweep { animation: none; opacity: 0; }
-  .panel-hover:hover { transform: none; }
 }

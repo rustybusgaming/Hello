@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { Search, Shuffle, UploadCloud, Shield, Zap, Stethoscope } from 'lucide-react';
+import { Search, Shuffle, UploadCloud, Shield, Stethoscope } from 'lucide-react';
 import { UserAccount } from '../types';
 
 interface TopBarProps {
@@ -11,6 +11,7 @@ interface TopBarProps {
   onOpenAccount: () => void;
   onOpenAdmin: () => void;
   onTrigger404: () => void;
+  totalTitles: number;
 }
 
 export function TopBar({
@@ -21,7 +22,8 @@ export function TopBar({
   currentUser,
   onOpenAccount,
   onOpenAdmin,
-  onTrigger404
+  onTrigger404,
+  totalTitles
 }: TopBarProps) {
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -49,80 +51,56 @@ export function TopBar({
   }, []);
 
   return (
-    <header className="sticky top-0 z-30 border-b border-edge/70 bg-void/75 backdrop-blur-2xl">
-      {/* A lit filament under the bar ties the chrome to the accent gradient */}
-      <span className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-volt/45 to-transparent" />
-
-      <div className="max-w-[1480px] mx-auto px-4 sm:px-7 h-[68px] flex items-center gap-3 sm:gap-6">
-        {/* Wordmark */}
+    <header className="sticky top-0 z-30 border-b-2 border-rule bg-paper">
+      <div className="max-w-[1480px] mx-auto px-4 sm:px-7 py-3 sm:py-3.5 flex flex-wrap items-center gap-x-4 gap-y-3 sm:gap-x-6">
+        {/* Wordmark. Flush left, set solid, with the archive's own datum beside it. */}
         <button
           onClick={() => setSearchQuery('')}
-          className="flex items-center gap-3 flex-shrink-0 group"
+          className="order-1 flex items-baseline gap-2 flex-shrink-0"
           title="Back to the full catalogue"
         >
-          <span className="relative w-10 h-10 rounded-2xl bg-gradient-to-br from-volt via-volt to-beam flex items-center justify-center shadow-[0_10px_30px_-10px_rgba(139,92,246,0.95)] transition-transform duration-200 group-hover:scale-105">
-            <span className="absolute inset-px rounded-[15px] bg-gradient-to-br from-white/25 to-transparent" />
-            <Zap className="relative w-5 h-5 text-white" fill="currentColor" strokeWidth={2} />
+          <span className="font-display text-[19px] font-extrabold leading-none tracking-[-0.02em]">
+            FLASHHUB
           </span>
-          <span className="hidden sm:flex flex-col items-start leading-none">
-            <span className="font-display text-[16px] font-bold tracking-tight text-white">
-              FLASH<span className="text-gradient">HUB</span>
-            </span>
-            <span className="font-mono text-[9px] tracking-[0.24em] text-zinc-500 mt-1.5">
-              PLAY ANYTHING · INSTALL NOTHING
-            </span>
+          <span className="hidden sm:inline font-mono text-[10px] leading-none tracking-[0.18em] text-ink/55">
+            EST. 2019
           </span>
         </button>
 
-        {/* Search */}
-        <div className="flex-1 max-w-2xl relative group">
-          <Search className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 pointer-events-none transition-colors group-focus-within:text-volt" />
+        {/* Search. One hairline box, the shortcut hint set flush right inside it. */}
+        <div className="order-3 w-full sm:order-2 sm:w-auto sm:flex-1 flex items-center border border-rule sm:max-w-[420px] sm:ml-auto bg-shade focus-within:outline-2 focus-within:outline-accent">
+          <Search className="w-4 h-4 ml-2.5 text-ink/45 flex-shrink-0 pointer-events-none" />
           <input
             ref={searchRef}
             type="text"
-            placeholder="Search Flash classics, webports, HTML5…"
+            placeholder={`Search ${totalTitles.toLocaleString()} titles`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="field w-full h-11 pl-11 pr-14 text-sm rounded-2xl"
+            className="flex-1 min-w-0 border-0 bg-transparent px-2.5 py-2 text-[13px] text-ink placeholder:text-ink/45 outline-none"
           />
-          <kbd className="hidden sm:flex absolute right-3.5 top-1/2 -translate-y-1/2 h-[22px] min-w-[22px] px-1.5 items-center justify-center rounded-lg border border-edge bg-white/5 font-mono text-[10px] text-zinc-500">
-            /
-          </kbd>
+          <span className="hidden sm:block font-mono text-[10px] text-ink/45 px-2.5">/</span>
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center gap-2 flex-shrink-0">
-          {/* Utility cluster: grouped so the primary action stands alone on the right */}
-          <div className="hidden sm:flex items-center gap-1 p-1 rounded-2xl border border-edge bg-white/[0.025]">
-            <button
-              onClick={onUploadClick}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-volt/15 transition-colors"
-              title="Upload your own SWF or HTML5 game"
-            >
-              <UploadCloud className="w-4 h-4" />
-            </button>
-            <button
-              onClick={onTrigger404}
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-volt/15 transition-colors"
-              title="Catalogue diagnostics"
-            >
-              <Stethoscope className="w-4 h-4" />
-            </button>
-            {isAdmin && (
-              <button
-                onClick={onOpenAdmin}
-                className="w-9 h-9 rounded-xl flex items-center justify-center text-zinc-400 hover:text-white hover:bg-volt/15 transition-colors"
-                title="Admin & sync console"
-              >
-                <Shield className="w-4 h-4" />
-              </button>
-            )}
-          </div>
-
+        {/* Actions. Outlined squares; only the random-title action carries the accent. */}
+        <div className="order-2 ml-auto flex items-center gap-2 flex-shrink-0">
+          <button
+            onClick={onUploadClick}
+            className="btn-ghost hidden sm:flex items-center justify-center w-9 h-9 p-0"
+            title="Upload your own SWF or HTML5 game"
+          >
+            <UploadCloud className="w-4 h-4" />
+          </button>
+          <button
+            onClick={onTrigger404}
+            className="btn-ghost hidden sm:flex items-center justify-center w-9 h-9 p-0"
+            title="Catalogue diagnostics"
+          >
+            <Stethoscope className="w-4 h-4" />
+          </button>
           {isAdmin && (
             <button
               onClick={onOpenAdmin}
-              className="btn-ghost sm:hidden flex items-center justify-center w-10 h-10 rounded-xl"
+              className="btn-ghost flex items-center justify-center w-9 h-9 p-0"
               title="Admin & sync console"
             >
               <Shield className="w-4 h-4" />
@@ -131,31 +109,31 @@ export function TopBar({
 
           <button
             onClick={onOpenAccount}
-            className="btn-ghost flex items-center gap-2.5 h-11 pl-1.5 pr-1.5 lg:pr-3.5 rounded-2xl"
+            className="btn-ghost flex items-center gap-2 h-9 pl-1 pr-1 lg:pr-3"
             title={currentUser ? 'Your player profile' : 'Sign in for cloud saves'}
           >
             <span className="relative">
               <img
                 src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=guest'}
                 alt=""
-                className="w-8 h-8 rounded-xl object-cover bg-surface"
+                className="w-7 h-7 object-cover bg-shade duotone"
               />
               {currentUser?.steamId && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-ice ring-2 ring-void" />
+                <span className="absolute -bottom-px -right-px w-2 h-2 bg-accent" />
               )}
             </span>
-            <span className="hidden lg:block max-w-[92px] truncate text-xs font-semibold text-white">
+            <span className="hidden lg:block max-w-[92px] truncate font-display text-[12px] font-semibold">
               {currentUser?.username || 'Sign in'}
             </span>
           </button>
 
           <button
             onClick={onRandomGame}
-            className="btn-volt flex items-center gap-2 h-11 px-3.5 sm:px-5 rounded-2xl text-xs"
+            className="btn-primary flex items-center gap-2 h-9 px-3.5 text-[12px]"
             title="Play something at random"
           >
             <Shuffle className="w-4 h-4" />
-            <span className="hidden sm:inline">Surprise me</span>
+            <span className="hidden sm:inline">Random title</span>
           </button>
         </div>
       </div>

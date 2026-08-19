@@ -62,7 +62,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-void/85 backdrop-blur-lg p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-900/50 p-4"
         onClick={onClose}
       >
         <motion.div
@@ -72,16 +72,16 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
           className="sheet w-full max-w-sm"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between p-4 border-b border-edge">
-            <h2 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2.5">
-              <span className="w-8 h-8 rounded-xl bg-volt/12 border border-volt/30 flex items-center justify-center">
-                <UploadCloud className="w-4 h-4 text-volt" />
+          <div className="flex items-center justify-between p-4 border-b border-rule">
+            <h2 className="text-sm font-semibold text-ink tracking-tight flex items-center gap-2.5">
+              <span className="w-8 h-8 bg-accent/12 border border-accent/30 flex items-center justify-center">
+                <UploadCloud className="w-4 h-4 text-accent" />
               </span>
               Upload a game
             </h2>
             <button
               onClick={onClose}
-              className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+              className="p-1.5 text-ink/55 hover:text-ink hover:bg-ink/10 transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -89,7 +89,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
           
           <form onSubmit={handleSubmit} className="p-5 space-y-5">
             {uploadError && (
-              <div className="p-3 bg-rose/10 border border-rose/25 rounded-xl text-xs text-rose font-medium text-center">
+              <div className="p-3 bg-accent/10 border border-accent/25 text-xs text-accent font-medium text-center">
                 {uploadError}
               </div>
             )}
@@ -116,7 +116,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
                 required
                 accept=".swf,.html,.htm"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-volt/20 file:text-volt hover:file:bg-volt/30 transition-colors cursor-pointer text-xs"
+                className="w-full text-ink/60 file:mr-3 file:py-1.5 file:px-3 file: file:border-0 file:text-[10px] file:font-semibold file:bg-accent/20 file:text-accent hover:file:bg-accent/30 transition-colors cursor-pointer text-xs"
               />
             </div>
             <div>
@@ -127,18 +127,18 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
                 type="file"
                 accept=".png,.jpg,.jpeg,.gif,.webp"
                 onChange={(e) => setThumb(e.target.files?.[0] || null)}
-                className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-volt/20 file:text-volt hover:file:bg-volt/30 transition-colors cursor-pointer text-xs"
+                className="w-full text-ink/60 file:mr-3 file:py-1.5 file:px-3 file: file:border-0 file:text-[10px] file:font-semibold file:bg-accent/20 file:text-accent hover:file:bg-accent/30 transition-colors cursor-pointer text-xs"
               />
             </div>
 
             <button
               type="submit"
               disabled={isUploading || !file || !title}
-              className="w-full btn-volt disabled:opacity-50 disabled:cursor-not-allowed text-xs py-2.5 rounded-xl flex justify-center items-center gap-2 mt-2"
+              className="w-full btn-primary disabled:opacity-50 disabled:cursor-not-allowed text-xs py-2.5 flex justify-center items-center gap-2 mt-2"
             >
               {isUploading ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/25 border-t-white rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-rule border-t-white animate-spin" />
                   Uploading...
                 </>
               ) : (

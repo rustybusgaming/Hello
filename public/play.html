@@ -6,11 +6,11 @@
   <title>FlashHub Ruffle & WebAssembly Player</title>
   <style>
     :root {
-      --void: #06070f;
-      --surface: #111428;
-      --edge: #232845;
-      --volt: #8b5cf6;
-      --beam: #22d3ee;
+      --void: #201e1d;
+      --surface: #2d2b2b;
+      --edge: rgba(243,242,242,.25);
+      --accent: #ec3013;
+      --accent-lit: #ff563c;
     }
     * { box-sizing: border-box; }
     body, html {
@@ -19,9 +19,9 @@
       width: 100%;
       height: 100%;
       background: var(--void);
-      background-image: radial-gradient(700px 380px at 50% -10%, rgba(139, 92, 246, 0.22), transparent 65%);
+      background-image: none;
       color: #f4f4f5;
-      font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      font-family: Archivo, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
       overflow: hidden;
       display: flex;
       flex-direction: column;
@@ -40,31 +40,31 @@
     .overlay-card {
       position: absolute;
       z-index: 20;
-      background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.015)), var(--surface);
+      background: var(--surface);
       border: 1px solid var(--edge);
-      border-radius: 16px;
+      border-radius: 0;
       padding: 28px;
       max-width: 440px;
       width: 90%;
       text-align: center;
-      box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.9);
+      
     }
     .start-btn {
-      background: linear-gradient(135deg, var(--volt), #4f46e5);
+      background: var(--accent);
       color: #fff;
       border: none;
       padding: 14px 28px;
       font-size: 15px;
       font-weight: 800;
       letter-spacing: 0.02em;
-      border-radius: 12px;
+      border-radius: 0;
       cursor: pointer;
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: 8px;
-      box-shadow: 0 12px 30px -12px rgba(139, 92, 246, 0.95);
+      
       transition: filter 0.15s, transform 0.15s;
     }
     .start-btn:hover { filter: brightness(1.08); }
@@ -76,7 +76,7 @@
       padding: 8px 14px;
       font-size: 12px;
       font-weight: 600;
-      border-radius: 9px;
+      border-radius: 0;
       cursor: pointer;
       margin: 4px;
       transition: background 0.2s, border-color 0.2s, color 0.2s;
@@ -84,7 +84,7 @@
     .mirror-btn:hover { background: rgba(255,255,255,0.09); border-color: rgba(255,138,0,0.4); color: #fff; }
     .drop-zone {
       border: 1px dashed #35313f;
-      border-radius: 12px;
+      border-radius: 0;
       padding: 16px;
       margin-top: 16px;
       cursor: pointer;
@@ -92,21 +92,21 @@
       color: #8b8794;
       transition: border-color 0.2s, color 0.2s;
     }
-    .drop-zone:hover { border-color: var(--volt); color: #fafafa; }
+    .drop-zone:hover { border-color: var(--accent); color: #fafafa; }
     .badge {
       display: inline-flex;
       align-items: center;
       gap: 5px;
       padding: 3px 9px;
-      border-radius: 9999px;
+      border-radius: 0;
       font-family: ui-monospace, "SF Mono", Menlo, monospace;
       font-size: 10px;
       font-weight: 600;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      background: rgba(139, 92, 246, 0.15);
-      color: var(--volt);
-      border: 1px solid rgba(139, 92, 246, 0.35);
+      background: rgba(236, 48, 19, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(236, 48, 19, 0.4);
       margin-bottom: 14px;
     }
     #error-banner {
@@ -118,7 +118,7 @@
       border: 1px solid #dc2626;
       color: #fecaca;
       padding: 10px 16px;
-      border-radius: 10px;
+      border-radius: 0;
       font-size: 12px;
       max-width: 90%;
       text-align: center;

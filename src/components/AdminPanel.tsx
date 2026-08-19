@@ -386,7 +386,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/50">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -394,19 +394,19 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         className="sheet w-full max-w-5xl flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-edge bg-surface/60 flex items-center justify-between">
+        <div className="p-4 sm:p-5 border-b border-rule bg-shade/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-volt/10 border border-volt/30 flex items-center justify-center text-volt shadow-lg">
+            <div className="w-10 h-10 bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
               <Shield className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight">Admin & Sync Operations Center</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-volt/15 text-volt border border-volt/30">
+                <h3 className="text-base font-bold text-ink tracking-tight">Admin & Sync Operations Center</h3>
+                <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-accent/15 text-accent border border-accent/30">
                   ROOT ACCESS
                 </span>
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-ink/60">
                 Manage live game ports, user profiles, Steam synchronization, and server status.
               </p>
             </div>
@@ -414,7 +414,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-lg btn-ghost hover:text-white flex items-center justify-center transition-all"
+            className="w-8 h-8 btn-ghost hover:text-ink flex items-center justify-center transition-all"
           >
             <X className="w-4 h-4" />
           </button>
@@ -422,7 +422,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
         {/* Admin session notice */}
         {!isAdmin && (
-          <div className="px-5 py-3 bg-volt/10 border-b border-volt/25 text-volt text-xs flex items-center gap-2">
+          <div className="px-5 py-3 bg-accent/10 border-b border-accent/25 text-accent text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>
               Signed-in admin session required. Sign in from the account menu with an admin account to
@@ -432,39 +432,39 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         )}
 
         {/* Live Metrics Ribbon */}
-        <div className="grid grid-cols-2 sm:grid-cols-5 border-b border-edge bg-surface/30 divide-x divide-zinc-800/80 text-xs">
+        <div className="grid grid-cols-2 sm:grid-cols-5 border-b border-rule bg-shade/30 divide-x divide-hair text-xs">
           <div className="p-3">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Total Games</span>
-            <div className="text-sm font-bold text-white mt-0.5">{games.length} Active</div>
+            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Total Games</span>
+            <div className="text-sm font-bold text-ink mt-0.5">{games.length} Active</div>
           </div>
           <div className="p-3">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Player Accounts</span>
-            <div className="text-sm font-bold text-white mt-0.5">{accounts.length} Registered</div>
+            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Player Accounts</span>
+            <div className="text-sm font-bold text-ink mt-0.5">{accounts.length} Registered</div>
           </div>
           <div className="p-3">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Steam Linked</span>
+            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Steam Linked</span>
             <div className="text-sm font-bold text-[#66c0f4] mt-0.5">
               {accounts.filter(a => !!a.steamId).length} Users
             </div>
           </div>
           <div className="p-3">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Memory Footprint</span>
-            <div className="text-sm font-bold text-mint mt-0.5">{stats?.memoryUsageMb || 64} MB</div>
+            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Memory Footprint</span>
+            <div className="text-sm font-bold text-accent mt-0.5">{stats?.memoryUsageMb || 64} MB</div>
           </div>
           <div className="p-3 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Proxy Engine</span>
-            <div className="text-sm font-bold text-volt mt-0.5">Ready (CDN Stream)</div>
+            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Proxy Engine</span>
+            <div className="text-sm font-bold text-accent mt-0.5">Ready (CDN Stream)</div>
           </div>
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-edge bg-surface/20 px-4 pt-2 gap-2 text-xs font-medium">
+        <div className="flex border-b border-rule bg-shade/20 px-4 pt-2 gap-2 text-xs font-medium">
           <button
             onClick={() => setActiveTab('sync')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'sync'
-                ? 'border-volt text-volt font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-accent text-accent font-semibold'
+                : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -474,8 +474,8 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('accounts')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'accounts'
-                ? 'border-white text-white font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-ink text-ink font-semibold'
+                : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
             <Users className="w-3.5 h-3.5" />
@@ -485,8 +485,8 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('games')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'games'
-                ? 'border-ice text-ice font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-ink text-ink font-semibold'
+                : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
             <Gamepad2 className="w-3.5 h-3.5" />
@@ -496,8 +496,8 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('saves')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'saves'
-                ? 'border-mint text-mint font-semibold'
-                : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                ? 'border-accent text-accent font-semibold'
+                : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
             <Save className="w-3.5 h-3.5" />
@@ -506,38 +506,38 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         </div>
 
         {/* Tab Body */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 text-zinc-300">
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1 text-ink/80">
           {/* TAB 1: REPOSITORY & SYNC */}
           {activeTab === 'sync' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-surface/60 border border-edge space-y-3">
+                <div className="p-4 bg-shade/60 border border-rule space-y-3">
                   <div className="flex items-center justify-between">
-                    <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                      <Server className="w-4 h-4 text-ice" />
+                    <h4 className="text-sm font-bold text-ink flex items-center gap-2">
+                      <Server className="w-4 h-4 text-ink" />
                       Repository Integrations
                     </h4>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-mint/10 text-mint border border-mint/25">
+                    <span className="px-2 py-0.5 text-[10px] bg-accent/10 text-accent border border-accent/25">
                       ONLINE
                     </span>
                   </div>
 
-                  <div className="space-y-2 text-xs text-zinc-400">
-                    <div className="flex justify-between border-b border-edge/60 pb-1.5">
+                  <div className="space-y-2 text-xs text-ink/60">
+                    <div className="flex justify-between border-b border-rule/60 pb-1.5">
                       <span>genizy/web-port ({GENIZY_WEBPORT_GAMES.length} Unity/Godot ports):</span>
-                      <span className="text-zinc-200 font-mono">Stream Proxy Active</span>
+                      <span className="text-ink font-mono">Stream Proxy Active</span>
                     </div>
-                    <div className="flex justify-between border-b border-edge/60 pb-1.5">
+                    <div className="flex justify-between border-b border-rule/60 pb-1.5">
                       <span>quasar mirror ({QUASAR_FLASH_GAMES.length} Flash / {QUASAR_HTML5_GAMES.length} HTML5 / {QUASAR_WEBGL_GAMES.length} WebGL / {QUASAR_EMULATOR_GAMES.length} Emu):</span>
-                      <span className="text-zinc-200 font-mono">CDN Stream</span>
+                      <span className="text-ink font-mono">CDN Stream</span>
                     </div>
-                    <div className="flex justify-between border-b border-edge/60 pb-1.5">
+                    <div className="flex justify-between border-b border-rule/60 pb-1.5">
                       <span>Archive.org ({CURATED_FLASH_COLLECTIONS.length} verified + live search):</span>
-                      <span className="text-zinc-200 font-mono">Direct .swf</span>
+                      <span className="text-ink font-mono">Direct .swf</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Flash playback:</span>
-                      <span className="text-mint font-bold font-mono">Ruffle WASM (no embeds)</span>
+                      <span className="text-accent font-bold font-mono">Ruffle WASM (no embeds)</span>
                     </div>
                   </div>
 
@@ -545,14 +545,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     <button
                       onClick={handleTriggerSync}
                       disabled={isSyncing}
-                      className="px-3.5 py-2 rounded-xl btn-volt text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3.5 py-2 btn-primary text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                       {isSyncing ? 'Synchronizing...' : 'Trigger Sync'}
                     </button>
                     <button
                       onClick={handleClearCache}
-                      className="px-3.5 py-2 rounded-xl btn-ghost text-xs font-medium transition-all"
+                      className="px-3.5 py-2 btn-ghost text-xs font-medium transition-all"
                     >
                       Purge Cache
                     </button>
@@ -560,15 +560,16 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                 </div>
 
                 {/* Live Console Logs */}
-                <div className="p-4 rounded-xl bg-black border border-edge flex flex-col">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-edge text-[11px] font-mono text-zinc-400">
+                {/* The monitor stays on ink: it is a readout, not a surface you compose on. */}
+                <div className="p-4 bg-ink border-2 border-ink flex flex-col">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-hair-lit text-[11px] font-mono text-paper/60">
                     <span className="flex items-center gap-1.5">
-                      <Terminal className="w-3.5 h-3.5 text-volt" />
-                      Sync & Stream Monitor
+                      <Terminal className="w-3.5 h-3.5 text-accent-lit" />
+                      Sync &amp; Stream Monitor
                     </span>
-                    <span className="text-mint text-[10px]">LISTENING</span>
+                    <span className="text-accent-lit text-[10px]">LISTENING</span>
                   </div>
-                  <div className="flex-1 font-mono text-[11px] text-zinc-400 space-y-1 overflow-y-auto max-h-36">
+                  <div className="flex-1 font-mono text-[11px] text-paper/70 space-y-1 overflow-y-auto max-h-36">
                     {syncLogs.map((log, i) => (
                       <div key={i} className="leading-tight">{log}</div>
                     ))}
@@ -582,14 +583,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'accounts' && (
             <div className="space-y-6">
               {/* Add user form */}
-              <div className="p-4 rounded-xl bg-surface/60 border border-edge space-y-3">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5 text-mint" />
+              <div className="p-4 bg-shade/60 border border-rule space-y-3">
+                <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-accent" />
                   Add User Account
                 </h4>
 
                 {accountActionMessage && (
-                  <div className="p-2.5 rounded-lg bg-mint/10 border border-mint/25 text-mint text-xs flex items-center gap-2">
+                  <div className="p-2.5 bg-accent/10 border border-accent/25 text-accent text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" />
                     {accountActionMessage}
                   </div>
@@ -628,7 +629,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     </select>
                     <button
                       type="submit"
-                      className="flex-1 px-3 py-2 rounded-lg btn-volt font-bold text-xs transition-all"
+                      className="flex-1 px-3 py-2 btn-primary font-bold text-xs transition-all"
                     >
                       Create
                     </button>
@@ -638,10 +639,10 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
               {/* Accounts list */}
               <div className="space-y-2">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Registered Accounts</span>
-                <div className="border border-edge rounded-xl overflow-hidden bg-surface/30">
+                <span className="text-xs font-semibold text-ink/60 uppercase tracking-wider block">Registered Accounts</span>
+                <div className="border border-rule overflow-hidden bg-shade/30">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-surface/80 border-b border-edge text-zinc-400 font-mono text-[11px]">
+                    <thead className="bg-shade/80 border-b border-rule text-ink/60 font-mono text-[11px]">
                       <tr>
                         <th className="p-3">Player</th>
                         <th className="p-3">Role</th>
@@ -650,29 +651,29 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                         <th className="p-3 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-800/60">
+                    <tbody className="divide-y divide-hair">
                       {accounts.map(acc => (
-                        <tr key={acc.id} className="hover:bg-surface/50 transition-colors">
+                        <tr key={acc.id} className="hover:bg-shade/50 transition-colors">
                           <td className="p-3">
                             <div className="flex items-center gap-2.5">
                               <img
                                 src={acc.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
                                 alt={acc.username}
-                                className="w-7 h-7 rounded-full bg-zinc-800 object-cover"
+                                className="w-7 h-7 bg-shade object-cover"
                               />
                               <div>
-                                <span className="font-bold text-white block">{acc.username}</span>
-                                <span className="text-[10px] text-zinc-500">{acc.email}</span>
+                                <span className="font-bold text-ink block">{acc.username}</span>
+                                <span className="text-[10px] text-ink/55">{acc.email}</span>
                               </div>
                             </div>
                           </td>
                           <td className="p-3">
                             <button
                               onClick={() => handleToggleRole(acc)}
-                              className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                              className={`px-2 py-0.5  text-[10px] font-bold ${
                                 acc.role === 'admin'
-                                  ? 'bg-volt/15 text-volt border border-volt/30'
-                                  : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
+                                  ? 'bg-accent/15 text-accent border border-accent/30'
+                                  : 'bg-shade text-ink/80 border border-rule'
                               }`}
                             >
                               {acc.role.toUpperCase()}
@@ -684,24 +685,24 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                                 <img
                                   src={acc.steamAvatar || 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}
                                   alt="Steam"
-                                  className="w-5 h-5 rounded object-cover border border-[#2a475e]"
+                                  className="w-5 h-5 object-cover border border-[#2a475e]"
                                 />
                                 <span className="text-[#66c0f4] font-medium text-xs">
                                   {acc.steamPersonaName || acc.steamId}
                                 </span>
                               </div>
                             ) : (
-                              <span className="text-zinc-500 text-[11px]">Unlinked</span>
+                              <span className="text-ink/55 text-[11px]">Unlinked</span>
                             )}
                           </td>
                           <td className="p-3">
-                            <span className="font-mono text-zinc-300">{acc.savesCount || 0} saves</span>
+                            <span className="font-mono text-ink/80">{acc.savesCount || 0} saves</span>
                           </td>
                           <td className="p-3 text-right">
                             <button
                               onClick={() => handleDeleteAccount(acc.id, acc.username)}
                               disabled={acc.id === currentUser?.id}
-                              className="p-1.5 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose disabled:opacity-30 transition-all"
+                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent disabled:opacity-30 transition-all"
                               title="Delete Account"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -720,14 +721,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'games' && (
             <div className="space-y-6">
               {/* Add custom game URL */}
-              <div className="p-4 rounded-xl bg-surface/60 border border-edge space-y-3">
-                <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5 text-ice" />
+              <div className="p-4 bg-shade/60 border border-rule space-y-3">
+                <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-ink" />
                   Add Custom Game Port to Hub
                 </h4>
 
                 {addGameSuccess && (
-                  <div className="p-2.5 rounded-lg bg-mint/10 border border-mint/25 text-mint text-xs">
+                  <div className="p-2.5 bg-accent/10 border border-accent/25 text-accent text-xs">
                     {addGameSuccess}
                   </div>
                 )}
@@ -764,7 +765,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     />
                     <button
                       type="submit"
-                      className="btn-volt px-4 py-2 rounded-xl text-xs"
+                      className="btn-primary px-4 py-2 text-xs"
                     >
                       Add
                     </button>
@@ -776,11 +777,11 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               <div className="panel p-4 space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-volt" />
+                    <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-accent" />
                       Catalogue Health
                     </h4>
-                    <p className="text-[11px] text-zinc-500 mt-1">
+                    <p className="text-[11px] text-ink/55 mt-1">
                       Probes every game and thumbnail the way a player reaches it, so dead mirrors
                       show up here instead of in someone's game window.
                     </p>
@@ -788,7 +789,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                   <button
                     onClick={handleRunHealthCheck}
                     disabled={healthRunning}
-                    className="btn-ghost flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold disabled:opacity-50"
+                    className="btn-ghost flex-shrink-0 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
                   >
                     {healthRunning ? 'Scanning…' : 'Run scan'}
                   </button>
@@ -796,13 +797,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 {healthRunning && health && (
                   <div className="space-y-1.5">
-                    <div className="h-1 rounded-full bg-white/5 overflow-hidden">
+                    <div className="h-1 bg-ink/5 overflow-hidden">
                       <div
-                        className="h-full bg-volt transition-[width] duration-500"
+                        className="h-full bg-accent transition-[width] duration-500"
                         style={{ width: `${health.total ? Math.round((health.checked / health.total) * 100) : 0}%` }}
                       />
                     </div>
-                    <span className="font-mono text-[10px] text-zinc-500">
+                    <span className="font-mono text-[10px] text-ink/55">
                       {health.checked} / {health.total} targets
                     </span>
                   </div>
@@ -810,31 +811,31 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 {!healthRunning && health && (
                   <div className="flex items-center gap-4 text-[11px]">
-                    <span className={health.failures.length === 0 ? 'text-mint font-semibold' : 'text-volt font-semibold'}>
+                    <span className={health.failures.length === 0 ? 'text-accent font-semibold' : 'text-accent font-semibold'}>
                       {health.failures.length === 0
                         ? 'All targets responded'
                         : `${health.failures.length} dead target${health.failures.length === 1 ? '' : 's'}`}
                     </span>
-                    <span className="text-zinc-600 font-mono">
+                    <span className="text-ink/45 font-mono">
                       {health.checked} checked · {health.finishedAt ? new Date(health.finishedAt).toLocaleString() : 'incomplete'}
                     </span>
                   </div>
                 )}
 
                 {!healthRunning && health && health.failures.length > 0 && (
-                  <div className="max-h-44 overflow-y-auto border border-edge rounded-lg divide-y divide-edge/70">
+                  <div className="max-h-44 overflow-y-auto border border-rule divide-y divide-rule/70">
                     {health.failures.map((f, i) => (
                       <div key={`${f.id}-${f.kind}-${i}`} className="p-2 flex items-center justify-between gap-3 text-[11px]">
                         <div className="min-w-0">
-                          <span className="font-semibold text-zinc-200">{f.title}</span>
-                          <span className="ml-2 font-mono text-[10px] text-zinc-600">{f.kind}</span>
-                          <span className="block font-mono text-[10px] text-zinc-600 truncate">{f.target}</span>
+                          <span className="font-semibold text-ink">{f.title}</span>
+                          <span className="ml-2 font-mono text-[10px] text-ink/45">{f.kind}</span>
+                          <span className="block font-mono text-[10px] text-ink/45 truncate">{f.target}</span>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="chip chip-custom">{f.status}</span>
                           <button
                             onClick={() => handleToggleGame(f.id, false)}
-                            className="btn-ghost px-2 py-1 rounded-md text-[10px]"
+                            className="btn-ghost px-2 py-1 text-[10px]"
                             title="Hide this game from the catalogue"
                           >
                             Hide
@@ -846,16 +847,16 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                 )}
 
                 {!health && !healthRunning && (
-                  <p className="text-[11px] text-zinc-600">No scan has been run yet.</p>
+                  <p className="text-[11px] text-ink/45">No scan has been run yet.</p>
                 )}
               </div>
 
               {/* Game list with hide/unhide toggle */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Catalog Items</span>
+                  <span className="text-xs font-semibold text-ink/60 uppercase tracking-wider">Catalog Items</span>
                   <div className="relative w-64">
-                    <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-zinc-500" />
+                    <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-ink/55" />
                     <input
                       type="text"
                       placeholder="Search games..."
@@ -866,25 +867,25 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                   </div>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto border border-edge rounded-xl divide-y divide-zinc-800/60 bg-surface/30">
+                <div className="max-h-80 overflow-y-auto border border-rule divide-y divide-hair bg-shade/30">
                   {filteredGames.map(game => (
-                    <div key={game.id} className="p-3 flex items-center justify-between gap-4 hover:bg-surface/50 transition-colors">
+                    <div key={game.id} className="p-3 flex items-center justify-between gap-4 hover:bg-shade/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <img
                           src={game.thumbnail}
                           alt={game.title}
-                          className="w-9 h-9 rounded-lg object-cover bg-zinc-800 border border-edge"
+                          className="w-9 h-9 object-cover bg-shade border border-rule"
                         />
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className={`text-xs font-bold ${game.hidden ? 'text-zinc-500 line-through' : 'text-white'}`}>
+                            <span className={`text-xs font-bold ${game.hidden ? 'text-ink/55 line-through' : 'text-ink'}`}>
                               {game.title}
                             </span>
-                            <span className="px-1.5 py-0.5 rounded text-[9px] font-mono uppercase bg-zinc-800 text-zinc-400">
+                            <span className="px-1.5 py-0.5 text-[9px] font-mono uppercase bg-shade text-ink/60">
                               {game.source}
                             </span>
                           </div>
-                          <span className="text-[10px] text-zinc-500 font-mono truncate max-w-xs block">
+                          <span className="text-[10px] text-ink/55 font-mono truncate max-w-xs block">
                             {game.embedUrl}
                           </span>
                         </div>
@@ -892,10 +893,10 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                       <button
                         onClick={() => handleToggleGame(game.id, !!game.hidden)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5  text-xs font-medium transition-all ${
                           game.hidden
-                            ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
-                            : 'bg-mint/10 text-mint border border-mint/25 hover:bg-mint/20'
+                            ? 'bg-shade text-ink/60 hover:bg-neutral-300 hover:text-ink'
+                            : 'bg-accent/10 text-accent border border-accent/25 hover:bg-accent/20'
                         }`}
                       >
                         {game.hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -913,13 +914,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-white">Global Cloud Saves Repository</h4>
-                  <p className="text-xs text-zinc-400">Manage all saved game slots stored across player accounts.</p>
+                  <h4 className="text-sm font-bold text-ink">Global Cloud Saves Repository</h4>
+                  <p className="text-xs text-ink/60">Manage all saved game slots stored across player accounts.</p>
                 </div>
 
                 <button
                   onClick={handleExportSaves}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-volt text-xs font-bold transition-all shadow-lg"
+                  className="flex items-center gap-1.5 px-3.5 py-2 btn-primary text-xs font-bold transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Backup Entire Save DB
@@ -927,15 +928,15 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               </div>
 
               {savesLoading ? (
-                <div className="py-12 text-center text-xs text-zinc-500">Loading save data...</div>
+                <div className="py-12 text-center text-xs text-ink/55">Loading save data...</div>
               ) : allSaves.length === 0 ? (
-                <div className="py-12 text-center border border-dashed border-edge rounded-2xl text-xs text-zinc-500">
+                <div className="py-12 text-center border border-dashed border-rule text-xs text-ink/55">
                   No saves currently stored on server.
                 </div>
               ) : (
-                <div className="border border-edge rounded-xl overflow-hidden bg-surface/30">
+                <div className="border border-rule overflow-hidden bg-shade/30">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-surface/80 border-b border-edge text-zinc-400 font-mono text-[11px]">
+                    <thead className="bg-shade/80 border-b border-rule text-ink/60 font-mono text-[11px]">
                       <tr>
                         <th className="p-3">Game</th>
                         <th className="p-3">User ID</th>
@@ -944,17 +945,17 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                         <th className="p-3 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-zinc-800/60">
+                    <tbody className="divide-y divide-hair">
                       {allSaves.map(save => (
-                        <tr key={save.id} className="hover:bg-surface/50 transition-colors">
-                          <td className="p-3 font-bold text-white">{save.gameTitle}</td>
-                          <td className="p-3 font-mono text-zinc-400">{save.userId}</td>
+                        <tr key={save.id} className="hover:bg-shade/50 transition-colors">
+                          <td className="p-3 font-bold text-ink">{save.gameTitle}</td>
+                          <td className="p-3 font-mono text-ink/60">{save.userId}</td>
                           <td className="p-3">
-                            <span className="px-2 py-0.5 rounded text-[10px] bg-zinc-800 text-zinc-300 font-mono">
+                            <span className="px-2 py-0.5 text-[10px] bg-shade text-ink/80 font-mono">
                               {save.slotName}
                             </span>
                           </td>
-                          <td className="p-3 text-zinc-500 font-mono text-[11px]">
+                          <td className="p-3 text-ink/55 font-mono text-[11px]">
                             {new Date(save.timestamp).toLocaleString()}
                           </td>
                           <td className="p-3 text-right">
@@ -973,7 +974,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                                   }
                                 }
                               }}
-                              className="p-1.5 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose transition-all"
+                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent transition-all"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
