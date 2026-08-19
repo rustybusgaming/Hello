@@ -30,10 +30,17 @@ through the Express server:
 
 | Source | Count | How it plays |
 | --- | --- | --- |
-| `slqntdevss/quasar` Flash mirror | 56 titles | The item's real `game.swf` is streamed via `/api/quasar/*` (jsDelivr, falling back to raw.githubusercontent) into Ruffle |
-| `slqntdevss/quasar` HTML5 mirror | 80 titles | Proxied through `/api/quasar/*`, which rewrites `<base href>` so relative assets resolve |
+| `slqntdevss/quasar` Flash | 65 titles | The real `game.swf` is streamed via `/api/quasar/*` (jsDelivr, falling back to raw.githubusercontent) into Ruffle |
+| `slqntdevss/quasar` HTML5 | 122 titles | Proxied through `/api/quasar/*`, which rewrites a relative `<base href>` so assets resolve |
+| `slqntdevss/quasar` WebGL | 98 Unity builds | Proxied through `/api/quasar/*`; launcher builds keep their external `<base href>` |
+| `slqntdevss/quasar` emulator shells | 7 | EmulatorJS consoles you load your own ROM into |
 | `genizy/web-port` | 37 Unity/Godot ports | Proxied through `/api/webport-proxy/*` |
 | Internet Archive | 11 verified items + live search | The item's actual `.swf` is streamed via `/api/archive-swf/*` |
+
+The quasar catalogue is generated from that repo's own `storage.json`, cross-checked against
+the repository tree. Each entry is located by its catalogue **path** (which is not always the
+game id — e.g. `au` lives at `/flash/au1/`), and only entries with a real launch file are
+included. Split-archive downloads and bundled first-party console ROMs are left out.
 
 Archive.org items are never embedded with `archive.org/embed/<id>`: a number of those items
 are video captures, so embedding them plays a video instead of the game. Every entry in

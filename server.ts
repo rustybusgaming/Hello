@@ -779,11 +779,15 @@ async function startServer() {
       let upstreamRes: Response | null = null;
       for (const candidate of quasarSources(assetPath)) {
         const attempt = await fetch(candidate, {
+          // Cap each upstream attempt: a hanging CDN path must not tie up the player's
+          // request. On timeout the loop simply moves on to the next source.
+          signal: AbortSignal.timeout(15000),
           headers: {
             'User-Agent': 'FlashHub/2.0',
             ...(req.headers.range && !isEntryDocument ? { range: req.headers.range as string } : {})
           }
-        });
+        }).catch(() => null);
+        if (!attempt) continue;
         if (attempt.ok) {
           upstreamRes = attempt;
           break;

@@ -22,7 +22,7 @@ import {
 import { motion } from 'motion/react';
 import { useEscapeKey } from '../lib/hooks';
 import { GENIZY_WEBPORT_GAMES } from '../data/webportGames';
-import { QUASAR_FLASH_GAMES, QUASAR_HTML5_GAMES, QUASAR_WEBGL_GAMES } from '../data/quasarGames';
+import { QUASAR_FLASH_GAMES, QUASAR_HTML5_GAMES, QUASAR_WEBGL_GAMES, QUASAR_EMULATOR_GAMES } from '../data/quasarGames';
 import { CURATED_FLASH_COLLECTIONS } from '../data/flashArchives';
 
 interface AdminPanelProps {
@@ -73,7 +73,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   const [syncLogs, setSyncLogs] = useState<string[]>([
     '[System] Admin Console initialized.',
     `[System] genizy/web-port proxy active (${GENIZY_WEBPORT_GAMES.length} ports available).`,
-    `[System] quasar mirror: ${QUASAR_FLASH_GAMES.length + QUASAR_HTML5_GAMES.length + QUASAR_WEBGL_GAMES.length} titles streaming from CDN.`
+    `[System] quasar mirror: ${QUASAR_FLASH_GAMES.length + QUASAR_HTML5_GAMES.length + QUASAR_WEBGL_GAMES.length + QUASAR_EMULATOR_GAMES.length} titles streaming from CDN.`
   ]);
 
   const appendLog = (message: string) =>
@@ -524,7 +524,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       <span className="text-zinc-200 font-mono">Stream Proxy Active</span>
                     </div>
                     <div className="flex justify-between border-b border-edge/60 pb-1.5">
-                      <span>quasar mirror ({QUASAR_FLASH_GAMES.length} Flash / {QUASAR_HTML5_GAMES.length} HTML5 / {QUASAR_WEBGL_GAMES.length} WebGL):</span>
+                      <span>quasar mirror ({QUASAR_FLASH_GAMES.length} Flash / {QUASAR_HTML5_GAMES.length} HTML5 / {QUASAR_WEBGL_GAMES.length} WebGL / {QUASAR_EMULATOR_GAMES.length} Emu):</span>
                       <span className="text-zinc-200 font-mono">CDN Stream</span>
                     </div>
                     <div className="flex justify-between border-b border-edge/60 pb-1.5">
