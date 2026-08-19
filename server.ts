@@ -28,7 +28,7 @@ import {
   getUserIdFromToken,
   removeSession
 } from './server/auth';
-import { guardCredentials, recordFailure, clearFailures } from './server/rateLimit';
+import { guardCredentials, guardKeys, recordFailure, clearFailures, clientIp, checkRateLimit } from './server/rateLimit';
 import { runHealthCheck, getHealthReport } from './server/healthCheck';
 import { FRAME_STORAGE_SCRIPT, FRAME_STORAGE_MARKER } from './server/frameStorage';
 import { getCached, putCached, cacheStats, clearAssetCache } from './server/assetCache';
@@ -1111,14 +1111,22 @@ async function startServer() {
         return res.status(400).json({ error: 'Password is required' });
       }
 
-      const limitKeys = guardCredentials(req, res, 'login', loginId);
-      if (!limitKeys) return;
-
+      // Resolve the account first, then rate-limit on WHO it is, not on the string typed.
+      // Keying on the raw identifier let one account be attacked through both its username
+      // and its email as two separate budgets, doubling the allowed guesses.
       const storedAccounts = getStoredAccounts();
       const lowerId = loginId.toLowerCase();
       const user = storedAccounts.find(
         a => a.username.toLowerCase() === lowerId || a.email.toLowerCase() === lowerId
       );
+
+      // Looking up the account is cheap; the expensive pbkdf2 below is still gated behind
+      // this check, so the limiter also caps CPU spent on guesses.
+      const limitKeys = guardKeys(res, [
+        `login:ip:${clientIp(req)}`,
+        user ? `login:acct:${user.id}` : `login:id:${lowerId}`
+      ]);
+      if (!limitKeys) return;
 
       if (!user) {
         // Count misses on unknown accounts too, so the endpoint cannot be used to

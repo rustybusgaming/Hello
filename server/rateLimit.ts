@@ -112,16 +112,12 @@ export function clearFailures(keys: string[]) {
  * Guard a password-verifying route. Returns null when the caller is blocked (the response
  * has already been sent), otherwise the keys to pass to recordFailure/clearFailures.
  */
-export function guardCredentials(
-  req: express.Request,
-  res: express.Response,
-  scope: string,
-  identifier?: string
-): string[] | null {
-  const ip = clientIp(req);
-  const keys = [`${scope}:ip:${ip}`];
-  if (identifier) keys.push(`${scope}:id:${identifier.toLowerCase()}`);
-
+/**
+ * Enforce a limit against a set of pre-built keys. Returns the keys to pass on to
+ * recordFailure/clearFailures, or null when the caller is already blocked (the 429 has been
+ * sent). Sending the 429 in one place keeps the message and headers consistent.
+ */
+export function guardKeys(res: express.Response, keys: string[]): string[] | null {
   const status = checkRateLimit(keys);
   if (status.blocked) {
     res.setHeader('Retry-After', String(status.retryAfterSeconds));
@@ -131,6 +127,17 @@ export function guardCredentials(
     });
     return null;
   }
-
   return keys;
+}
+
+export function guardCredentials(
+  req: express.Request,
+  res: express.Response,
+  scope: string,
+  identifier?: string
+): string[] | null {
+  const ip = clientIp(req);
+  const keys = [`${scope}:ip:${ip}`];
+  if (identifier) keys.push(`${scope}:id:${identifier.toLowerCase()}`);
+  return guardKeys(res, keys);
 }
