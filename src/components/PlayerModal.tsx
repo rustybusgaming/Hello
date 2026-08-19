@@ -428,18 +428,18 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-500 ${isTheaterMode ? 'bg-black p-0' : 'bg-black/90 backdrop-blur-md p-3 sm:p-5'}`}
+        className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-500 ${isTheaterMode ? 'bg-black p-0' : 'bg-void/92 backdrop-blur-lg p-3 sm:p-6'}`}
         onClick={handleClose}
       >
         <motion.div
           initial={{ scale: 0.96, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           exit={{ scale: 0.96, opacity: 0 }}
-          className={`bg-pit overflow-hidden flex flex-col shadow-2xl transition-all duration-500 ${isTheaterMode ? 'w-full h-full rounded-none border-0' : 'w-full max-w-6xl rounded-2xl border border-edge'}`}
+          className={`bg-pit overflow-hidden flex flex-col shadow-[0_50px_120px_-40px_rgba(0,0,0,1)] transition-all duration-500 ${isTheaterMode ? 'w-full h-full rounded-none border-0' : 'sheet w-full max-w-6xl h-[min(88dvh,940px)]'}`}
           onClick={(e) => e.stopPropagation()}
         >
           {/* Top Control Bar */}
-          <div className={`flex flex-wrap items-center justify-between p-3 border-b border-edge gap-2 ${isTheaterMode ? 'bg-void' : 'bg-surface/70'}`}>
+          <div className={`flex flex-wrap items-center justify-between px-3.5 py-3 border-b border-edge gap-2 ${isTheaterMode ? 'bg-void' : 'bg-surface/60'}`}>
             <div className="flex items-center gap-3">
               <h2 className={`font-semibold text-zinc-100 flex items-center gap-2 tracking-tight ${isTheaterMode ? 'text-xs' : 'text-sm'}`}>
                 {game.title}
@@ -457,7 +457,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                 )}
               </h2>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-black/40 border border-edge text-[11px] font-mono text-zinc-300">
+              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/50 border border-edge text-[11px] font-mono text-zinc-200">
                 <span className="w-1.5 h-1.5 rounded-full bg-mint animate-pulse"></span>
                 <Timer className="w-3 h-3 text-zinc-400" />
                 <span>{formatTimer(elapsedSeconds)}</span>
@@ -492,8 +492,8 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
               {/* Save State Keeper toggle */}
               <button
                 onClick={() => setShowSaveDrawer(!showSaveDrawer)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                  showSaveDrawer ? 'btn-flame' : 'btn-ghost'
+                className={`flex items-center gap-1.5 px-3 h-8 rounded-xl text-xs font-semibold transition-all ${
+                  showSaveDrawer ? 'btn-volt' : 'btn-ghost'
                 }`}
                 title="Manage Cloud Saves"
               >
@@ -504,7 +504,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
               <button
                 onClick={() => setIsCrtMode(!isCrtMode)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isCrtMode ? 'bg-flame text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-xs font-semibold transition-all ${isCrtMode ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.07]'}`}
                 title="Toggle Retro CRT Scanlines"
               >
                 <Tv className="w-3.5 h-3.5" />
@@ -513,7 +513,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
               <button
                 onClick={toggleFullscreen}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isFullscreen ? 'bg-flame text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-xs font-semibold transition-all ${isFullscreen ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.07]'}`}
                 title={isFullscreen ? 'Exit fullscreen' : 'Play fullscreen'}
               >
                 {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
@@ -522,7 +522,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
               <button
                 onClick={() => setIsTheaterMode(!isTheaterMode)}
-                className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium transition-all ${isTheaterMode ? 'bg-flame text-black' : 'text-zinc-400 hover:text-white hover:bg-white/10'}`}
+                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-xs font-semibold transition-all ${isTheaterMode ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.07]'}`}
                 title="Toggle Theater Mode"
               >
                 <MonitorPlay className="w-3.5 h-3.5" />
@@ -531,8 +531,8 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
               <button
                 onClick={() => setShow404Panel(!show404Panel)}
-                className={`p-1.5 rounded-lg transition-all ${
-                  show404Panel ? 'bg-red-500/20 text-red-400' : 'text-zinc-400 hover:text-amber-400 hover:bg-zinc-800'
+                className={`p-2 rounded-xl transition-all ${
+                  show404Panel ? 'bg-rose/20 text-rose' : 'text-zinc-400 hover:text-amber hover:bg-white/[0.07]'
                 }`}
                 title="Report 404 / Port Diagnostics"
               >
@@ -543,7 +543,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                 href={currentEmbedUrl || game.embedUrl}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.07] rounded-lg transition-colors"
                 title="Open in new tab"
               >
                 <ExternalLink className="w-4 h-4" />
@@ -551,7 +551,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
               <button
                 onClick={handleClose}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-lg transition-colors"
+                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.07] rounded-lg transition-colors"
                 title="Close"
               >
                 <X className="w-4 h-4" />
@@ -561,10 +561,10 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
           {/* Secondary Mirrors & Outage Protection Bar */}
           {availableMirrors.length > 1 && (
-            <div className="bg-surface/60 px-3 py-2 border-b border-edge flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="bg-surface/40 px-3.5 py-2.5 border-b border-edge flex flex-wrap items-center justify-between gap-2 text-xs">
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className="eyebrow flex items-center gap-1.5">
-                  <Server className="w-3 h-3 text-flame" />
+                  <Server className="w-3 h-3 text-beam" />
                   Source
                 </span>
                 {availableMirrors.map((m) => {
@@ -574,7 +574,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                       key={m.id}
                       onClick={() => handleSelectMirror(m)}
                       className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 ${
-                        isActive ? 'bg-flame text-black shadow-sm' : 'btn-ghost'
+                        isActive ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'btn-ghost'
                       }`}
                     >
                       {m.isArchiveIndependent && <span className="w-1.5 h-1.5 rounded-full bg-mint"></span>}
@@ -586,7 +586,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
               {isCurrentArchive && (
                 <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-flame bg-flame/10 border border-flame/25 px-2 py-0.5 rounded">
+                  <span className="text-[11px] text-amber bg-amber/10 border border-amber/25 px-2 py-1 rounded-lg">
                     Archive.org unreliable?
                   </span>
                   <button
@@ -594,7 +594,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                       const nonArchive = availableMirrors.find(m => m.isArchiveIndependent);
                       if (nonArchive) handleSelectMirror(nonArchive);
                     }}
-                    className="btn-flame text-[11px] px-2.5 py-0.5 rounded flex items-center gap-1"
+                    className="btn-volt text-[11px] px-2.5 py-0.5 rounded flex items-center gap-1"
                   >
                     <RefreshCw className="w-2.5 h-2.5" /> Switch to Fallback
                   </button>
@@ -610,18 +610,18 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                 initial={{ height: 0, opacity: 0 }}
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
-                className="border-b border-edge bg-void/95 p-4 overflow-hidden"
+                className="border-b border-edge bg-void/90 p-4 overflow-hidden"
               >
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {/* Create New Save Slot */}
                   <form onSubmit={handleCreateSave} className="panel p-3.5 space-y-2.5">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Save className="w-3.5 h-3.5 text-flame" />
+                        <Save className="w-3.5 h-3.5 text-volt" />
                         Create / Overwrite Save Slot
                       </span>
                       {saveMessage && (
-                        <span className="text-[11px] text-flame font-semibold">{saveMessage}</span>
+                        <span className="text-[11px] text-volt font-semibold">{saveMessage}</span>
                       )}
                     </div>
 
@@ -653,7 +653,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                     <button
                       type="submit"
                       disabled={isSaving}
-                      className="btn-flame w-full py-1.5 rounded-lg text-xs flex items-center justify-center gap-1.5"
+                      className="btn-volt w-full py-2 rounded-xl text-xs flex items-center justify-center gap-1.5"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       {isSaving ? 'Saving to Cloud...' : 'Commit Save State'}
@@ -668,7 +668,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                         <div className="text-[11px] text-zinc-500 py-4 text-center">No save states stored for this cartridge.</div>
                       ) : (
                         gameSaves.map(s => (
-                          <div key={s.id} className="p-2 rounded-lg bg-black/40 border border-edge flex items-center justify-between text-xs">
+                          <div key={s.id} className="p-2.5 rounded-xl bg-black/40 border border-edge flex items-center justify-between text-xs">
                             <div>
                               <span className="font-bold text-zinc-200">{s.slotName}</span>
                               <span className="text-[10px] text-zinc-500 block">
@@ -701,7 +701,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
           </AnimatePresence>
           
           {/* Main Game Screen or 404 Diagnostics Panel */}
-          <div ref={stageRef} className="relative w-full bg-void flex-grow flex items-center justify-center overflow-hidden">
+          <div ref={stageRef} className="relative w-full bg-void flex-1 min-h-0 flex items-center justify-center overflow-hidden">
             {show404Panel ? (
               <div className="w-full h-full flex items-center justify-center p-6 bg-void overflow-y-auto">
                 <NotFoundPanel
@@ -728,7 +728,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                 {isCrtMode && (
                   <div className="absolute inset-0 pointer-events-none z-20 scanlines opacity-10"></div>
                 )}
-                <div className={`w-full h-full flex items-center justify-center transition-transform duration-300 ${isCrtMode ? 'scale-[0.98]' : ''}`} style={{ transform: 'translateZ(0)' }}>
+                <div className={`w-full h-full min-h-[280px] flex items-center justify-center transition-transform duration-300 ${isCrtMode ? 'scale-[0.98]' : ''}`} style={{ transform: 'translateZ(0)' }}>
                   {game.source === 'steam' ? (
                     <iframe
                       key={iframeKey}
@@ -758,7 +758,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                           ? 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock'
                           : 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
                       }
-                      className={`w-full h-full ${isTheaterMode ? 'min-h-[85vh]' : 'min-h-[55vh] sm:min-h-[72vh]'} ${isCrtMode ? 'rounded-xl border-2 border-zinc-900 shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
+                      className={`w-full h-full min-h-[280px] ${isCrtMode ? 'rounded-xl border-2 border-black shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
                       title={`${game.title} Embed`}
                     ></iframe>
                   )}

@@ -109,6 +109,24 @@ export function getUserIdFromToken(token?: string): string | null {
   return session.userId;
 }
 
+/**
+ * Drop every session belonging to one account.
+ *
+ * Used when the account's password changes: the point of changing it is to lock out
+ * whoever else may hold a session, which re-issuing only the current token does not do.
+ */
+export function removeUserSessions(userId: string) {
+  const sessions = getSessions();
+  let changed = false;
+  for (const [token, record] of Object.entries(sessions)) {
+    if (record.userId === userId) {
+      delete sessions[token];
+      changed = true;
+    }
+  }
+  if (changed) saveSessions(sessions);
+}
+
 export function removeSession(token?: string) {
   if (!token) return;
   const sessions = getSessions();

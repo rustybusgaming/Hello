@@ -62,24 +62,26 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-50 flex items-center justify-center bg-void/90 backdrop-blur-md p-4"
+        className="fixed inset-0 z-50 flex items-center justify-center bg-void/85 backdrop-blur-lg p-4"
         onClick={onClose}
       >
         <motion.div
           initial={{ scale: 0.95, opacity: 0, y: 10 }}
           animate={{ scale: 1, opacity: 1, y: 0 }}
           exit={{ scale: 0.95, opacity: 0, y: 10 }}
-          className="bg-pit border border-edge rounded-2xl overflow-hidden w-full max-w-sm shadow-2xl"
+          className="sheet w-full max-w-sm"
           onClick={(e) => e.stopPropagation()}
         >
-          <div className="flex items-center justify-between p-4 border-b border-white/5">
-            <h2 className="text-sm font-medium text-zinc-200 tracking-wide flex items-center gap-2">
-              <UploadCloud className="w-4 h-4 text-zinc-400" />
-              Upload Game
+          <div className="flex items-center justify-between p-4 border-b border-edge">
+            <h2 className="text-sm font-semibold text-white tracking-tight flex items-center gap-2.5">
+              <span className="w-8 h-8 rounded-xl bg-volt/12 border border-volt/30 flex items-center justify-center">
+                <UploadCloud className="w-4 h-4 text-volt" />
+              </span>
+              Upload a game
             </h2>
             <button
               onClick={onClose}
-              className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/10 rounded-md transition-colors"
+              className="p-1.5 text-zinc-500 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -87,12 +89,12 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
           
           <form onSubmit={handleSubmit} className="p-5 space-y-5">
             {uploadError && (
-              <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 font-medium text-center">
+              <div className="p-3 bg-rose/10 border border-rose/25 rounded-xl text-xs text-rose font-medium text-center">
                 {uploadError}
               </div>
             )}
             <div>
-              <label className="block text-[10px] font-medium text-zinc-500 mb-1.5 tracking-wider uppercase">
+              <label className="eyebrow block mb-2">
                 Game Title
               </label>
               <input
@@ -100,13 +102,13 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
                 required
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full bg-white/5 border border-white/5 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-white/20 focus:bg-white/10 transition-all"
+                className="field w-full p-2.5 text-xs"
                 placeholder="Name your game"
               />
             </div>
             
             <div>
-              <label className="block text-[10px] font-medium text-zinc-500 mb-1.5 tracking-wider uppercase">
+              <label className="eyebrow block mb-2">
                 Game File (.swf or .html)
               </label>
               <input
@@ -114,29 +116,29 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
                 required
                 accept=".swf,.html,.htm"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 transition-colors cursor-pointer text-xs"
+                className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-volt/20 file:text-volt hover:file:bg-volt/30 transition-colors cursor-pointer text-xs"
               />
             </div>
             <div>
-              <label className="block text-[10px] font-medium text-zinc-500 mb-1.5 tracking-wider uppercase">
+              <label className="eyebrow block mb-2">
                 Thumbnail (Optional, .png or .jpg)
               </label>
               <input
                 type="file"
                 accept=".png,.jpg,.jpeg,.gif,.webp"
                 onChange={(e) => setThumb(e.target.files?.[0] || null)}
-                className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-md file:border-0 file:text-[10px] file:font-medium file:bg-white/10 file:text-white hover:file:bg-white/20 transition-colors cursor-pointer text-xs"
+                className="w-full text-zinc-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-volt/20 file:text-volt hover:file:bg-volt/30 transition-colors cursor-pointer text-xs"
               />
             </div>
 
             <button
               type="submit"
               disabled={isUploading || !file || !title}
-              className="w-full btn-flame disabled:opacity-50 disabled:cursor-not-allowed font-medium text-xs py-2.5 rounded-lg transition-all flex justify-center items-center gap-2 mt-2 shadow-[0_0_15px_rgba(255,255,255,0.1)]"
+              className="w-full btn-volt disabled:opacity-50 disabled:cursor-not-allowed text-xs py-2.5 rounded-xl flex justify-center items-center gap-2 mt-2"
             >
               {isUploading ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-white/25 border-t-white rounded-full animate-spin" />
                   Uploading...
                 </>
               ) : (

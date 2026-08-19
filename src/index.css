@@ -1,25 +1,31 @@
 @import "tailwindcss";
 
 /*
- * FlashHub design tokens.
- * The palette is built around the ⚡ mark in the favicon: a hot amber primary against a
- * near-black arcade backdrop, with a magenta secondary for anything "live".
+ * FlashHub design tokens — "Midnight Arcade".
+ *
+ * The hub is a dark room with the cabinets lit up in it: a blue-black canvas, a violet →
+ * cyan primary that reads as a neon tube, lime for anything live, and amber kept aside as
+ * the Flash *category* colour so a Flash badge still means something at a glance.
  */
 @theme {
-  --color-void: #08070a;
-  --color-pit: #0d0c11;
-  --color-surface: #131218;
-  --color-edge: #221f2b;
+  /* Canvas → foreground, darkest to lightest */
+  --color-void: #06070f;
+  --color-pit: #0a0c18;
+  --color-surface: #111428;
+  --color-edge: #232845;
 
-  --color-flame: #ff8a00;
-  --color-ember: #ff5a1f;
-  --color-plasma: #ff2e88;
-  --color-mint: #3ddc97;
-  --color-ice: #58c4ff;
+  /* Accents */
+  --color-volt: #8b5cf6;   /* primary */
+  --color-beam: #22d3ee;   /* primary's gradient partner */
+  --color-punch: #f43f8e;  /* secondary / "live" highlight */
+  --color-mint: #a3e635;   /* success, archive-free, online */
+  --color-ice: #38bdf8;    /* informational */
+  --color-amber: #ffb02e;  /* the Flash category */
+  --color-rose: #fb5c72;   /* destructive */
 
-  --font-display: "Space Grotesk", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, monospace;
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 @layer base {
@@ -31,116 +37,232 @@
     @apply antialiased text-zinc-200;
     font-family: var(--font-sans);
     background-color: var(--color-void);
-    /* Two soft light sources keep the near-black background from reading as flat grey */
+    /* Three cold light sources: the room is lit by the screens, not by a bulb */
     background-image:
-      radial-gradient(900px 520px at 12% -8%, rgba(255, 138, 0, 0.13), transparent 62%),
-      radial-gradient(760px 460px at 92% 4%, rgba(255, 46, 136, 0.1), transparent 60%);
+      radial-gradient(1100px 600px at 8% -10%, rgba(139, 92, 246, 0.20), transparent 60%),
+      radial-gradient(900px 520px at 96% -4%, rgba(34, 211, 238, 0.13), transparent 58%),
+      radial-gradient(700px 700px at 50% 118%, rgba(244, 63, 142, 0.09), transparent 62%);
     background-attachment: fixed;
   }
 
   h1, h2, h3, h4 {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    letter-spacing: -0.025em;
   }
 
   ::selection {
-    background: rgba(255, 138, 0, 0.28);
+    background: rgba(139, 92, 246, 0.35);
     color: #fff;
   }
 
   input, textarea, select, button {
     font-family: inherit;
   }
+
+  :focus-visible {
+    outline: 2px solid var(--color-volt);
+    outline-offset: 2px;
+  }
 }
 
 @layer components {
+  /* ---- Surfaces -------------------------------------------------------------------- */
+
   /* Panel: the one surface treatment every card, modal and section shares */
   .panel {
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.015));
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.012)),
+      rgba(10, 12, 24, 0.72);
     border: 1px solid var(--color-edge);
-    border-radius: 14px;
+    border-radius: 16px;
+  }
+
+  /* Sheet: a panel that floats above a scrim — modals and drawers */
+  .sheet {
+    position: relative;
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.008)),
+      var(--color-pit);
+    border: 1px solid var(--color-edge);
+    border-radius: 20px;
+    box-shadow: 0 40px 90px -30px rgba(0, 0, 0, 0.95);
+    overflow: hidden;
+  }
+  /* A lit filament along the top edge, so a sheet reads as the front-most surface */
+  .sheet::before {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--color-volt), var(--color-beam), transparent);
+    opacity: 0.7;
+    pointer-events: none;
   }
 
   .panel-hover {
     transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
   }
   .panel-hover:hover {
-    border-color: rgba(255, 138, 0, 0.45);
-    box-shadow: 0 14px 40px -18px rgba(255, 138, 0, 0.55);
-    transform: translateY(-2px);
+    border-color: rgba(139, 92, 246, 0.55);
+    box-shadow: 0 18px 46px -20px rgba(139, 92, 246, 0.75);
+    transform: translateY(-3px);
   }
 
-  /* Section eyebrow: a short flame rule + tight caps, used above every game row */
+  .hairline {
+    border-color: var(--color-edge);
+  }
+
+  /* ---- Type ------------------------------------------------------------------------ */
+
+  /* Section eyebrow: a short accent rule + tight caps, used above every game row */
   .eyebrow {
     font-family: var(--font-mono);
     font-size: 10px;
-    letter-spacing: 0.22em;
+    font-weight: 500;
+    letter-spacing: 0.2em;
     text-transform: uppercase;
-    color: #8b8794;
+    color: #7d81a3;
   }
 
-  .rule-flame {
-    width: 18px;
+  .rule-accent {
+    width: 20px;
     height: 2px;
     border-radius: 2px;
-    background: linear-gradient(90deg, var(--color-flame), var(--color-plasma));
+    background: linear-gradient(90deg, var(--color-volt), var(--color-beam));
   }
 
-  .btn-flame {
-    background: linear-gradient(135deg, var(--color-flame), var(--color-ember));
-    color: #150c02;
-    font-weight: 700;
-    box-shadow: 0 8px 26px -12px rgba(255, 138, 0, 0.9);
-    transition: filter 0.18s ease, transform 0.18s ease;
+  .text-gradient {
+    background: linear-gradient(100deg, var(--color-volt) 5%, var(--color-beam) 55%, var(--color-punch) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
   }
-  .btn-flame:hover { filter: brightness(1.08); }
-  .btn-flame:active { transform: translateY(1px); }
+
+  /* ---- Controls -------------------------------------------------------------------- */
+
+  .btn-volt {
+    position: relative;
+    background: linear-gradient(135deg, var(--color-volt), #6d3ff0 55%, #4f46e5);
+    color: #fff;
+    font-weight: 600;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    box-shadow: 0 10px 30px -12px rgba(139, 92, 246, 0.95), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+    transition: filter 0.18s ease, transform 0.18s ease, box-shadow 0.18s ease;
+  }
+  .btn-volt:hover {
+    filter: brightness(1.1);
+    box-shadow: 0 14px 38px -12px rgba(139, 92, 246, 1), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  }
+  .btn-volt:active { transform: translateY(1px); }
+  .btn-volt:disabled { filter: grayscale(0.5) brightness(0.8); box-shadow: none; }
 
   .btn-ghost {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.035);
     border: 1px solid var(--color-edge);
-    color: #c4c0cc;
+    color: #b9bcd4;
     transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
   }
   .btn-ghost:hover {
     color: #fff;
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 138, 0, 0.4);
+    background: rgba(139, 92, 246, 0.12);
+    border-color: rgba(139, 92, 246, 0.5);
+  }
+
+  .btn-danger {
+    background: rgba(251, 92, 114, 0.12);
+    border: 1px solid rgba(251, 92, 114, 0.32);
+    color: #ffa6b1;
+    transition: background 0.18s ease, color 0.18s ease, border-color 0.18s ease;
+  }
+  .btn-danger:hover {
+    background: rgba(251, 92, 114, 0.2);
+    border-color: rgba(251, 92, 114, 0.55);
+    color: #fff;
   }
 
   .field {
-    background: rgba(0, 0, 0, 0.45);
+    background: rgba(3, 4, 10, 0.6);
     border: 1px solid var(--color-edge);
-    border-radius: 10px;
+    border-radius: 12px;
     color: #f4f4f5;
-    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
   }
-  .field::placeholder { color: #6c6878; }
+  .field::placeholder { color: #6b6f8d; }
   .field:focus {
     outline: none;
-    border-color: rgba(255, 138, 0, 0.55);
-    box-shadow: 0 0 0 3px rgba(255, 138, 0, 0.12);
+    background: rgba(3, 4, 10, 0.8);
+    border-color: rgba(139, 92, 246, 0.65);
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16);
   }
+
+  /* Rail pill: the genre selector, and any other single-choice row */
+  .rail-pill {
+    flex-shrink: 0;
+    height: 30px;
+    padding: 0 13px;
+    border-radius: 9px;
+    font-size: 11.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    color: #85899f;
+    border: 1px solid transparent;
+    transition: color 0.18s ease, background 0.18s ease, border-color 0.18s ease;
+  }
+  .rail-pill:hover {
+    color: #fff;
+    background: rgba(255, 255, 255, 0.055);
+  }
+  .rail-pill[data-active='true'] {
+    color: #fff;
+    background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(79, 70, 229, 0.85));
+    border-color: rgba(167, 139, 250, 0.5);
+    box-shadow: 0 8px 22px -10px rgba(139, 92, 246, 1);
+  }
+
+  /* ---- Chips ----------------------------------------------------------------------- */
 
   /* Source chips - one colour per catalogue origin so the grid is readable at a glance */
   .chip {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 2px 7px;
-    border-radius: 6px;
+    padding: 2.5px 7px;
+    border-radius: 7px;
     font-family: var(--font-mono);
     font-size: 9px;
     font-weight: 600;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    backdrop-filter: blur(6px);
+    backdrop-filter: blur(8px);
+    white-space: nowrap;
   }
-  .chip-flash   { background: rgba(255, 138, 0, 0.16); color: #ffb454; border: 1px solid rgba(255, 138, 0, 0.32); }
-  .chip-web     { background: rgba(61, 220, 151, 0.14); color: #6ee7b7; border: 1px solid rgba(61, 220, 151, 0.3); }
-  .chip-archive { background: rgba(88, 196, 255, 0.14); color: #93d3ff; border: 1px solid rgba(88, 196, 255, 0.3); }
+  .chip-flash   { background: rgba(255, 176, 46, 0.15); color: #ffc76b; border: 1px solid rgba(255, 176, 46, 0.32); }
+  .chip-web     { background: rgba(163, 230, 53, 0.13); color: #c5f04f; border: 1px solid rgba(163, 230, 53, 0.3); }
+  .chip-archive { background: rgba(56, 189, 248, 0.14); color: #8ed6ff; border: 1px solid rgba(56, 189, 248, 0.3); }
   .chip-steam   { background: rgba(102, 192, 244, 0.16); color: #9bd6ff; border: 1px solid rgba(102, 192, 244, 0.32); }
-  .chip-custom  { background: rgba(255, 46, 136, 0.16); color: #ff87ba; border: 1px solid rgba(255, 46, 136, 0.32); }
+  .chip-custom  { background: rgba(244, 63, 142, 0.16); color: #ff8ec0; border: 1px solid rgba(244, 63, 142, 0.34); }
+  .chip-volt    { background: rgba(139, 92, 246, 0.16); color: #c4b1ff; border: 1px solid rgba(139, 92, 246, 0.34); }
+
+  /* ---- Stat block ------------------------------------------------------------------ */
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 11px 15px;
+    border-radius: 13px;
+    border: 1px solid var(--color-edge);
+    background: rgba(3, 4, 12, 0.5);
+    min-width: 96px;
+  }
+  .stat-value {
+    font-family: var(--font-display);
+    font-size: 22px;
+    font-weight: 700;
+    line-height: 1.1;
+    color: #fff;
+    font-variant-numeric: tabular-nums;
+  }
 }
 
 /* Horizontal chip rails hide their scrollbar but stay swipeable */
@@ -150,11 +272,11 @@
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-track { background: var(--color-void); }
 ::-webkit-scrollbar-thumb {
-  background: #2a2733;
+  background: #262b47;
   border: 2px solid var(--color-void);
   border-radius: 9999px;
 }
-::-webkit-scrollbar-thumb:hover { background: #3b3747; }
+::-webkit-scrollbar-thumb:hover { background: #39406a; }
 
 /* Retro CRT effects for the player */
 .crt-overlay {
@@ -179,30 +301,43 @@
 
 /* Card entrance. Done in CSS so a few hundred cards cost nothing at runtime. */
 @keyframes card-enter {
-  from { opacity: 0; transform: translateY(12px); }
+  from { opacity: 0; transform: translateY(14px); }
   to   { opacity: 1; transform: none; }
 }
 
 .card-enter {
-  animation: card-enter 0.28s ease-out both;
+  animation: card-enter 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 /* Slow drift for the hero's backdrop grid */
 @keyframes grid-drift {
   from { background-position: 0 0; }
-  to   { background-position: 44px 44px; }
+  to   { background-position: 48px 48px; }
 }
 
 .grid-drift {
   background-image:
-    linear-gradient(rgba(255, 255, 255, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.055) 1px, transparent 1px);
-  background-size: 44px 44px;
-  animation: grid-drift 14s linear infinite;
+    linear-gradient(rgba(139, 92, 246, 0.11) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(34, 211, 238, 0.08) 1px, transparent 1px);
+  background-size: 48px 48px;
+  animation: grid-drift 18s linear infinite;
+}
+
+/* A slow sweep of light across the hero, like a cabinet marquee */
+@keyframes marquee-sweep {
+  0%   { transform: translateX(-40%) skewX(-14deg); opacity: 0; }
+  35%  { opacity: 0.5; }
+  100% { transform: translateX(340%) skewX(-14deg); opacity: 0; }
+}
+
+.marquee-sweep {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.075), transparent);
+  animation: marquee-sweep 7s ease-in-out infinite;
 }
 
 @media (prefers-reduced-motion: reduce) {
   .grid-drift { animation: none; }
   .card-enter { animation: none; }
+  .marquee-sweep { animation: none; opacity: 0; }
   .panel-hover:hover { transform: none; }
 }

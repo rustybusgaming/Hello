@@ -31,8 +31,8 @@ function formatDate(iso: string | null): string {
 /** Steam publishes global unlock rates, which is what makes an achievement feel rare. */
 function rarityLabel(percent: number | null): { text: string; className: string } | null {
   if (percent === null) return null;
-  if (percent < 5) return { text: `${percent.toFixed(1)}% ultra rare`, className: 'text-plasma border-plasma/40 bg-plasma/10' };
-  if (percent < 20) return { text: `${percent.toFixed(1)}% rare`, className: 'text-flame border-flame/40 bg-flame/10' };
+  if (percent < 5) return { text: `${percent.toFixed(1)}% ultra rare`, className: 'text-punch border-punch/40 bg-punch/10' };
+  if (percent < 20) return { text: `${percent.toFixed(1)}% rare`, className: 'text-volt border-volt/40 bg-volt/10' };
   return { text: `${percent.toFixed(0)}% of players`, className: 'text-zinc-400 border-edge bg-white/5' };
 }
 
@@ -168,7 +168,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
   if (error) {
     return (
       <div className="panel p-5 space-y-3">
-        <p className="text-xs text-red-300">{error.message}</p>
+        <p className="text-xs text-rose">{error.message}</p>
         <button onClick={load} className="btn-ghost px-3 py-1.5 rounded-lg text-xs inline-flex items-center gap-1.5">
           <RefreshCw className="w-3.5 h-3.5" />
           Try again
@@ -272,7 +272,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
       {overview && overview.recent.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="rule-flame" />
+            <span className="rule-accent" />
             <span className="eyebrow">Latest unlocks</span>
           </div>
           <div className="space-y-1.5">
@@ -303,7 +303,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
       {library && library.topGames.length > 0 && (
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <span className="rule-flame" />
+            <span className="rule-accent" />
             <span className="eyebrow">Most played · pick a game for its achievements</span>
           </div>
 
@@ -315,7 +315,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                 <button
                   key={game.appId}
                   onClick={() => setSelectedApp(isOpen ? null : game.appId)}
-                  className={`panel panel-hover w-full p-2.5 flex items-center gap-3 text-left ${isOpen ? 'border-flame/50' : ''}`}
+                  className={`panel panel-hover w-full p-2.5 flex items-center gap-3 text-left ${isOpen ? 'border-volt/50' : ''}`}
                 >
                   <img
                     src={game.headerUrl}
@@ -373,7 +373,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                       key={f}
                       onClick={() => setFilter(f)}
                       className={`px-2.5 py-1 rounded-md text-[11px] font-semibold capitalize transition-all ${
-                        filter === f ? 'bg-flame text-black' : 'btn-ghost'
+                        filter === f ? 'bg-volt text-white' : 'btn-ghost'
                       }`}
                     >
                       {f}

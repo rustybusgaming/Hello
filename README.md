@@ -1,8 +1,14 @@
 # Flash Game Hub
 
-A dark-themed retro game hub: HTML5/WASM webports, Ruffle-powered Flash classics from the
+A neon-dark retro game hub: HTML5/WASM webports, Ruffle-powered Flash classics from the
 Internet Archive, player accounts with cloud saves, Steam profile linking, and an admin
 console for catalogue and sync operations.
+
+The interface runs on one small design system ("Midnight Arcade"), defined entirely in
+`src/index.css`: a blue-black canvas, a violet → cyan primary, lime for anything live, and
+amber reserved for the Flash category so a Flash badge still means something at a glance.
+Components compose the shared `.panel` / `.sheet` / `.btn-volt` / `.field` / `.chip`
+classes rather than one-off colours, so retheming is a token edit.
 
 The Express server in `server.ts` serves the API and mounts Vite in middleware mode, so a
 single process runs both the front end and the back end.

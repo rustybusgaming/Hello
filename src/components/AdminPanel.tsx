@@ -191,7 +191,11 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   };
 
   // Add Account (Admin provision)
-  const [newPassword, setNewPassword] = useState('player1234');
+  // The old fixed seed was itself on the server's common-password blocklist, so every
+  // provisioned account was rejected before it was created. Seed a fresh random one.
+  const generatePassword = () =>
+    'fh-' + Array.from(crypto.getRandomValues(new Uint8Array(9)), b => b.toString(36)).join('').slice(0, 12);
+  const [newPassword, setNewPassword] = useState(generatePassword);
   const handleAddAccount = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newUsername.trim()) return;
@@ -203,7 +207,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         body: JSON.stringify({
           username: newUsername.trim(),
           email: newEmail.trim() || `${newUsername.trim().toLowerCase()}@flashhub.local`,
-          password: newPassword || 'player1234',
+          password: newPassword || generatePassword(),
           displayName: newUsername.trim(),
           role: newRole
         })
@@ -253,11 +257,11 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
       }
 
       setAccounts(prev => [...prev, createdUser]);
-      const usedPassword = newPassword || 'player1234';
+      const usedPassword = newPassword;
       setNewUsername('');
       setNewEmail('');
       setNewSteamId('');
-      setNewPassword('player1234');
+      setNewPassword(generatePassword());
       setNewRole('user');
       setAccountActionMessage(`Account "${createdUser.username}" created with password "${usedPassword}"!`);
       setTimeout(() => setAccountActionMessage(''), 5000);
@@ -382,23 +386,23 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-lg">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-4xl bg-pit border border-edge rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="sheet w-full max-w-5xl flex flex-col max-h-[92vh]"
       >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-edge bg-surface/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-flame/10 border border-flame/30 flex items-center justify-center text-flame shadow-lg">
+            <div className="w-10 h-10 rounded-xl bg-volt/10 border border-volt/30 flex items-center justify-center text-volt shadow-lg">
               <Shield className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white tracking-tight">Admin & Sync Operations Center</h3>
-                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-flame/15 text-flame border border-flame/30">
+                <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-volt/15 text-volt border border-volt/30">
                   ROOT ACCESS
                 </span>
               </div>
@@ -418,7 +422,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
         {/* Admin session notice */}
         {!isAdmin && (
-          <div className="px-5 py-3 bg-flame/10 border-b border-flame/25 text-amber-200 text-xs flex items-center gap-2">
+          <div className="px-5 py-3 bg-volt/10 border-b border-volt/25 text-volt text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>
               Signed-in admin session required. Sign in from the account menu with an admin account to
@@ -449,7 +453,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </div>
           <div className="p-3 col-span-2 sm:col-span-1">
             <span className="text-[10px] font-mono text-zinc-400 uppercase tracking-wider block">Proxy Engine</span>
-            <div className="text-sm font-bold text-purple-400 mt-0.5">Ready (CDN Stream)</div>
+            <div className="text-sm font-bold text-volt mt-0.5">Ready (CDN Stream)</div>
           </div>
         </div>
 
@@ -459,7 +463,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('sync')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'sync'
-                ? 'border-amber-400 text-flame font-semibold'
+                ? 'border-volt text-volt font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -481,7 +485,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('games')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'games'
-                ? 'border-cyan-400 text-ice font-semibold'
+                ? 'border-ice text-ice font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -492,7 +496,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             onClick={() => setActiveTab('saves')}
             className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
               activeTab === 'saves'
-                ? 'border-emerald-400 text-mint font-semibold'
+                ? 'border-mint text-mint font-semibold'
                 : 'border-transparent text-zinc-400 hover:text-zinc-200'
             }`}
           >
@@ -507,13 +511,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'sync' && (
             <div className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800 space-y-3">
+                <div className="p-4 rounded-xl bg-surface/60 border border-edge space-y-3">
                   <div className="flex items-center justify-between">
                     <h4 className="text-sm font-bold text-white flex items-center gap-2">
                       <Server className="w-4 h-4 text-ice" />
                       Repository Integrations
                     </h4>
-                    <span className="px-2 py-0.5 rounded text-[10px] bg-emerald-500/10 text-mint border border-emerald-500/20">
+                    <span className="px-2 py-0.5 rounded text-[10px] bg-mint/10 text-mint border border-mint/25">
                       ONLINE
                     </span>
                   </div>
@@ -541,7 +545,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     <button
                       onClick={handleTriggerSync}
                       disabled={isSyncing}
-                      className="px-3.5 py-2 rounded-xl btn-flame text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3.5 py-2 rounded-xl btn-volt text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                       {isSyncing ? 'Synchronizing...' : 'Trigger Sync'}
@@ -556,10 +560,10 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                 </div>
 
                 {/* Live Console Logs */}
-                <div className="p-4 rounded-xl bg-black border border-zinc-800 flex flex-col">
+                <div className="p-4 rounded-xl bg-black border border-edge flex flex-col">
                   <div className="flex items-center justify-between pb-2 mb-2 border-b border-edge text-[11px] font-mono text-zinc-400">
                     <span className="flex items-center gap-1.5">
-                      <Terminal className="w-3.5 h-3.5 text-flame" />
+                      <Terminal className="w-3.5 h-3.5 text-volt" />
                       Sync & Stream Monitor
                     </span>
                     <span className="text-mint text-[10px]">LISTENING</span>
@@ -578,14 +582,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'accounts' && (
             <div className="space-y-6">
               {/* Add user form */}
-              <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800 space-y-3">
+              <div className="p-4 rounded-xl bg-surface/60 border border-edge space-y-3">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                   <Plus className="w-3.5 h-3.5 text-mint" />
                   Add User Account
                 </h4>
 
                 {accountActionMessage && (
-                  <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs flex items-center gap-2">
+                  <div className="p-2.5 rounded-lg bg-mint/10 border border-mint/25 text-mint text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" />
                     {accountActionMessage}
                   </div>
@@ -624,7 +628,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     </select>
                     <button
                       type="submit"
-                      className="flex-1 px-3 py-2 rounded-lg btn-flame font-bold text-xs transition-all"
+                      className="flex-1 px-3 py-2 rounded-lg btn-volt font-bold text-xs transition-all"
                     >
                       Create
                     </button>
@@ -635,7 +639,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               {/* Accounts list */}
               <div className="space-y-2">
                 <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Registered Accounts</span>
-                <div className="border border-zinc-800 rounded-xl overflow-hidden bg-surface/30">
+                <div className="border border-edge rounded-xl overflow-hidden bg-surface/30">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-surface/80 border-b border-edge text-zinc-400 font-mono text-[11px]">
                       <tr>
@@ -667,7 +671,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                               onClick={() => handleToggleRole(acc)}
                               className={`px-2 py-0.5 rounded text-[10px] font-bold ${
                                 acc.role === 'admin'
-                                  ? 'bg-flame/15 text-flame border border-flame/30'
+                                  ? 'bg-volt/15 text-volt border border-volt/30'
                                   : 'bg-zinc-800 text-zinc-300 border border-zinc-700'
                               }`}
                             >
@@ -697,7 +701,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                             <button
                               onClick={() => handleDeleteAccount(acc.id, acc.username)}
                               disabled={acc.id === currentUser?.id}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 disabled:opacity-30 transition-all"
+                              className="p-1.5 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose disabled:opacity-30 transition-all"
                               title="Delete Account"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -716,14 +720,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           {activeTab === 'games' && (
             <div className="space-y-6">
               {/* Add custom game URL */}
-              <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800 space-y-3">
+              <div className="p-4 rounded-xl bg-surface/60 border border-edge space-y-3">
                 <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                   <Plus className="w-3.5 h-3.5 text-ice" />
                   Add Custom Game Port to Hub
                 </h4>
 
                 {addGameSuccess && (
-                  <div className="p-2.5 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-300 text-xs">
+                  <div className="p-2.5 rounded-lg bg-mint/10 border border-mint/25 text-mint text-xs">
                     {addGameSuccess}
                   </div>
                 )}
@@ -760,7 +764,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     />
                     <button
                       type="submit"
-                      className="px-4 py-2 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-black font-bold text-xs transition-all"
+                      className="btn-volt px-4 py-2 rounded-xl text-xs"
                     >
                       Add
                     </button>
@@ -773,7 +777,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                 <div className="flex items-start justify-between gap-4">
                   <div>
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-flame" />
+                      <Activity className="w-3.5 h-3.5 text-volt" />
                       Catalogue Health
                     </h4>
                     <p className="text-[11px] text-zinc-500 mt-1">
@@ -794,7 +798,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                   <div className="space-y-1.5">
                     <div className="h-1 rounded-full bg-white/5 overflow-hidden">
                       <div
-                        className="h-full bg-flame transition-[width] duration-500"
+                        className="h-full bg-volt transition-[width] duration-500"
                         style={{ width: `${health.total ? Math.round((health.checked / health.total) * 100) : 0}%` }}
                       />
                     </div>
@@ -806,7 +810,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 {!healthRunning && health && (
                   <div className="flex items-center gap-4 text-[11px]">
-                    <span className={health.failures.length === 0 ? 'text-mint font-semibold' : 'text-flame font-semibold'}>
+                    <span className={health.failures.length === 0 ? 'text-mint font-semibold' : 'text-volt font-semibold'}>
                       {health.failures.length === 0
                         ? 'All targets responded'
                         : `${health.failures.length} dead target${health.failures.length === 1 ? '' : 's'}`}
@@ -857,19 +861,19 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       placeholder="Search games..."
                       value={gameSearch}
                       onChange={e => setGameSearch(e.target.value)}
-                      className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-zinc-900 border border-zinc-800 text-xs text-zinc-200 placeholder-zinc-500"
+                      className="field w-full pl-8 pr-3 py-1.5 text-xs"
                     />
                   </div>
                 </div>
 
-                <div className="max-h-80 overflow-y-auto border border-zinc-800 rounded-xl divide-y divide-zinc-800/60 bg-surface/30">
+                <div className="max-h-80 overflow-y-auto border border-edge rounded-xl divide-y divide-zinc-800/60 bg-surface/30">
                   {filteredGames.map(game => (
                     <div key={game.id} className="p-3 flex items-center justify-between gap-4 hover:bg-surface/50 transition-colors">
                       <div className="flex items-center gap-3">
                         <img
                           src={game.thumbnail}
                           alt={game.title}
-                          className="w-9 h-9 rounded-lg object-cover bg-zinc-800 border border-zinc-800"
+                          className="w-9 h-9 rounded-lg object-cover bg-zinc-800 border border-edge"
                         />
                         <div>
                           <div className="flex items-center gap-2">
@@ -891,7 +895,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                           game.hidden
                             ? 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700 hover:text-white'
-                            : 'bg-emerald-500/10 text-mint border border-emerald-500/20 hover:bg-emerald-500/20'
+                            : 'bg-mint/10 text-mint border border-mint/25 hover:bg-mint/20'
                         }`}
                       >
                         {game.hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -915,7 +919,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 <button
                   onClick={handleExportSaves}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-flame text-xs font-bold transition-all shadow-lg"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl btn-volt text-xs font-bold transition-all shadow-lg"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Backup Entire Save DB
@@ -925,11 +929,11 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               {savesLoading ? (
                 <div className="py-12 text-center text-xs text-zinc-500">Loading save data...</div>
               ) : allSaves.length === 0 ? (
-                <div className="py-12 text-center border border-dashed border-zinc-800 rounded-2xl text-xs text-zinc-500">
+                <div className="py-12 text-center border border-dashed border-edge rounded-2xl text-xs text-zinc-500">
                   No saves currently stored on server.
                 </div>
               ) : (
-                <div className="border border-zinc-800 rounded-xl overflow-hidden bg-surface/30">
+                <div className="border border-edge rounded-xl overflow-hidden bg-surface/30">
                   <table className="w-full text-left text-xs">
                     <thead className="bg-surface/80 border-b border-edge text-zinc-400 font-mono text-[11px]">
                       <tr>
@@ -969,7 +973,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                                   }
                                 }
                               }}
-                              className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"
+                              className="p-1.5 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose transition-all"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
