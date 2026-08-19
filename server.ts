@@ -26,7 +26,8 @@ import {
   verifyPassword,
   createSession,
   getUserIdFromToken,
-  removeSession
+  removeSession,
+  removeUserSessions
 } from './server/auth';
 import { guardCredentials, guardKeys, recordFailure, clearFailures, clientIp, checkRateLimit } from './server/rateLimit';
 import { runHealthCheck, getHealthReport } from './server/healthCheck';
@@ -48,7 +49,20 @@ import { checkAchievements, ACHIEVEMENTS } from './server/achievements';
 dotenv.config();
 
 const ALLOWED_GAME_EXTENSIONS = ['.swf', '.html', '.htm'];
-const ALLOWED_THUMB_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg'];
+/*
+ * No SVG here on purpose: /custom_games is served off the hub's own origin and is exempt
+ * from the security-header middleware, so an uploaded SVG would be a script running with
+ * the hub's origin. Every format below is a raster container with a checkable magic number.
+ */
+const ALLOWED_THUMB_EXTENSIONS = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+
+/** First bytes that identify each accepted image container. */
+const THUMB_SIGNATURES: { ext: string[]; test: (head: Buffer) => boolean }[] = [
+  { ext: ['.png'], test: h => h.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) },
+  { ext: ['.jpg', '.jpeg'], test: h => h[0] === 0xff && h[1] === 0xd8 && h[2] === 0xff },
+  { ext: ['.gif'], test: h => h.subarray(0, 6).toString('ascii').startsWith('GIF8') },
+  { ext: ['.webp'], test: h => h.subarray(0, 4).toString('ascii') === 'RIFF' && h.subarray(8, 12).toString('ascii') === 'WEBP' }
+];
 
 const upload = multer({
   dest: path.join(process.cwd(), 'public', 'custom_games'),
@@ -571,6 +585,10 @@ async function startServer() {
     const fullPath = (req.params as any)[0] as string;
     const knownPrefix = WEBPORT_SUBPATHS.find(prefix => fullPath.startsWith(prefix + '/'));
     const splitAt = knownPrefix ? knownPrefix.length : fullPath.indexOf('/');
+    if (splitAt < 0) {
+      // Nothing after the game id: there is no asset being asked for
+      return res.status(400).type('text/plain').send('Invalid asset path');
+    }
     const gameId = fullPath.slice(0, splitAt);
     const assetPath = fullPath.slice(splitAt + 1);
 
@@ -1278,8 +1296,10 @@ async function startServer() {
       storedAccounts[index].passwordSalt = salt;
       saveStoredAccounts(storedAccounts);
 
-      // Re-issue the session so the change takes effect on this device without a sign-out
-      removeSession(getAuthToken(req));
+      // Every other session for this account is now suspect — a password change is how a
+      // player evicts someone who already has one. Drop them all, then re-issue this device's
+      // session so the change does not sign the player out of the tab they are looking at.
+      removeUserSessions(user.id);
       setSessionCookie(res, createSession(user.id));
 
       res.json({ status: 'ok', message: 'Password updated successfully!' });
@@ -1489,7 +1509,11 @@ async function startServer() {
   // List all accounts (public directory)
   app.get('/api/accounts', (req, res) => {
     try {
-      const viewer = getAuthUser(req);
+      // The directory names every player and marks which of them are admins, so it is for
+      // signed-in players only — anonymous callers used to be able to enumerate the lot.
+      const viewer = requireUser(req, res);
+      if (!viewer) return;
+
       const publicAccounts = getPublicAccounts();
 
       // Only admins see e-mail addresses; the directory itself is public so players can
@@ -2075,6 +2099,19 @@ async function startServer() {
     });
   });
 
+  /** First `length` bytes of a file, or an empty buffer if it cannot be read. */
+  const readHead = (filePath: string, length: number): Buffer => {
+    try {
+      const fd = fs.openSync(filePath, 'r');
+      const buf = Buffer.alloc(length);
+      const read = fs.readSync(fd, buf, 0, length, 0);
+      fs.closeSync(fd);
+      return buf.subarray(0, read);
+    } catch {
+      return Buffer.alloc(0);
+    }
+  };
+
   const handleUpload = (req: express.Request, res: express.Response) => {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] } | undefined;
     const gameFile = files?.['game']?.[0];
@@ -2094,17 +2131,7 @@ async function startServer() {
      * Check what the file actually is, not just what it is called. A renamed binary would
      * otherwise be written into a folder this server hands out over HTTP.
      */
-    const head = (() => {
-      try {
-        const fd = fs.openSync(gameFile.path, 'r');
-        const buf = Buffer.alloc(256);
-        const read = fs.readSync(fd, buf, 0, 256, 0);
-        fs.closeSync(fd);
-        return buf.subarray(0, read);
-      } catch {
-        return Buffer.alloc(0);
-      }
-    })();
+    const head = readHead(gameFile.path, 256);
 
     const magic = head.subarray(0, 3).toString('ascii');
     const looksLikeSwf = ['FWS', 'CWS', 'ZWS'].includes(magic);
@@ -2131,6 +2158,19 @@ async function startServer() {
     let thumbnailUrl = `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(title)}&backgroundColor=09090b`;
     if (thumbFile) {
       const thumbExt = path.extname(thumbFile.originalname).toLowerCase();
+
+      // The extension decides the Content-Type this server later hands out, so the bytes
+      // have to agree with it. A mislabelled file is dropped rather than published.
+      const thumbHead = readHead(thumbFile.path, 16);
+      const signature = THUMB_SIGNATURES.find(s => s.ext.includes(thumbExt));
+      if (!signature || !signature.test(thumbHead)) {
+        fs.rmSync(thumbFile.path, { force: true });
+        fs.rmSync(gameDir, { recursive: true, force: true });
+        return res.status(400).json({
+          error: `That thumbnail is not a valid ${thumbExt.replace('.', '').toUpperCase()} image`
+        });
+      }
+
       const thumbName = `thumb${thumbExt}`;
       fs.renameSync(thumbFile.path, path.join(gameDir, thumbName));
       thumbnailUrl = `/custom_games/${gameId}/${thumbName}`;
@@ -2163,6 +2203,8 @@ async function startServer() {
     (req, res, next) => {
       // Sandboxed frames are an opaque origin, so their sub-resource fetches are cross-origin
       res.setHeader('Access-Control-Allow-Origin', '*');
+      // Uploaded files live on this origin: never let the browser second-guess their type
+      res.setHeader('X-Content-Type-Options', 'nosniff');
       next();
     },
     express.static(customGamesDir)

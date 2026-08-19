@@ -6,11 +6,11 @@
   <title>FlashHub Ruffle & WebAssembly Player</title>
   <style>
     :root {
-      --void: #08070a;
-      --surface: #131218;
-      --edge: #221f2b;
-      --flame: #ff8a00;
-      --ember: #ff5a1f;
+      --void: #06070f;
+      --surface: #111428;
+      --edge: #232845;
+      --volt: #8b5cf6;
+      --beam: #22d3ee;
     }
     * { box-sizing: border-box; }
     body, html {
@@ -19,7 +19,7 @@
       width: 100%;
       height: 100%;
       background: var(--void);
-      background-image: radial-gradient(700px 380px at 50% -10%, rgba(255, 138, 0, 0.16), transparent 65%);
+      background-image: radial-gradient(700px 380px at 50% -10%, rgba(139, 92, 246, 0.22), transparent 65%);
       color: #f4f4f5;
       font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
       overflow: hidden;
@@ -50,8 +50,8 @@
       box-shadow: 0 30px 60px -20px rgba(0, 0, 0, 0.9);
     }
     .start-btn {
-      background: linear-gradient(135deg, var(--flame), var(--ember));
-      color: #150c02;
+      background: linear-gradient(135deg, var(--volt), #4f46e5);
+      color: #fff;
       border: none;
       padding: 14px 28px;
       font-size: 15px;
@@ -64,7 +64,7 @@
       align-items: center;
       justify-content: center;
       gap: 8px;
-      box-shadow: 0 12px 30px -12px rgba(255, 138, 0, 0.9);
+      box-shadow: 0 12px 30px -12px rgba(139, 92, 246, 0.95);
       transition: filter 0.15s, transform 0.15s;
     }
     .start-btn:hover { filter: brightness(1.08); }
@@ -92,7 +92,7 @@
       color: #8b8794;
       transition: border-color 0.2s, color 0.2s;
     }
-    .drop-zone:hover { border-color: var(--flame); color: #fafafa; }
+    .drop-zone:hover { border-color: var(--volt); color: #fafafa; }
     .badge {
       display: inline-flex;
       align-items: center;
@@ -104,9 +104,9 @@
       font-weight: 600;
       letter-spacing: 0.14em;
       text-transform: uppercase;
-      background: rgba(255, 138, 0, 0.12);
-      color: var(--flame);
-      border: 1px solid rgba(255, 138, 0, 0.3);
+      background: rgba(139, 92, 246, 0.15);
+      color: var(--volt);
+      border: 1px solid rgba(139, 92, 246, 0.35);
       margin-bottom: 14px;
     }
     #error-banner {

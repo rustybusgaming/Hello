@@ -123,8 +123,13 @@ export function AccountModal({
     }
   }, [currentUser]);
 
-  // Load public accounts list
+  // Load the player directory. It is only rendered on the "switch account" tab, which only
+  // exists for a signed-in player — and the endpoint now requires a session either way.
   useEffect(() => {
+    if (!currentUser) {
+      setAllAccounts([]);
+      return;
+    }
     fetch('/api/accounts')
       .then(res => res.ok ? res.json() : null)
       .then(d => {
@@ -210,8 +215,8 @@ export function AccountModal({
       setRegError('Please enter a valid email address');
       return;
     }
-    if (regPassword.length < 6) {
-      setRegError('Password must be at least 6 characters');
+    if (regPassword.length < 8) {
+      setRegError('Password must be at least 8 characters');
       return;
     }
     if (regPassword !== regConfirmPassword) {
@@ -374,8 +379,8 @@ export function AccountModal({
     setPasswordError('');
     setPasswordMessage('');
 
-    if (newPassword.length < 6) {
-      setPasswordError('New password must be at least 6 characters');
+    if (newPassword.length < 8) {
+      setPasswordError('New password must be at least 8 characters');
       return;
     }
     if (newPassword !== confirmNewPassword) {
@@ -459,12 +464,12 @@ export function AccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-md">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-lg">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.96 }}
-        className="w-full max-w-2xl bg-pit border border-edge rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
+        className="sheet w-full max-w-2xl flex flex-col max-h-[92vh]"
       >
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-edge flex items-center justify-between bg-surface/50">
@@ -485,7 +490,7 @@ export function AccountModal({
                   {currentUser?.displayName || currentUser?.username || 'Guest Player'}
                 </h3>
                 {currentUser?.role === 'admin' && (
-                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-flame/15 border border-flame/30 text-flame rounded">
+                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-volt/15 border border-volt/30 text-volt rounded">
                     Admin
                   </span>
                 )}
@@ -505,7 +510,7 @@ export function AccountModal({
             {currentUser && (
               <button
                 onClick={handleLogout}
-                className="px-2.5 py-1.5 rounded-lg bg-zinc-900 hover:bg-red-500/10 hover:text-red-300 text-zinc-400 border border-zinc-800 hover:border-red-500/20 text-xs font-medium flex items-center gap-1.5 transition-all"
+                className="px-2.5 py-1.5 rounded-lg bg-black/35 hover:bg-rose/10 hover:text-rose text-zinc-400 border border-edge hover:border-rose/25 text-xs font-medium flex items-center gap-1.5 transition-all"
                 title="Sign out of this session"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -551,7 +556,7 @@ export function AccountModal({
                 onClick={() => setActiveTab('saves')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'saves'
-                    ? 'border-emerald-400 text-mint font-semibold'
+                    ? 'border-mint text-mint font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -562,18 +567,18 @@ export function AccountModal({
                 onClick={() => setActiveTab('security')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'security'
-                    ? 'border-amber-400 text-flame font-semibold'
+                    ? 'border-volt text-volt font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
-                <KeyRound className="w-3.5 h-3.5 text-flame" />
+                <KeyRound className="w-3.5 h-3.5 text-volt" />
                 Security & Password
               </button>
               <button
                 onClick={() => setActiveTab('switch')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'switch'
-                    ? 'border-cyan-400 text-ice font-semibold'
+                    ? 'border-ice text-ice font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -598,7 +603,7 @@ export function AccountModal({
                 onClick={() => setActiveTab('register')}
                 className={`pb-2.5 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
                   activeTab === 'register'
-                    ? 'border-emerald-400 text-mint font-semibold'
+                    ? 'border-mint text-mint font-semibold'
                     : 'border-transparent text-zinc-400 hover:text-zinc-200'
                 }`}
               >
@@ -621,7 +626,7 @@ export function AccountModal({
               </div>
 
               {loginError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {loginError}
                 </div>
@@ -638,7 +643,7 @@ export function AccountModal({
                     placeholder="e.g. admin or player@example.com"
                     value={loginIdentifier}
                     onChange={e => setLoginIdentifier(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                    className="field w-full px-3.5 py-2.5 text-xs"
                   />
                 </div>
 
@@ -653,7 +658,7 @@ export function AccountModal({
                       placeholder="Enter your password"
                       value={loginPassword}
                       onChange={e => setLoginPassword(e.target.value)}
-                      className="w-full pl-3.5 pr-10 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                      className="field w-full pl-3.5 pr-10 py-2.5 text-xs"
                     />
                     <button
                       type="button"
@@ -668,7 +673,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full py-2.5 px-4 rounded-xl btn-flame font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                  className="w-full py-2.5 px-4 rounded-xl btn-volt font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
                 >
                   {loginLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
                   {loginLoading ? 'Authenticating...' : 'Sign In'}
@@ -695,7 +700,7 @@ export function AccountModal({
               </div>
 
               {regError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {regError}
                 </div>
@@ -705,7 +710,7 @@ export function AccountModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                      Username <span className="text-red-400">*</span>
+                      Username <span className="text-rose">*</span>
                     </label>
                     <input
                       type="text"
@@ -713,7 +718,7 @@ export function AccountModal({
                       placeholder="e.g. PixelMaster"
                       value={regUsername}
                       onChange={e => setRegUsername(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                      className="field w-full px-3 py-2 text-xs"
                     />
                   </div>
 
@@ -726,14 +731,14 @@ export function AccountModal({
                       placeholder="e.g. Master Player"
                       value={regDisplayName}
                       onChange={e => setRegDisplayName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                      className="field w-full px-3 py-2 text-xs"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Email Address <span className="text-red-400">*</span>
+                    Email Address <span className="text-rose">*</span>
                   </label>
                   <input
                     type="email"
@@ -741,14 +746,14 @@ export function AccountModal({
                     placeholder="player@example.com"
                     value={regEmail}
                     onChange={e => setRegEmail(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                    className="field w-full px-3 py-2 text-xs"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                      Password (min 6 chars) <span className="text-red-400">*</span>
+                      Password (min 8 chars) <span className="text-rose">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -757,7 +762,7 @@ export function AccountModal({
                         placeholder="••••••••"
                         value={regPassword}
                         onChange={e => setRegPassword(e.target.value)}
-                        className="w-full pl-3 pr-9 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                        className="field w-full pl-3 pr-9 py-2 text-xs"
                       />
                       <button
                         type="button"
@@ -771,7 +776,7 @@ export function AccountModal({
 
                   <div>
                     <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                      Confirm Password <span className="text-red-400">*</span>
+                      Confirm Password <span className="text-rose">*</span>
                     </label>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
@@ -779,7 +784,7 @@ export function AccountModal({
                       placeholder="••••••••"
                       value={regConfirmPassword}
                       onChange={e => setRegConfirmPassword(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                      className="field w-full px-3 py-2 text-xs"
                     />
                   </div>
                 </div>
@@ -796,14 +801,14 @@ export function AccountModal({
                         type="button"
                         onClick={() => setRegAvatar(preset.url)}
                         className={`relative flex-shrink-0 w-11 h-11 rounded-full overflow-hidden border-2 transition-all ${
-                          regAvatar === preset.url ? 'border-emerald-400 scale-105 ring-2 ring-emerald-400/20' : 'border-zinc-800 hover:border-zinc-600'
+                          regAvatar === preset.url ? 'border-mint scale-105 ring-2 ring-mint/20' : 'border-edge hover:border-zinc-600'
                         }`}
                         title={preset.name}
                       >
                         <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-zinc-800" />
                         {regAvatar === preset.url && (
-                          <div className="absolute inset-0 bg-emerald-500/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-emerald-300" />
+                          <div className="absolute inset-0 bg-mint/20 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-mint" />
                           </div>
                         )}
                       </button>
@@ -820,14 +825,14 @@ export function AccountModal({
                     placeholder="e.g. Speedrunning Flash classics & Steam ports"
                     value={regBio}
                     onChange={e => setRegBio(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-white transition-all"
+                    className="field w-full px-3 py-2 text-xs"
                   />
                 </div>
 
                 <button
                   type="submit"
                   disabled={regLoading}
-                  className="w-full py-2.5 px-4 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-black font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg shadow-emerald-500/10"
+                  className="btn-volt w-full py-2.5 px-4 rounded-xl text-xs disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {regLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                   {regLoading ? 'Creating Account...' : 'Complete Registration'}
@@ -849,7 +854,7 @@ export function AccountModal({
           {activeTab === 'profile' && currentUser && (
             <div className="space-y-6">
               {profileMessage && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-mint/10 border border-mint/30 text-mint text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {profileMessage}
                 </div>
@@ -857,7 +862,7 @@ export function AccountModal({
 
               {/* Profile Card & Edit Mode */}
               {!isEditingProfile ? (
-                <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="p-5 rounded-2xl border border-edge bg-black/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <img
                       src={currentUser.avatarUrl}
@@ -891,7 +896,7 @@ export function AccountModal({
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSaveProfile} className="p-5 rounded-2xl bg-zinc-900/90 border border-zinc-700/80 space-y-4">
+                <form onSubmit={handleSaveProfile} className="p-5 rounded-2xl border border-edge bg-black/30 space-y-4">
                   <div className="flex items-center justify-between border-b border-edge pb-3">
                     <h4 className="text-xs font-bold text-white uppercase tracking-wider">Edit Profile Details</h4>
                     <button
@@ -909,7 +914,7 @@ export function AccountModal({
                       type="text"
                       value={editDisplayName}
                       onChange={e => setEditDisplayName(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-white"
+                      className="field w-full px-3 py-2 text-xs"
                     />
                   </div>
 
@@ -919,7 +924,7 @@ export function AccountModal({
                       type="text"
                       value={editBio}
                       onChange={e => setEditBio(e.target.value)}
-                      className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-white"
+                      className="field w-full px-3 py-2 text-xs"
                     />
                   </div>
 
@@ -932,7 +937,7 @@ export function AccountModal({
                           type="button"
                           onClick={() => setEditAvatar(preset.url)}
                           className={`relative flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${
-                            editAvatar === preset.url ? 'border-white ring-2 ring-white/20' : 'border-zinc-800 hover:border-zinc-600'
+                            editAvatar === preset.url ? 'border-white ring-2 ring-white/20' : 'border-edge hover:border-zinc-600'
                           }`}
                         >
                           <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-zinc-800" />
@@ -944,7 +949,7 @@ export function AccountModal({
                       placeholder="Or paste custom image URL"
                       value={editAvatar}
                       onChange={e => setEditAvatar(e.target.value)}
-                      className="w-full px-3 py-1.5 mt-2 rounded-xl bg-zinc-950 border border-zinc-800 text-[11px] text-white focus:outline-none focus:border-white font-mono"
+                      className="field w-full px-3 py-1.5 mt-2 text-[11px] font-mono"
                     />
                   </div>
 
@@ -959,7 +964,7 @@ export function AccountModal({
                     <button
                       type="submit"
                       disabled={profileSaving}
-                      className="px-4 py-1.5 rounded-xl btn-flame font-bold text-xs"
+                      className="px-4 py-1.5 rounded-xl btn-volt font-bold text-xs"
                     >
                       {profileSaving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -969,7 +974,7 @@ export function AccountModal({
 
               {/* Stats Metrics Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
+                <div className="p-4 rounded-xl bg-surface/60 border border-edge">
                   <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
                     Cloud Saves
                   </span>
@@ -979,7 +984,7 @@ export function AccountModal({
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
+                <div className="p-4 rounded-xl bg-surface/60 border border-edge">
                   <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
                     Steam Connection
                   </span>
@@ -989,7 +994,7 @@ export function AccountModal({
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-surface/60 border border-zinc-800/60">
+                <div className="p-4 rounded-xl bg-surface/60 border border-edge">
                   <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
                     Session Security
                   </span>
@@ -1003,11 +1008,11 @@ export function AccountModal({
               {/* Achievements Section */}
               <div className="pt-2">
                 <div className="flex items-center gap-2 mb-3">
-                  <Flame className="w-4 h-4 text-orange-400" />
+                  <Flame className="w-4 h-4 text-amber" />
                   <h4 className="text-sm font-bold text-white uppercase tracking-wider">Unlocked Achievements</h4>
                 </div>
                 {(!currentUser.achievements || currentUser.achievements.length === 0) ? (
-                  <div className="p-4 rounded-xl border border-dashed border-zinc-800 text-center">
+                  <div className="p-4 rounded-xl border border-dashed border-edge text-center">
                     <p className="text-xs text-zinc-500">No achievements unlocked yet. Play some games!</p>
                   </div>
                 ) : (
@@ -1022,7 +1027,7 @@ export function AccountModal({
                       if (ach.achievementId === 'genre_explorer') { icon = '🌍'; name = 'Genre Explorer'; desc = 'Played 3 different genres'; }
                       
                       return (
-                        <div key={ach.achievementId} className="flex items-center gap-3 p-3 rounded-xl bg-zinc-900 border border-zinc-800/80">
+                        <div key={ach.achievementId} className="flex items-center gap-3 p-3 rounded-xl border border-edge bg-black/30">
                           <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-lg border border-zinc-700/50">
                             {icon}
                           </div>
@@ -1060,7 +1065,7 @@ export function AccountModal({
                           SteamID64: {currentUser.steamId}
                         </p>
                         <p className="text-xs text-mint mt-1 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                          <span className="w-1.5 h-1.5 rounded-full bg-mint" />
                           Steam Cloud Saves & Library Synced
                         </p>
                       </div>
@@ -1088,7 +1093,7 @@ export function AccountModal({
                   </div>
                 </div>
               ) : (
-                <div className="p-5 rounded-2xl bg-zinc-900/70 border border-zinc-800 text-center space-y-3">
+                <div className="p-5 rounded-2xl border border-edge bg-black/25 text-center space-y-3">
                   <div className="w-12 h-12 rounded-2xl bg-[#171a21] border border-[#2a475e] mx-auto flex items-center justify-center text-[#66c0f4]">
                     <Gamepad2 className="w-6 h-6" />
                   </div>
@@ -1126,14 +1131,14 @@ export function AccountModal({
               </div>
 
               {steamSuccess && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-mint/10 border border-mint/30 text-mint text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {steamSuccess}
                 </div>
               )}
 
               {steamError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs">
                   {steamError}
                 </div>
               )}
@@ -1149,7 +1154,7 @@ export function AccountModal({
                       placeholder="e.g. 76561198123456789 or https://steamcommunity.com/id/gaben"
                       value={steamInput}
                       onChange={e => setSteamInput(e.target.value)}
-                      className="flex-1 px-3.5 py-2.5 rounded-xl bg-zinc-900 border border-zinc-800 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-[#66c0f4]"
+                      className="field flex-1 px-3.5 py-2.5 text-xs"
                     />
                     <button
                       type="submit"
@@ -1170,7 +1175,7 @@ export function AccountModal({
                       type="button"
                       onClick={handleUnlinkSteam}
                       disabled={steamLoading}
-                      className="px-3 py-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 text-xs font-medium flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose border border-rose/25 text-xs font-medium flex items-center gap-1.5 transition-all"
                     >
                       <Unlink className="w-3.5 h-3.5" />
                       Unlink Account
@@ -1206,7 +1211,7 @@ export function AccountModal({
               {savesLoading ? (
                 <div className="py-12 text-center text-xs text-zinc-500">Loading your save states...</div>
               ) : userSaves.length === 0 ? (
-                <div className="py-12 text-center border border-dashed border-zinc-800 rounded-2xl space-y-2">
+                <div className="py-12 text-center border border-dashed border-edge rounded-2xl space-y-2">
                   <Save className="w-8 h-8 text-zinc-600 mx-auto" />
                   <p className="text-xs text-zinc-400 font-medium">No cloud saves stored yet.</p>
                   <p className="text-[11px] text-zinc-500 max-w-xs mx-auto">
@@ -1218,10 +1223,10 @@ export function AccountModal({
                   {userSaves.map(save => (
                     <div
                       key={save.id}
-                      className="p-3.5 rounded-xl bg-surface/60 border border-zinc-800/80 flex items-center justify-between gap-4"
+                      className="p-3.5 rounded-xl bg-surface/60 border border-edge flex items-center justify-between gap-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-mint">
+                        <div className="w-9 h-9 rounded-lg bg-mint/10 border border-mint/25 flex items-center justify-center text-mint">
                           <Save className="w-4 h-4" />
                         </div>
                         <div>
@@ -1237,7 +1242,7 @@ export function AccountModal({
                               {new Date(save.timestamp).toLocaleString()}
                             </span>
                             {save.highScore !== undefined && (
-                              <span className="text-flame font-semibold">
+                              <span className="text-volt font-semibold">
                                 Score: {save.highScore.toLocaleString()}
                               </span>
                             )}
@@ -1263,7 +1268,7 @@ export function AccountModal({
                         <button
                           onClick={() => handleDeleteSave(save.id)}
                           title="Delete save slot"
-                          className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-all"
+                          className="p-2 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1284,23 +1289,23 @@ export function AccountModal({
               </div>
 
               {passwordMessage && (
-                <div className="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-mint/10 border border-mint/30 text-mint text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {passwordMessage}
                 </div>
               )}
 
               {passwordError && (
-                <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs flex items-center gap-2">
+                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {passwordError}
                 </div>
               )}
 
               {/* Change Password Form */}
-              <form onSubmit={handleChangePassword} className="p-5 rounded-2xl bg-surface/60 border border-zinc-800/80 space-y-4">
+              <form onSubmit={handleChangePassword} className="p-5 rounded-2xl bg-surface/60 border border-edge space-y-4">
                 <h5 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <KeyRound className="w-3.5 h-3.5 text-flame" />
+                  <KeyRound className="w-3.5 h-3.5 text-volt" />
                   Change Password
                 </h5>
 
@@ -1312,20 +1317,20 @@ export function AccountModal({
                     placeholder="Enter current password"
                     value={currentPassword}
                     onChange={e => setCurrentPassword(e.target.value)}
-                    className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-white"
+                    className="field w-full px-3.5 py-2 text-xs"
                   />
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">New Password (min 6 chars)</label>
+                    <label className="block text-xs font-semibold text-zinc-300 mb-1">New Password (min 8 chars)</label>
                     <input
                       type="password"
                       required
                       placeholder="New password"
                       value={newPassword}
                       onChange={e => setNewPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-white"
+                      className="field w-full px-3.5 py-2 text-xs"
                     />
                   </div>
 
@@ -1337,7 +1342,7 @@ export function AccountModal({
                       placeholder="Repeat new password"
                       value={confirmNewPassword}
                       onChange={e => setConfirmNewPassword(e.target.value)}
-                      className="w-full px-3.5 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-xs text-white focus:outline-none focus:border-white"
+                      className="field w-full px-3.5 py-2 text-xs"
                     />
                   </div>
                 </div>
@@ -1345,15 +1350,15 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="px-4 py-2 rounded-xl btn-flame font-bold text-xs transition-all disabled:opacity-50"
+                  className="px-4 py-2 rounded-xl btn-volt font-bold text-xs transition-all disabled:opacity-50"
                 >
                   {passwordLoading ? 'Updating Password...' : 'Update Password'}
                 </button>
               </form>
 
               {/* Danger Zone: Delete Account */}
-              <div className="p-5 rounded-2xl bg-red-950/20 border border-red-900/40 space-y-3">
-                <h5 className="text-xs font-bold text-red-400 uppercase tracking-wider flex items-center gap-2">
+              <div className="p-5 rounded-2xl bg-rose/10 border border-rose/30 space-y-3">
+                <h5 className="text-xs font-bold text-rose uppercase tracking-wider flex items-center gap-2">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Danger Zone: Delete Account
                 </h5>
@@ -1362,7 +1367,7 @@ export function AccountModal({
                 </p>
 
                 {deleteError && (
-                  <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+                  <div className="p-2.5 rounded-lg bg-rose/10 border border-rose/30 text-rose text-xs">
                     {deleteError}
                   </div>
                 )}
@@ -1373,12 +1378,12 @@ export function AccountModal({
                     placeholder="Enter password to confirm deletion"
                     value={deletePassword}
                     onChange={e => setDeletePassword(e.target.value)}
-                    className="flex-1 px-3 py-2 rounded-xl bg-zinc-900 border border-red-900/50 text-xs text-white focus:outline-none focus:border-red-500"
+                    className="field flex-1 px-3 py-2 text-xs"
                   />
                   <button
                     type="submit"
                     disabled={deleteLoading || !deletePassword}
-                    className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs transition-all disabled:opacity-50"
+                    className="px-4 py-2 rounded-xl bg-rose hover:bg-rose text-white font-bold text-xs transition-all disabled:opacity-50"
                   >
                     {deleteLoading ? 'Deleting...' : 'Delete Account'}
                   </button>
@@ -1405,7 +1410,7 @@ export function AccountModal({
                       className={`p-3 rounded-xl border text-left flex items-center justify-between gap-3 transition-all ${
                         currentUser?.id === acc.id
                           ? 'bg-white/10 border-white text-white'
-                          : 'bg-surface/50 border-zinc-800 text-zinc-300'
+                          : 'bg-surface/50 border-edge text-zinc-300'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
@@ -1421,7 +1426,7 @@ export function AccountModal({
                       </div>
 
                       {currentUser?.id === acc.id ? (
-                        <span className="text-[10px] font-bold text-mint px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                        <span className="text-[10px] font-bold text-mint px-2 py-0.5 rounded bg-mint/10 border border-mint/25">
                           Active
                         </span>
                       ) : (
@@ -1443,7 +1448,7 @@ export function AccountModal({
               <div className="pt-4 border-t border-edge flex items-center justify-between">
                 <button
                   onClick={() => setActiveTab('register')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl btn-flame font-bold text-xs transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl btn-volt font-bold text-xs transition-all"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Create New Account

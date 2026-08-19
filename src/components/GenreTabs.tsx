@@ -1,4 +1,5 @@
 import React from 'react';
+import { SlidersHorizontal } from 'lucide-react';
 
 interface GenreTabsProps {
   genres: string[];
@@ -8,32 +9,34 @@ interface GenreTabsProps {
 
 export function GenreTabs({ genres, activeGenre, onSelectGenre }: GenreTabsProps) {
   return (
-    <div className="sticky top-16 z-20 border-b border-edge/70 bg-void/70 backdrop-blur-lg">
-      {/* The fade mask hints that the rail keeps scrolling past the viewport edge */}
-      <div
-        className="max-w-[1400px] mx-auto px-4 sm:px-6"
-        style={{
-          maskImage: 'linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 24px), transparent)',
-          WebkitMaskImage: 'linear-gradient(90deg, transparent, #000 18px, #000 calc(100% - 24px), transparent)'
-        }}
-      >
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5">
-          {genres.map((genre) => {
-            const isActive = activeGenre === genre;
-            return (
+    <div className="sticky top-[68px] z-20 border-b border-edge/60 bg-void/65 backdrop-blur-xl">
+      <div className="max-w-[1480px] mx-auto px-4 sm:px-7 flex items-center gap-3">
+        {/* Fixed label so the rail reads as a filter, not as page navigation */}
+        <span className="hidden md:flex items-center gap-2 py-3 pr-3 border-r border-edge/70 flex-shrink-0">
+          <SlidersHorizontal className="w-3.5 h-3.5 text-volt" />
+          <span className="eyebrow">Filter</span>
+        </span>
+
+        {/* The fade mask hints that the rail keeps scrolling past the viewport edge */}
+        <div
+          className="flex-1 min-w-0"
+          style={{
+            maskImage: 'linear-gradient(90deg, #000 calc(100% - 40px), transparent)',
+            WebkitMaskImage: 'linear-gradient(90deg, #000 calc(100% - 40px), transparent)'
+          }}
+        >
+          <div className="flex gap-1.5 overflow-x-auto no-scrollbar py-2.5 pr-10">
+            {genres.map((genre) => (
               <button
                 key={genre}
                 onClick={() => onSelectGenre(genre)}
-                className={`flex-shrink-0 px-3 h-7 rounded-lg text-[11px] font-semibold whitespace-nowrap transition-all duration-200 ${
-                  isActive
-                    ? 'bg-flame text-black shadow-[0_6px_18px_-8px_rgba(255,138,0,0.9)]'
-                    : 'text-zinc-500 hover:text-white hover:bg-white/[0.06]'
-                }`}
+                data-active={activeGenre === genre}
+                className="rail-pill"
               >
                 {genre}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
       </div>
     </div>
