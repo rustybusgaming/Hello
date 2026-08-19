@@ -45,6 +45,7 @@ import {
 } from './server/steam';
 import { UserAccount, StoredUserAccount, GameSave } from './src/types';
 import { checkAchievements, ACHIEVEMENTS } from './server/achievements';
+import { isFlashGame } from './src/lib/games';
 
 dotenv.config();
 
@@ -914,6 +915,24 @@ async function startServer() {
         hidden: hiddenSet.has(g.id)
       };
     });
+  };
+
+  /*
+   * Save slots are a Flash-only feature, so a write is checked against the catalogue rather
+   * than trusted from the client. Rebuilding the catalogue per request would be wasteful —
+   * it scans disk and can hit the network — so the id set is cached briefly.
+   */
+  let flashIdCache: { ids: Set<string>; at: number } = { ids: new Set(), at: 0 };
+  const FLASH_ID_TTL_MS = 5 * 60 * 1000;
+
+  const getFlashGameIds = async (): Promise<Set<string>> => {
+    if (flashIdCache.at && Date.now() - flashIdCache.at < FLASH_ID_TTL_MS) {
+      return flashIdCache.ids;
+    }
+    const catalog = await buildCatalog();
+    const ids = new Set<string>(catalog.filter(g => isFlashGame(g)).map(g => g.id));
+    flashIdCache = { ids, at: Date.now() };
+    return ids;
   };
 
   /**
@@ -1793,11 +1812,16 @@ async function startServer() {
   });
 
   // Save game progress / state
-  app.post('/api/saves', (req, res) => {
+  app.post('/api/saves', async (req, res) => {
     try {
       const { id, gameId, gameTitle, userId, slotName, saveData, playtimeMinutes, highScore, notes } = req.body;
       if (!gameId || !userId || !saveData) {
         return res.status(400).json({ error: 'Missing required save fields' });
+      }
+
+      const flashIds = await getFlashGameIds();
+      if (!flashIds.has(gameId)) {
+        return res.status(400).json({ error: 'Save slots are available for Flash titles only' });
       }
 
       // A signed-in player may only write their own saves; guests stay in the guest bucket
@@ -1976,6 +2000,7 @@ async function startServer() {
     clearSteamCache();
     clearAssetCache();
     lastArchiveFetchTime = 0;
+    flashIdCache = { ids: new Set(), at: 0 };
     res.json({ status: 'ok', message: 'All in-memory proxy & games cache purged successfully.' });
   });
 

@@ -464,7 +464,7 @@ export function AccountModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-void/85 backdrop-blur-lg">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-neutral-900/50">
       <motion.div
         initial={{ opacity: 0, scale: 0.96 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -472,35 +472,35 @@ export function AccountModal({
         className="sheet w-full max-w-2xl flex flex-col max-h-[92vh]"
       >
         {/* Header */}
-        <div className="p-4 sm:p-5 border-b border-edge flex items-center justify-between bg-surface/50">
+        <div className="p-4 sm:p-5 border-b border-rule flex items-center justify-between bg-shade/50">
           <div className="flex items-center gap-3">
             <div className="relative">
               <img
                 src={currentUser?.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
                 alt="Avatar"
-                className="w-11 h-11 rounded-full object-cover bg-zinc-800 ring-2 ring-white/10"
+                className="w-11 h-11 object-cover bg-shade ring-hair"
               />
               {currentUser?.steamId && (
-                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[#66c0f4] ring-2 ring-black" />
+                <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#66c0f4] ring-ink" />
               )}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight">
+                <h3 className="text-base font-bold text-ink tracking-tight">
                   {currentUser?.displayName || currentUser?.username || 'Guest Player'}
                 </h3>
                 {currentUser?.role === 'admin' && (
-                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-volt/15 border border-volt/30 text-volt rounded">
+                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-accent/15 border border-accent/30 text-accent">
                     Admin
                   </span>
                 )}
                 {currentUser && (
-                  <span className="text-xs text-zinc-400 font-mono">
+                  <span className="text-xs text-ink/60 font-mono">
                     @{currentUser.username}
                   </span>
                 )}
               </div>
-              <p className="text-xs text-zinc-400">
+              <p className="text-xs text-ink/60">
                 {currentUser?.email || 'Sign in or register for persistent cloud saves'}
               </p>
             </div>
@@ -510,7 +510,7 @@ export function AccountModal({
             {currentUser && (
               <button
                 onClick={handleLogout}
-                className="px-2.5 py-1.5 rounded-lg bg-black/35 hover:bg-rose/10 hover:text-rose text-zinc-400 border border-edge hover:border-rose/25 text-xs font-medium flex items-center gap-1.5 transition-all"
+                className="px-2.5 py-1.5 bg-shade hover:bg-accent/10 hover:text-accent text-ink/60 border border-rule hover:border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
                 title="Sign out of this session"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -519,7 +519,7 @@ export function AccountModal({
             )}
             <button
               onClick={onClose}
-              className="w-8 h-8 rounded-lg btn-ghost hover:text-white flex items-center justify-center transition-all"
+              className="w-8 h-8 btn-ghost hover:text-ink flex items-center justify-center transition-all"
             >
               <X className="w-4 h-4" />
             </button>
@@ -527,15 +527,15 @@ export function AccountModal({
         </div>
 
         {/* Navigation Tabs */}
-        <div className="flex border-b border-edge bg-surface/30 px-4 pt-2 gap-1 sm:gap-2 text-xs font-medium overflow-x-auto">
+        <div className="flex border-b border-rule bg-shade/30 px-4 pt-2 gap-1 sm:gap-2 text-xs font-medium overflow-x-auto">
           {currentUser ? (
             <>
               <button
                 onClick={() => setActiveTab('profile')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'profile'
-                    ? 'border-white text-white font-semibold'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    ? 'border-ink text-ink font-semibold'
+                    : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
                 <User className="w-3.5 h-3.5" />
@@ -546,7 +546,7 @@ export function AccountModal({
                 className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all whitespace-nowrap ${
                   activeTab === 'steam'
                     ? 'border-[#66c0f4] text-[#66c0f4] font-semibold'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
                 <Gamepad2 className="w-3.5 h-3.5 text-[#66c0f4]" />
@@ -556,30 +556,30 @@ export function AccountModal({
                 onClick={() => setActiveTab('saves')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'saves'
-                    ? 'border-mint text-mint font-semibold'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    ? 'border-accent text-accent font-semibold'
+                    : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
-                <Save className="w-3.5 h-3.5 text-mint" />
+                <Save className="w-3.5 h-3.5 text-accent" />
                 Game Saves ({userSaves.length || currentUser.savesCount || 0})
               </button>
               <button
                 onClick={() => setActiveTab('security')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'security'
-                    ? 'border-volt text-volt font-semibold'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    ? 'border-accent text-accent font-semibold'
+                    : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
-                <KeyRound className="w-3.5 h-3.5 text-volt" />
+                <KeyRound className="w-3.5 h-3.5 text-accent" />
                 Security & Password
               </button>
               <button
                 onClick={() => setActiveTab('switch')}
                 className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'switch'
-                    ? 'border-ice text-ice font-semibold'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    ? 'border-ink text-ink font-semibold'
+                    : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
                 <RefreshCw className="w-3.5 h-3.5" />
@@ -592,8 +592,8 @@ export function AccountModal({
                 onClick={() => setActiveTab('signin')}
                 className={`pb-2.5 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
                   activeTab === 'signin'
-                    ? 'border-white text-white font-semibold'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    ? 'border-ink text-ink font-semibold'
+                    : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
                 <LogIn className="w-3.5 h-3.5" />
@@ -603,8 +603,8 @@ export function AccountModal({
                 onClick={() => setActiveTab('register')}
                 className={`pb-2.5 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
                   activeTab === 'register'
-                    ? 'border-mint text-mint font-semibold'
-                    : 'border-transparent text-zinc-400 hover:text-zinc-200'
+                    ? 'border-accent text-accent font-semibold'
+                    : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
                 <UserPlus className="w-3.5 h-3.5" />
@@ -615,18 +615,18 @@ export function AccountModal({
         </div>
 
         {/* Tab Contents */}
-        <div className="p-5 sm:p-6 overflow-y-auto flex-1 text-zinc-300">
+        <div className="p-5 sm:p-6 overflow-y-auto flex-1 text-ink/80">
           
           {/* --- TAB: SIGN IN --- */}
           {activeTab === 'signin' && (
             <div className="max-w-md mx-auto py-2 space-y-6">
               <div className="text-center space-y-1">
-                <h4 className="text-lg font-bold text-white">Sign In to FlashHub</h4>
-                <p className="text-xs text-zinc-400">Access your cloud saves, high scores, and Steam synced profile.</p>
+                <h4 className="text-lg font-bold text-ink">Sign In to FlashHub</h4>
+                <p className="text-xs text-ink/60">Access your cloud saves, high scores, and Steam synced profile.</p>
               </div>
 
               {loginError && (
-                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {loginError}
                 </div>
@@ -634,7 +634,7 @@ export function AccountModal({
 
               <form onSubmit={handleLoginSubmit} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-ink/80 mb-1.5">
                     Username or Email
                   </label>
                   <input
@@ -648,7 +648,7 @@ export function AccountModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-ink/80 mb-1.5">
                     Password
                   </label>
                   <div className="relative">
@@ -663,7 +663,7 @@ export function AccountModal({
                     <button
                       type="button"
                       onClick={() => setShowLoginPassword(p => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-ink/55 hover:text-ink/80"
                     >
                       {showLoginPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -673,7 +673,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full py-2.5 px-4 rounded-xl btn-volt font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-lg"
+                  className="w-full py-2.5 px-4 btn-primary font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loginLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
                   {loginLoading ? 'Authenticating...' : 'Sign In'}
@@ -683,9 +683,9 @@ export function AccountModal({
               <div className="text-center pt-2">
                 <button
                   onClick={() => setActiveTab('register')}
-                  className="text-xs text-zinc-400 hover:text-white transition-colors"
+                  className="text-xs text-ink/60 hover:text-ink transition-colors"
                 >
-                  Don't have an account? <span className="text-mint font-medium underline">Create one now</span>
+                  Don't have an account? <span className="text-accent font-medium underline">Create one now</span>
                 </button>
               </div>
             </div>
@@ -695,12 +695,12 @@ export function AccountModal({
           {activeTab === 'register' && (
             <div className="max-w-lg mx-auto py-1 space-y-5">
               <div className="text-center space-y-1">
-                <h4 className="text-lg font-bold text-white">Create a Real FlashHub Account</h4>
-                <p className="text-xs text-zinc-400">Save states to the cloud, track high scores, and link your Steam profile.</p>
+                <h4 className="text-lg font-bold text-ink">Create a Real FlashHub Account</h4>
+                <p className="text-xs text-ink/60">Save states to the cloud, track high scores, and link your Steam profile.</p>
               </div>
 
               {regError && (
-                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {regError}
                 </div>
@@ -709,8 +709,8 @@ export function AccountModal({
               <form onSubmit={handleRegisterSubmit} className="space-y-4">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                      Username <span className="text-rose">*</span>
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">
+                      Username <span className="text-accent">*</span>
                     </label>
                     <input
                       type="text"
@@ -723,7 +723,7 @@ export function AccountModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">
                       Display Name
                     </label>
                     <input
@@ -737,8 +737,8 @@ export function AccountModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                    Email Address <span className="text-rose">*</span>
+                  <label className="block text-xs font-semibold text-ink/80 mb-1">
+                    Email Address <span className="text-accent">*</span>
                   </label>
                   <input
                     type="email"
@@ -752,8 +752,8 @@ export function AccountModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                      Password (min 8 chars) <span className="text-rose">*</span>
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">
+                      Password (min 8 chars) <span className="text-accent">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -767,7 +767,7 @@ export function AccountModal({
                       <button
                         type="button"
                         onClick={() => setShowRegPassword(p => !p)}
-                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300"
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-ink/55 hover:text-ink/80"
                       >
                         {showRegPassword ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                       </button>
@@ -775,8 +775,8 @@ export function AccountModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">
-                      Confirm Password <span className="text-rose">*</span>
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">
+                      Confirm Password <span className="text-accent">*</span>
                     </label>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
@@ -791,7 +791,7 @@ export function AccountModal({
 
                 {/* Avatar Selection */}
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-2">
+                  <label className="block text-xs font-semibold text-ink/80 mb-2">
                     Choose Profile Avatar
                   </label>
                   <div className="flex items-center gap-2 overflow-x-auto pb-2">
@@ -800,15 +800,15 @@ export function AccountModal({
                         key={i}
                         type="button"
                         onClick={() => setRegAvatar(preset.url)}
-                        className={`relative flex-shrink-0 w-11 h-11 rounded-full overflow-hidden border-2 transition-all ${
-                          regAvatar === preset.url ? 'border-mint scale-105 ring-2 ring-mint/20' : 'border-edge hover:border-zinc-600'
+                        className={`relative flex-shrink-0 w-11 h-11  overflow-hidden border-2 transition-all ${
+                          regAvatar === preset.url ? 'border-accent scale-105  ring-accent/20' : 'border-rule hover:border-rule'
                         }`}
                         title={preset.name}
                       >
-                        <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-zinc-800" />
+                        <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-shade" />
                         {regAvatar === preset.url && (
-                          <div className="absolute inset-0 bg-mint/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-mint" />
+                          <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
+                            <Check className="w-4 h-4 text-accent" />
                           </div>
                         )}
                       </button>
@@ -817,7 +817,7 @@ export function AccountModal({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">
+                  <label className="block text-xs font-semibold text-ink/80 mb-1">
                     Bio / Status (Optional)
                   </label>
                   <input
@@ -832,7 +832,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={regLoading}
-                  className="btn-volt w-full py-2.5 px-4 rounded-xl text-xs disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="btn-primary w-full py-2.5 px-4 text-xs disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {regLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <UserPlus className="w-4 h-4" />}
                   {regLoading ? 'Creating Account...' : 'Complete Registration'}
@@ -842,9 +842,9 @@ export function AccountModal({
               <div className="text-center pt-1">
                 <button
                   onClick={() => setActiveTab('signin')}
-                  className="text-xs text-zinc-400 hover:text-white transition-colors"
+                  className="text-xs text-ink/60 hover:text-ink transition-colors"
                 >
-                  Already have an account? <span className="text-white font-medium underline">Sign in instead</span>
+                  Already have an account? <span className="text-ink font-medium underline">Sign in instead</span>
                 </button>
               </div>
             </div>
@@ -854,7 +854,7 @@ export function AccountModal({
           {activeTab === 'profile' && currentUser && (
             <div className="space-y-6">
               {profileMessage && (
-                <div className="p-3 rounded-xl bg-mint/10 border border-mint/30 text-mint text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {profileMessage}
                 </div>
@@ -862,54 +862,54 @@ export function AccountModal({
 
               {/* Profile Card & Edit Mode */}
               {!isEditingProfile ? (
-                <div className="p-5 rounded-2xl border border-edge bg-black/25 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="p-5 border border-rule bg-shade flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-4">
                     <img
                       src={currentUser.avatarUrl}
                       alt={currentUser.username}
-                      className="w-16 h-16 rounded-2xl object-cover bg-zinc-800 border border-zinc-700 shadow-md"
+                      className="w-16 h-16 object-cover bg-shade border border-rule"
                     />
                     <div>
                       <div className="flex items-center gap-2">
-                        <h3 className="text-base font-bold text-white">
+                        <h3 className="text-base font-bold text-ink">
                           {currentUser.displayName || currentUser.username}
                         </h3>
-                        <span className="text-xs text-zinc-400 font-mono">@{currentUser.username}</span>
+                        <span className="text-xs text-ink/60 font-mono">@{currentUser.username}</span>
                       </div>
-                      <p className="text-xs text-zinc-300 mt-1 max-w-md leading-relaxed">
+                      <p className="text-xs text-ink/80 mt-1 max-w-md leading-relaxed">
                         {currentUser.bio || 'No bio set.'}
                       </p>
-                      <div className="flex items-center gap-3 text-[11px] text-zinc-500 font-mono mt-2">
+                      <div className="flex items-center gap-3 text-[11px] text-ink/55 font-mono mt-2">
                         <span>Joined: {new Date(currentUser.createdAt).toLocaleDateString()}</span>
                         <span>•</span>
-                        <span>Role: <strong className="text-zinc-300 uppercase">{currentUser.role}</strong></span>
+                        <span>Role: <strong className="text-ink/80 uppercase">{currentUser.role}</strong></span>
                       </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => setIsEditingProfile(true)}
-                    className="px-3.5 py-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs font-semibold text-zinc-200 flex items-center gap-1.5 transition-all self-stretch sm:self-auto justify-center"
+                    className="px-3.5 py-2 bg-shade hover:bg-neutral-300 text-xs font-semibold text-ink flex items-center gap-1.5 transition-all self-stretch sm:self-auto justify-center"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     Edit Profile
                   </button>
                 </div>
               ) : (
-                <form onSubmit={handleSaveProfile} className="p-5 rounded-2xl border border-edge bg-black/30 space-y-4">
-                  <div className="flex items-center justify-between border-b border-edge pb-3">
-                    <h4 className="text-xs font-bold text-white uppercase tracking-wider">Edit Profile Details</h4>
+                <form onSubmit={handleSaveProfile} className="p-5 border border-rule bg-shade space-y-4">
+                  <div className="flex items-center justify-between border-b border-rule pb-3">
+                    <h4 className="text-xs font-bold text-ink uppercase tracking-wider">Edit Profile Details</h4>
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
-                      className="text-xs text-zinc-400 hover:text-white"
+                      className="text-xs text-ink/60 hover:text-ink"
                     >
                       Cancel
                     </button>
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">Display Name</label>
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">Display Name</label>
                     <input
                       type="text"
                       value={editDisplayName}
@@ -919,7 +919,7 @@ export function AccountModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">Bio / Status</label>
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">Bio / Status</label>
                     <input
                       type="text"
                       value={editBio}
@@ -929,18 +929,18 @@ export function AccountModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-2">Avatar Preset or Custom URL</label>
+                    <label className="block text-xs font-semibold text-ink/80 mb-2">Avatar Preset or Custom URL</label>
                     <div className="flex items-center gap-2 overflow-x-auto pb-2">
                       {AVATAR_PRESETS.map((preset, i) => (
                         <button
                           key={i}
                           type="button"
                           onClick={() => setEditAvatar(preset.url)}
-                          className={`relative flex-shrink-0 w-10 h-10 rounded-full overflow-hidden border-2 transition-all ${
-                            editAvatar === preset.url ? 'border-white ring-2 ring-white/20' : 'border-edge hover:border-zinc-600'
+                          className={`relative flex-shrink-0 w-10 h-10  overflow-hidden border-2 transition-all ${
+                            editAvatar === preset.url ? 'border-ink  ring-hair' : 'border-rule hover:border-rule'
                           }`}
                         >
-                          <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-zinc-800" />
+                          <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-shade" />
                         </button>
                       ))}
                     </div>
@@ -957,14 +957,14 @@ export function AccountModal({
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
-                      className="px-3 py-1.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-xs text-zinc-300"
+                      className="px-3 py-1.5 bg-shade hover:bg-neutral-300 text-xs text-ink/80"
                     >
                       Cancel
                     </button>
                     <button
                       type="submit"
                       disabled={profileSaving}
-                      className="px-4 py-1.5 rounded-xl btn-volt font-bold text-xs"
+                      className="px-4 py-1.5 btn-primary font-bold text-xs"
                     >
                       {profileSaving ? 'Saving...' : 'Save Changes'}
                     </button>
@@ -974,31 +974,31 @@ export function AccountModal({
 
               {/* Stats Metrics Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl bg-surface/60 border border-edge">
-                  <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
+                <div className="p-4 bg-shade/60 border border-rule">
+                  <span className="text-[11px] text-ink/60 uppercase font-mono tracking-wider block mb-1">
                     Cloud Saves
                   </span>
-                  <div className="text-sm font-semibold text-white flex items-center gap-1.5">
-                    <Save className="w-4 h-4 text-mint" />
+                  <div className="text-sm font-semibold text-ink flex items-center gap-1.5">
+                    <Save className="w-4 h-4 text-accent" />
                     {userSaves.length || currentUser.savesCount || 0} Slots Active
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-surface/60 border border-edge">
-                  <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
+                <div className="p-4 bg-shade/60 border border-rule">
+                  <span className="text-[11px] text-ink/60 uppercase font-mono tracking-wider block mb-1">
                     Steam Connection
                   </span>
-                  <div className="text-sm font-semibold text-white flex items-center gap-1.5">
+                  <div className="text-sm font-semibold text-ink flex items-center gap-1.5">
                     <Gamepad2 className="w-4 h-4 text-[#66c0f4]" />
                     {currentUser.steamId ? `Level ${currentUser.steamLevel || 25} Linked` : 'Not Connected'}
                   </div>
                 </div>
 
-                <div className="p-4 rounded-xl bg-surface/60 border border-edge">
-                  <span className="text-[11px] text-zinc-400 uppercase font-mono tracking-wider block mb-1">
+                <div className="p-4 bg-shade/60 border border-rule">
+                  <span className="text-[11px] text-ink/60 uppercase font-mono tracking-wider block mb-1">
                     Session Security
                   </span>
-                  <div className="text-sm font-semibold text-mint flex items-center gap-1.5">
+                  <div className="text-sm font-semibold text-accent flex items-center gap-1.5">
                     <Shield className="w-4 h-4" />
                     Encrypted Session
                   </div>
@@ -1008,12 +1008,12 @@ export function AccountModal({
               {/* Achievements Section */}
               <div className="pt-2">
                 <div className="flex items-center gap-2 mb-3">
-                  <Flame className="w-4 h-4 text-amber" />
-                  <h4 className="text-sm font-bold text-white uppercase tracking-wider">Unlocked Achievements</h4>
+                  <Flame className="w-4 h-4 text-accent" />
+                  <h4 className="text-sm font-bold text-ink uppercase tracking-wider">Unlocked Achievements</h4>
                 </div>
                 {(!currentUser.achievements || currentUser.achievements.length === 0) ? (
-                  <div className="p-4 rounded-xl border border-dashed border-edge text-center">
-                    <p className="text-xs text-zinc-500">No achievements unlocked yet. Play some games!</p>
+                  <div className="p-4 border border-dashed border-rule text-center">
+                    <p className="text-xs text-ink/55">No achievements unlocked yet. Play some games!</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -1027,13 +1027,13 @@ export function AccountModal({
                       if (ach.achievementId === 'genre_explorer') { icon = '🌍'; name = 'Genre Explorer'; desc = 'Played 3 different genres'; }
                       
                       return (
-                        <div key={ach.achievementId} className="flex items-center gap-3 p-3 rounded-xl border border-edge bg-black/30">
-                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-lg border border-zinc-700/50">
+                        <div key={ach.achievementId} className="flex items-center gap-3 p-3 border border-rule bg-shade">
+                          <div className="w-10 h-10 bg-shade flex items-center justify-center text-lg border border-rule">
                             {icon}
                           </div>
                           <div>
-                            <div className="text-xs font-bold text-white">{name}</div>
-                            <div className="text-[10px] text-zinc-400">{desc}</div>
+                            <div className="text-xs font-bold text-ink">{name}</div>
+                            <div className="text-[10px] text-ink/60">{desc}</div>
                           </div>
                         </div>
                       );
@@ -1044,28 +1044,28 @@ export function AccountModal({
 
               {/* Steam Showcase Card */}
               {currentUser.steamId ? (
-                <div className="p-5 rounded-2xl bg-[#171a21]/90 border border-[#2a475e] shadow-xl relative overflow-hidden">
+                <div className="p-5 bg-[#171a21]/90 border border-[#2a475e] relative overflow-hidden">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <img
                         src={currentUser.steamAvatar || 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg'}
                         alt="Steam Avatar"
-                        className="w-14 h-14 rounded-xl border border-[#66c0f4]/40 object-cover shadow-md"
+                        className="w-14 h-14 border border-[#66c0f4]/40 object-cover"
                       />
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="text-base font-bold text-white">
+                          <span className="text-base font-bold text-ink">
                             {currentUser.steamPersonaName || 'Steam User'}
                           </span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-[#66c0f4]/20 text-[#66c0f4] border border-[#66c0f4]/30">
+                          <span className="px-2 py-0.5 text-[10px] font-bold bg-[#66c0f4]/20 text-[#66c0f4] border border-[#66c0f4]/30">
                             Steam Level {currentUser.steamLevel || 25}
                           </span>
                         </div>
-                        <p className="text-xs text-zinc-400 font-mono mt-0.5">
+                        <p className="text-xs text-ink/60 font-mono mt-0.5">
                           SteamID64: {currentUser.steamId}
                         </p>
-                        <p className="text-xs text-mint mt-1 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 rounded-full bg-mint" />
+                        <p className="text-xs text-accent mt-1 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 bg-accent" />
                           Steam Cloud Saves & Library Synced
                         </p>
                       </div>
@@ -1077,7 +1077,7 @@ export function AccountModal({
                           href={currentUser.steamProfileUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#2a475e]/60 hover:bg-[#2a475e] text-xs font-medium text-white transition-all"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-[#2a475e]/60 hover:bg-[#2a475e] text-xs font-medium text-ink transition-all"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           Steam Profile
@@ -1085,7 +1085,7 @@ export function AccountModal({
                       )}
                       <button
                         onClick={() => setActiveTab('steam')}
-                        className="px-3 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-xs font-medium text-zinc-200 transition-all"
+                        className="px-3 py-2 bg-ink/10 hover:bg-ink/12 text-xs font-medium text-ink transition-all"
                       >
                         Manage
                       </button>
@@ -1093,19 +1093,19 @@ export function AccountModal({
                   </div>
                 </div>
               ) : (
-                <div className="p-5 rounded-2xl border border-edge bg-black/25 text-center space-y-3">
-                  <div className="w-12 h-12 rounded-2xl bg-[#171a21] border border-[#2a475e] mx-auto flex items-center justify-center text-[#66c0f4]">
+                <div className="p-5 border border-rule bg-shade text-center space-y-3">
+                  <div className="w-12 h-12 bg-[#171a21] border border-[#2a475e] mx-auto flex items-center justify-center text-[#66c0f4]">
                     <Gamepad2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-white">Connect Steam Account</h4>
-                    <p className="text-xs text-zinc-400 max-w-md mx-auto mt-1">
+                    <h4 className="text-sm font-bold text-ink">Connect Steam Account</h4>
+                    <p className="text-xs text-ink/60 max-w-md mx-auto mt-1">
                       Link your Steam profile to sync your Steam persona, badges, avatar, and cloud save states across all webport cartridges.
                     </p>
                   </div>
                   <button
                     onClick={() => setActiveTab('steam')}
-                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#1b2838] hover:bg-[#2a475e] text-[#66c0f4] border border-[#2a475e] text-xs font-semibold shadow-lg transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1b2838] hover:bg-[#2a475e] text-[#66c0f4] border border-[#2a475e] text-xs font-semibold transition-all"
                   >
                     <LinkIcon className="w-3.5 h-3.5" />
                     Link Steam Profile
@@ -1118,12 +1118,12 @@ export function AccountModal({
           {/* --- TAB: STEAM LINKING --- */}
           {activeTab === 'steam' && currentUser && (
             <div className="space-y-6">
-              <div className="p-4 rounded-xl bg-[#171a21]/60 border border-[#2a475e]/50">
-                <div className="flex items-center gap-2 text-sm font-bold text-white mb-1">
+              <div className="p-4 bg-[#171a21]/60 border border-[#2a475e]/50">
+                <div className="flex items-center gap-2 text-sm font-bold text-ink mb-1">
                   <Gamepad2 className="w-4 h-4 text-[#66c0f4]" />
                   Steam Profile Integration
                 </div>
-                <p className="text-xs text-zinc-400 leading-relaxed">
+                <p className="text-xs text-ink/60 leading-relaxed">
                   Link with your SteamID64 (e.g. <code className="text-[#66c0f4]">76561198000000000</code>) or a vanity
                   profile URL to pull in your persona, library, playtime and achievements. Library and
                   achievement data needs a Steam Web API key on the server and a public Steam profile.
@@ -1131,21 +1131,21 @@ export function AccountModal({
               </div>
 
               {steamSuccess && (
-                <div className="p-3 rounded-xl bg-mint/10 border border-mint/30 text-mint text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {steamSuccess}
                 </div>
               )}
 
               {steamError && (
-                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs">
                   {steamError}
                 </div>
               )}
 
               <form onSubmit={handleLinkSteam} className="space-y-4">
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1.5">
+                  <label className="block text-xs font-semibold text-ink/80 mb-1.5">
                     Steam ID64 or Custom Profile URL
                   </label>
                   <div className="flex gap-2">
@@ -1159,7 +1159,7 @@ export function AccountModal({
                     <button
                       type="submit"
                       disabled={steamLoading || !steamInput.trim()}
-                      className="px-4 py-2.5 rounded-xl bg-[#66c0f4] hover:bg-[#52aae0] text-black font-bold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2.5 bg-[#66c0f4] hover:bg-[#52aae0] text-paper font-bold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {steamLoading ? 'Connecting...' : 'Connect Steam'}
                     </button>
@@ -1167,15 +1167,15 @@ export function AccountModal({
                 </div>
 
                 {currentUser?.steamId && (
-                  <div className="pt-4 border-t border-edge flex items-center justify-between">
-                    <div className="text-xs text-zinc-400">
-                      Currently linked to SteamID: <span className="text-zinc-200 font-mono">{currentUser.steamId}</span>
+                  <div className="pt-4 border-t border-rule flex items-center justify-between">
+                    <div className="text-xs text-ink/60">
+                      Currently linked to SteamID: <span className="text-ink font-mono">{currentUser.steamId}</span>
                     </div>
                     <button
                       type="button"
                       onClick={handleUnlinkSteam}
                       disabled={steamLoading}
-                      className="px-3 py-1.5 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose border border-rose/25 text-xs font-medium flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
                     >
                       <Unlink className="w-3.5 h-3.5" />
                       Unlink Account
@@ -1194,14 +1194,14 @@ export function AccountModal({
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="text-sm font-bold text-white">Cloud Save Keeper</h4>
-                  <p className="text-xs text-zinc-400">All progress, checkpoints, and save states linked to your authenticated account.</p>
+                  <h4 className="text-sm font-bold text-ink">Cloud Save Keeper</h4>
+                  <p className="text-xs text-ink/60">All progress, checkpoints, and save states linked to your authenticated account.</p>
                 </div>
 
                 <a
                   href="/api/saves/export-all"
                   download="flashhub-cloud-saves.json"
-                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/15 text-xs text-zinc-200 transition-all font-medium"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-ink/10 hover:bg-ink/12 text-xs text-ink transition-all font-medium"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export All (.JSON)
@@ -1209,12 +1209,12 @@ export function AccountModal({
               </div>
 
               {savesLoading ? (
-                <div className="py-12 text-center text-xs text-zinc-500">Loading your save states...</div>
+                <div className="py-12 text-center text-xs text-ink/55">Loading your save states...</div>
               ) : userSaves.length === 0 ? (
-                <div className="py-12 text-center border border-dashed border-edge rounded-2xl space-y-2">
-                  <Save className="w-8 h-8 text-zinc-600 mx-auto" />
-                  <p className="text-xs text-zinc-400 font-medium">No cloud saves stored yet.</p>
-                  <p className="text-[11px] text-zinc-500 max-w-xs mx-auto">
+                <div className="py-12 text-center border border-dashed border-rule space-y-2">
+                  <Save className="w-8 h-8 text-ink/45 mx-auto" />
+                  <p className="text-xs text-ink/60 font-medium">No cloud saves stored yet.</p>
+                  <p className="text-[11px] text-ink/55 max-w-xs mx-auto">
                     Launch any game port or flash classic and click "Save State" in the bottom control bar to create your first cloud save slot!
                   </p>
                 </div>
@@ -1223,26 +1223,26 @@ export function AccountModal({
                   {userSaves.map(save => (
                     <div
                       key={save.id}
-                      className="p-3.5 rounded-xl bg-surface/60 border border-edge flex items-center justify-between gap-4"
+                      className="p-3.5 bg-shade/60 border border-rule flex items-center justify-between gap-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-lg bg-mint/10 border border-mint/25 flex items-center justify-center text-mint">
+                        <div className="w-9 h-9 bg-accent/10 border border-accent/25 flex items-center justify-center text-accent">
                           <Save className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
-                            <span className="text-xs font-bold text-white">{save.gameTitle}</span>
-                            <span className="px-2 py-0.5 rounded text-[10px] font-mono bg-zinc-800 text-zinc-300">
+                            <span className="text-xs font-bold text-ink">{save.gameTitle}</span>
+                            <span className="px-2 py-0.5 text-[10px] font-mono bg-shade text-ink/80">
                               {save.slotName}
                             </span>
                           </div>
-                          <div className="flex items-center gap-3 text-[11px] text-zinc-400 mt-0.5">
+                          <div className="flex items-center gap-3 text-[11px] text-ink/60 mt-0.5">
                             <span className="flex items-center gap-1">
-                              <Clock className="w-3 h-3 text-zinc-500" />
+                              <Clock className="w-3 h-3 text-ink/55" />
                               {new Date(save.timestamp).toLocaleString()}
                             </span>
                             {save.highScore !== undefined && (
-                              <span className="text-volt font-semibold">
+                              <span className="text-accent font-semibold">
                                 Score: {save.highScore.toLocaleString()}
                               </span>
                             )}
@@ -1261,14 +1261,14 @@ export function AccountModal({
                             a.click();
                           }}
                           title="Download raw save file"
-                          className="p-2 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-300 hover:text-white transition-all"
+                          className="p-2 bg-shade hover:bg-neutral-300 text-ink/80 hover:text-ink transition-all"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteSave(save.id)}
                           title="Delete save slot"
-                          className="p-2 rounded-lg bg-rose/10 hover:bg-rose/20 text-rose transition-all"
+                          className="p-2 bg-accent/10 hover:bg-accent/20 text-accent transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1284,33 +1284,33 @@ export function AccountModal({
           {activeTab === 'security' && currentUser && (
             <div className="space-y-6">
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">Account Security & Credentials</h4>
-                <p className="text-xs text-zinc-400">Change your password and manage active account security settings.</p>
+                <h4 className="text-sm font-bold text-ink mb-1">Account Security & Credentials</h4>
+                <p className="text-xs text-ink/60">Change your password and manage active account security settings.</p>
               </div>
 
               {passwordMessage && (
-                <div className="p-3 rounded-xl bg-mint/10 border border-mint/30 text-mint text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {passwordMessage}
                 </div>
               )}
 
               {passwordError && (
-                <div className="p-3 rounded-xl bg-rose/10 border border-rose/30 text-rose text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {passwordError}
                 </div>
               )}
 
               {/* Change Password Form */}
-              <form onSubmit={handleChangePassword} className="p-5 rounded-2xl bg-surface/60 border border-edge space-y-4">
-                <h5 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                  <KeyRound className="w-3.5 h-3.5 text-volt" />
+              <form onSubmit={handleChangePassword} className="p-5 bg-shade/60 border border-rule space-y-4">
+                <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-2">
+                  <KeyRound className="w-3.5 h-3.5 text-accent" />
                   Change Password
                 </h5>
 
                 <div>
-                  <label className="block text-xs font-semibold text-zinc-300 mb-1">Current Password</label>
+                  <label className="block text-xs font-semibold text-ink/80 mb-1">Current Password</label>
                   <input
                     type="password"
                     required
@@ -1323,7 +1323,7 @@ export function AccountModal({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">New Password (min 8 chars)</label>
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">New Password (min 8 chars)</label>
                     <input
                       type="password"
                       required
@@ -1335,7 +1335,7 @@ export function AccountModal({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-zinc-300 mb-1">Confirm New Password</label>
+                    <label className="block text-xs font-semibold text-ink/80 mb-1">Confirm New Password</label>
                     <input
                       type="password"
                       required
@@ -1350,24 +1350,24 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="px-4 py-2 rounded-xl btn-volt font-bold text-xs transition-all disabled:opacity-50"
+                  className="px-4 py-2 btn-primary font-bold text-xs transition-all disabled:opacity-50"
                 >
                   {passwordLoading ? 'Updating Password...' : 'Update Password'}
                 </button>
               </form>
 
               {/* Danger Zone: Delete Account */}
-              <div className="p-5 rounded-2xl bg-rose/10 border border-rose/30 space-y-3">
-                <h5 className="text-xs font-bold text-rose uppercase tracking-wider flex items-center gap-2">
+              <div className="p-5 bg-accent/10 border border-accent/30 space-y-3">
+                <h5 className="text-xs font-bold text-accent uppercase tracking-wider flex items-center gap-2">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Danger Zone: Delete Account
                 </h5>
-                <p className="text-xs text-zinc-400 leading-relaxed">
+                <p className="text-xs text-ink/60 leading-relaxed">
                   Permanently remove this account and all associated cloud save slots. This action cannot be undone.
                 </p>
 
                 {deleteError && (
-                  <div className="p-2.5 rounded-lg bg-rose/10 border border-rose/30 text-rose text-xs">
+                  <div className="p-2.5 bg-accent/10 border border-accent/30 text-accent text-xs">
                     {deleteError}
                   </div>
                 )}
@@ -1383,7 +1383,7 @@ export function AccountModal({
                   <button
                     type="submit"
                     disabled={deleteLoading || !deletePassword}
-                    className="px-4 py-2 rounded-xl bg-rose hover:bg-rose text-white font-bold text-xs transition-all disabled:opacity-50"
+                    className="px-4 py-2 bg-accent hover:bg-accent text-ink font-bold text-xs transition-all disabled:opacity-50"
                   >
                     {deleteLoading ? 'Deleting...' : 'Delete Account'}
                   </button>
@@ -1396,37 +1396,37 @@ export function AccountModal({
           {activeTab === 'switch' && (
             <div className="space-y-6">
               <div>
-                <h4 className="text-sm font-bold text-white mb-1">Switch User Session</h4>
-                <p className="text-xs text-zinc-400">Log into another account or switch to another user on this device.</p>
+                <h4 className="text-sm font-bold text-ink mb-1">Switch User Session</h4>
+                <p className="text-xs text-ink/60">Log into another account or switch to another user on this device.</p>
               </div>
 
               {/* Available accounts directory */}
               <div className="space-y-2">
-                <span className="text-xs font-semibold text-zinc-400 uppercase tracking-wider block">Registered Players</span>
+                <span className="text-xs font-semibold text-ink/60 uppercase tracking-wider block">Registered Players</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {allAccounts.map(acc => (
                     <div
                       key={acc.id}
-                      className={`p-3 rounded-xl border text-left flex items-center justify-between gap-3 transition-all ${
+                      className={`p-3  border text-left flex items-center justify-between gap-3 transition-all ${
                         currentUser?.id === acc.id
-                          ? 'bg-white/10 border-white text-white'
-                          : 'bg-surface/50 border-edge text-zinc-300'
+                          ? 'bg-ink/10 border-ink text-ink'
+                          : 'bg-shade/50 border-rule text-ink/80'
                       }`}
                     >
                       <div className="flex items-center gap-2.5">
                         <img
                           src={acc.avatarUrl || 'https://api.dicebear.com/7.x/bottts/svg?seed=user'}
                           alt={acc.username}
-                          className="w-8 h-8 rounded-full bg-zinc-800 object-cover"
+                          className="w-8 h-8 bg-shade object-cover"
                         />
                         <div>
                           <div className="text-xs font-bold leading-none">{acc.displayName || acc.username}</div>
-                          <div className="text-[10px] text-zinc-400 mt-1 font-mono">@{acc.username} • {acc.role}</div>
+                          <div className="text-[10px] text-ink/60 mt-1 font-mono">@{acc.username} • {acc.role}</div>
                         </div>
                       </div>
 
                       {currentUser?.id === acc.id ? (
-                        <span className="text-[10px] font-bold text-mint px-2 py-0.5 rounded bg-mint/10 border border-mint/25">
+                        <span className="text-[10px] font-bold text-accent px-2 py-0.5 bg-accent/10 border border-accent/25">
                           Active
                         </span>
                       ) : (
@@ -1435,7 +1435,7 @@ export function AccountModal({
                             setLoginIdentifier(acc.username);
                             setActiveTab('signin');
                           }}
-                          className="px-2.5 py-1 rounded-lg btn-ghost text-xs font-medium"
+                          className="px-2.5 py-1 btn-ghost text-xs font-medium"
                         >
                           Sign In
                         </button>
@@ -1445,17 +1445,17 @@ export function AccountModal({
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-edge flex items-center justify-between">
+              <div className="pt-4 border-t border-rule flex items-center justify-between">
                 <button
                   onClick={() => setActiveTab('register')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl btn-volt font-bold text-xs transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 btn-primary font-bold text-xs transition-all"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Create New Account
                 </button>
                 <button
                   onClick={() => setActiveTab('signin')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl btn-ghost font-medium text-xs transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 btn-ghost font-medium text-xs transition-all"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   Sign In with Password

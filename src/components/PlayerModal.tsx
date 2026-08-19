@@ -1,26 +1,21 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Game, UserAccount, GameSave, GameMirror } from '../types';
 import {
-  X,
   ExternalLink,
   MonitorPlay,
   Tv,
-  Timer,
   Save,
   Download,
   AlertTriangle,
-  ChevronDown,
-  ChevronUp,
   Plus,
-  ShieldCheck,
   RefreshCw,
-  Server,
   Maximize2,
   Minimize2
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { NotFoundPanel } from './NotFoundPanel';
 import { useEscapeKey, useFullscreen } from '../lib/hooks';
+import { isFlashGame } from '../lib/games';
 
 interface PlayerModalProps {
   game: Game | null;
@@ -34,7 +29,6 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   const [isTheaterMode, setIsTheaterMode] = useState(false);
   const [isCrtMode, setIsCrtMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-  const [showSaveDrawer, setShowSaveDrawer] = useState(false);
   const [show404Panel, setShow404Panel] = useState(false);
 
   // Mirrors state
@@ -64,6 +58,17 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   // hub's own origin rather than showing a black rectangle.
   const [isolationBlocked, setIsolationBlocked] = useState(false);
   const frameSpokeUp = useRef(false);
+
+  /*
+   * Save slots are a Flash-only feature. Ruffle titles are the ones whose progress this hub
+   * can meaningfully snapshot and restore; the Unity and HTML5 webports keep their own
+   * state in ways the storage bridge does not fully capture, so offering them a slot would
+   * promise a restore that does not survive.
+   *
+   * The frame storage bridge itself stays on for every game — that is what makes a
+   * sandboxed game keep its progress at all within this browser, not a save slot.
+   */
+  const canSave = isFlashGame(game);
 
   const localStateKey = game ? `flashhub-game-state:${game.id}` : '';
   const AUTO_SLOT = 'Progress (auto)';
@@ -158,7 +163,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
   // Load saves for this game
   const fetchGameSaves = () => {
-    if (!game?.id) return;
+    if (!game?.id || !canSave) return;
     const userIdQuery = currentUser?.id ? `userId=${encodeURIComponent(currentUser.id)}&` : '';
     fetch(`/api/saves?${userIdQuery}gameId=${encodeURIComponent(game.id)}`)
       .then(res => res.ok ? res.json() : { status: 'error', data: [] })
@@ -169,10 +174,9 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   };
 
   useEffect(() => {
-    if (showSaveDrawer) {
-      fetchGameSaves();
-    }
-  }, [showSaveDrawer, game?.id]);
+    setGameSaves([]);
+    fetchGameSaves();
+  }, [game?.id, currentUser?.id, canSave]);
 
   const formatTimer = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -205,7 +209,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
     const load = async () => {
       let state = readLocal();
 
-      if (currentUser?.id) {
+      if (currentUser?.id && canSave) {
         try {
           const res = await fetch(`/api/saves?gameId=${encodeURIComponent(game.id)}`);
           if (res.ok) {
@@ -226,12 +230,12 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
       if (cancelled) return;
       gameState.current = state;
       stateLoaded.current = true;
-      if (Object.keys(state).length > 0) setStateStatus('restored');
+      if (canSave && Object.keys(state).length > 0) setStateStatus('restored');
     };
 
     load();
     return () => { cancelled = true; };
-  }, [game?.id, currentUser?.id]);
+  }, [game?.id, currentUser?.id, canSave]);
 
   // Talk to the sandboxed frame
   useEffect(() => {
@@ -243,6 +247,10 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
       try {
         window.localStorage.setItem(localStateKey, JSON.stringify(state));
       } catch { /* quota or private mode; the account copy below still applies */ }
+
+      // A non-Flash game still gets its browser mirror — without it the sandboxed frame has
+      // no storage at all — but nothing is written to the account and nothing is announced.
+      if (!canSave) return;
 
       if (!currentUser?.id) {
         setStateStatus('saved');
@@ -324,7 +332,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [game?.id, currentUser?.id, localStateKey]);
+  }, [game?.id, currentUser?.id, localStateKey, canSave]);
 
   // Watch for the frame checking in. Every game document this app serves carries the
   // storage bridge, so silence means the frame never ran.
@@ -366,7 +374,13 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   // Perform quick save
   const handleCreateSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!game) return;
+    if (!game || !canSave) return;
+
+    if (Object.keys(gameState.current).length === 0) {
+      setSaveMessage('Nothing to save yet — play until the game writes its progress.');
+      setTimeout(() => setSaveMessage(''), 4000);
+      return;
+    }
 
     setIsSaving(true);
     try {
@@ -375,13 +389,9 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
         gameTitle: game.title,
         userId: currentUser?.id || 'guest',
         slotName: slotName || 'Quick Save',
-        saveData: JSON.stringify({
-          sessionSeconds: elapsedSeconds,
-          savedAt: new Date().toISOString(),
-          notes: saveNotes,
-          score: saveScore ? Number(saveScore) : undefined,
-          mirrorId: selectedMirrorId
-        }),
+        // The slot carries the game's own storage, which is the only thing that can be
+        // loaded back. Everything about the session goes in the columns built for it.
+        saveData: JSON.stringify(gameState.current),
         playtimeMinutes: Math.round(elapsedSeconds / 60),
         highScore: saveScore ? Number(saveScore) : undefined,
         notes: saveNotes
@@ -395,7 +405,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
       const d = await res.json();
       if (res.ok && d.status === 'ok') {
-        let successMsg = 'Save state committed to cloud!';
+        let successMsg = `Saved to "${payload.slotName}".`;
         if (d.newlyEarned && d.newlyEarned.length > 0) {
           successMsg += ` You earned ${d.newlyEarned.length} achievement(s)!`;
         }
@@ -413,6 +423,54 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
     }
   };
 
+  /**
+   * A slot holds a mirror of the game's own localStorage, so every value is a string.
+   * Slots written before saves captured game state hold session metadata instead (with a
+   * numeric `sessionSeconds`), which would boot the game onto nonsense — those are refused.
+   */
+  const readSlotState = (save: GameSave): Record<string, string> | null => {
+    try {
+      const parsed = JSON.parse(save.saveData);
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+      const entries = Object.entries(parsed);
+      if (entries.length === 0) return null;
+      if (!entries.every(([, v]) => typeof v === 'string')) return null;
+      return parsed as Record<string, string>;
+    } catch {
+      return null;
+    }
+  };
+
+  /**
+   * Put a slot back into the game. The frame asks for its storage on boot, so the state is
+   * swapped in and the frame remounted — it then reads the slot instead of what it had.
+   */
+  const handleLoadSave = (save: GameSave) => {
+    if (!canSave) return;
+    const state = readSlotState(save);
+    if (!state) {
+      setSaveMessage('That slot holds no game state and cannot be loaded.');
+      setTimeout(() => setSaveMessage(''), 4000);
+      return;
+    }
+
+    gameState.current = state;
+    stateLoaded.current = true;
+    // The frame is about to be replaced; until the new one is seeded, ignore its writes so
+    // a booting game cannot overwrite the slot that was just loaded.
+    seedSent.current = false;
+
+    try {
+      window.localStorage.setItem(localStateKey, JSON.stringify(state));
+    } catch { /* quota or private mode; the frame is still seeded from memory */ }
+
+    setStateStatus('restored');
+    setShow404Panel(false);
+    setIframeKey(k => k + 1);
+    setSaveMessage(`Loaded "${save.slotName}".`);
+    setTimeout(() => setSaveMessage(''), 3500);
+  };
+
   const isCurrentArchive = currentEmbedUrl.includes('archive.org');
 
   // Relative URLs are served by this app, so they move to the isolated game origin.
@@ -428,56 +486,47 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className={`fixed inset-0 z-50 flex items-center justify-center transition-colors duration-500 ${isTheaterMode ? 'bg-black p-0' : 'bg-void/92 backdrop-blur-lg p-3 sm:p-6'}`}
+        transition={{ duration: 0.14 }}
+        className={`fixed inset-0 z-50 flex items-center justify-center ${
+          isTheaterMode ? 'bg-ink p-0' : 'bg-ink/70 p-0 sm:p-6'
+        }`}
         onClick={handleClose}
       >
+        {/*
+          1e — ink surround. The player is the one place the system inverts: the game is the
+          only lit thing on the page, so everything around it goes to ink and the metadata
+          moves into a fixed sidecar rail rather than sitting under the frame.
+        */}
         <motion.div
-          initial={{ scale: 0.96, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          exit={{ scale: 0.96, opacity: 0 }}
-          className={`bg-pit overflow-hidden flex flex-col shadow-[0_50px_120px_-40px_rgba(0,0,0,1)] transition-all duration-500 ${isTheaterMode ? 'w-full h-full rounded-none border-0' : 'sheet w-full max-w-6xl h-[min(88dvh,940px)]'}`}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.14 }}
+          className={`bg-ink text-paper overflow-hidden flex flex-col ${
+            isTheaterMode ? 'w-full h-full' : 'w-full max-w-6xl h-full sm:h-[min(88dvh,940px)] border-2 border-ink'
+          }`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Top Control Bar */}
-          <div className={`flex flex-wrap items-center justify-between px-3.5 py-3 border-b border-edge gap-2 ${isTheaterMode ? 'bg-void' : 'bg-surface/60'}`}>
-            <div className="flex items-center gap-3">
-              <h2 className={`font-semibold text-zinc-100 flex items-center gap-2 tracking-tight ${isTheaterMode ? 'text-xs' : 'text-sm'}`}>
-                {game.title}
-                <span className={`chip ${
-                  game.source === 'steam' ? 'chip-steam' :
-                  game.source === 'archive' ? 'chip-archive' :
-                  game.source === 'custom' ? 'chip-custom' : 'chip-web'
-                }`}>
-                  {game.source}
-                </span>
-                {game.isArchiveIndependent && (
-                  <span className="hidden sm:inline-flex chip chip-flash">
-                    <ShieldCheck className="w-2.5 h-2.5" /> Archive-free
-                  </span>
-                )}
-              </h2>
+          {/* Masthead */}
+          <div className="flex items-center gap-3 sm:gap-5 px-4 sm:px-6 py-3 border-b-2 border-rule-lit flex-shrink-0">
+            <span className="font-display text-[16px] font-extrabold leading-none tracking-[-0.02em] hidden sm:block">
+              FLASHHUB
+            </span>
+            <span className="font-display text-[12px] font-semibold truncate">{game.title}</span>
+            <span className="hidden md:block font-mono text-[11px] text-paper/50 uppercase truncate">
+              {game.source} · {game.genres.filter(g => g.toLowerCase() !== 'flash')[0] || 'Arcade'}
+            </span>
 
-              <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-black/50 border border-edge text-[11px] font-mono text-zinc-200">
-                <span className="w-1.5 h-1.5 rounded-full bg-mint animate-pulse"></span>
-                <Timer className="w-3 h-3 text-zinc-400" />
-                <span>{formatTimer(elapsedSeconds)}</span>
-              </div>
-
-              {isolationBlocked && (
+            <div className="ml-auto flex items-center gap-3 sm:gap-4 flex-shrink-0">
+              <span className="font-mono text-[11px] text-paper/50 tabular-nums">
+                {formatTimer(elapsedSeconds)}
+              </span>
+              {canSave && stateStatus !== 'idle' && (
                 <span
-                  className="hidden sm:inline-flex chip chip-archive"
-                  title="This browser would not load the game from a separate origin, so it is running on the hub's origin instead."
-                >
-                  Isolation unavailable
-                </span>
-              )}
-
-              {stateStatus !== 'idle' && (
-                <span
-                  className="hidden sm:inline-flex chip chip-web"
+                  className="hidden lg:block font-mono text-[11px] text-paper/50 uppercase"
                   title={
                     currentUser
-                      ? 'This game\'s progress is stored on your account'
+                      ? "This game's progress is stored on your account"
                       : 'Progress is stored in this browser. Sign in to carry it across devices.'
                   }
                 >
@@ -486,285 +535,313 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                   {stateStatus === 'saved' && 'Progress saved'}
                 </span>
               )}
-            </div>
-
-            <div className="flex items-center gap-1.5">
-              {/* Save State Keeper toggle */}
-              <button
-                onClick={() => setShowSaveDrawer(!showSaveDrawer)}
-                className={`flex items-center gap-1.5 px-3 h-8 rounded-xl text-xs font-semibold transition-all ${
-                  showSaveDrawer ? 'btn-volt' : 'btn-ghost'
-                }`}
-                title="Manage Cloud Saves"
-              >
-                <Save className="w-3.5 h-3.5" />
-                <span>Save Keeper</span>
-                {showSaveDrawer ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-              </button>
-
-              <button
-                onClick={() => setIsCrtMode(!isCrtMode)}
-                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-xs font-semibold transition-all ${isCrtMode ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.07]'}`}
-                title="Toggle Retro CRT Scanlines"
-              >
-                <Tv className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">CRT</span>
-              </button>
-
-              <button
-                onClick={toggleFullscreen}
-                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-xs font-semibold transition-all ${isFullscreen ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.07]'}`}
-                title={isFullscreen ? 'Exit fullscreen' : 'Play fullscreen'}
-              >
-                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                <span className="hidden sm:inline">Fullscreen</span>
-              </button>
-
-              <button
-                onClick={() => setIsTheaterMode(!isTheaterMode)}
-                className={`flex items-center gap-1.5 px-2.5 h-8 rounded-xl text-xs font-semibold transition-all ${isTheaterMode ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'text-zinc-400 hover:text-white hover:bg-white/[0.07]'}`}
-                title="Toggle Theater Mode"
-              >
-                <MonitorPlay className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">Theater</span>
-              </button>
-
-              <button
-                onClick={() => setShow404Panel(!show404Panel)}
-                className={`p-2 rounded-xl transition-all ${
-                  show404Panel ? 'bg-rose/20 text-rose' : 'text-zinc-400 hover:text-amber hover:bg-white/[0.07]'
-                }`}
-                title="Report 404 / Port Diagnostics"
-              >
-                <AlertTriangle className="w-4 h-4" />
-              </button>
-              
-              <a
-                href={currentEmbedUrl || game.embedUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.07] rounded-lg transition-colors"
-                title="Open in new tab"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </a>
-
               <button
                 onClick={handleClose}
-                className="p-1.5 text-zinc-400 hover:text-white hover:bg-white/[0.07] rounded-lg transition-colors"
-                title="Close"
+                className="font-display text-[11px] font-extrabold tracking-[0.06em] text-accent-lit hover:text-paper transition-colors"
               >
-                <X className="w-4 h-4" />
+                EXIT TO CATALOGUE
               </button>
             </div>
           </div>
 
-          {/* Secondary Mirrors & Outage Protection Bar */}
-          {availableMirrors.length > 1 && (
-            <div className="bg-surface/40 px-3.5 py-2.5 border-b border-edge flex flex-wrap items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-1.5 flex-wrap">
-                <span className="eyebrow flex items-center gap-1.5">
-                  <Server className="w-3 h-3 text-beam" />
-                  Source
-                </span>
-                {availableMirrors.map((m) => {
-                  const isActive = selectedMirrorId === m.id || currentEmbedUrl === m.url;
-                  return (
-                    <button
-                      key={m.id}
-                      onClick={() => handleSelectMirror(m)}
-                      className={`px-2.5 py-1 rounded-md text-[11px] font-semibold transition-all flex items-center gap-1.5 ${
-                        isActive ? 'bg-volt text-white shadow-[0_6px_18px_-8px_rgba(139,92,246,1)]' : 'btn-ghost'
-                      }`}
-                    >
-                      {m.isArchiveIndependent && <span className="w-1.5 h-1.5 rounded-full bg-mint"></span>}
-                      {m.name}
-                    </button>
-                  );
-                })}
+          {/* Stage + sidecar */}
+          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_300px]">
+            {/* Stage */}
+            <div className="flex flex-col min-h-0 border-r-0 lg:border-r-2 border-rule-lit p-4 sm:p-5 gap-3.5">
+              <div ref={stageRef} className="relative flex-1 min-h-[240px] bg-black flex items-center justify-center overflow-hidden">
+                {show404Panel ? (
+                  <div className="w-full h-full overflow-y-auto bg-ground p-4">
+                    <NotFoundPanel
+                      errorTitle={`Port diagnostics: ${game.title}`}
+                      errorMessage="If this cartridge fails to boot in the player window, switch runtimes in the rail or drag your own SWF file directly."
+                      targetId={game.id}
+                      onGoHome={() => setShow404Panel(false)}
+                      onRandomGame={() => {
+                        setShow404Panel(false);
+                        onClose(0);
+                      }}
+                      onRetry={() => {
+                        setShow404Panel(false);
+                        setIframeKey(k => k + 1);
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {isCrtMode && <div className="absolute inset-0 pointer-events-none z-10 crt-overlay mix-blend-overlay opacity-30" />}
+                    {isCrtMode && <div className="absolute inset-0 pointer-events-none z-20 scanlines opacity-10" />}
+                    {game.source === 'steam' ? (
+                      <iframe
+                        key={iframeKey}
+                        src={frameSrc}
+                        frameBorder="0"
+                        width="646"
+                        height="190"
+                        allow="autoplay; fullscreen"
+                        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
+                        className="max-w-full"
+                        title={`${game.title} Steam Widget`}
+                      />
+                    ) : (
+                      <iframe
+                        key={iframeKey}
+                        ref={frameRef}
+                        src={frameSrc}
+                        frameBorder="0"
+                        allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
+                        /*
+                         * Isolation comes from gameOrigin being a different origin than the
+                         * hub, not from dropping allow-same-origin: an opaque sandbox stops
+                         * the game's own scripts from running at all.
+                         */
+                        sandbox={
+                          useIsolatedOrigin
+                            ? 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock'
+                            : 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
+                        }
+                        className="w-full h-full"
+                        title={`${game.title} Embed`}
+                      />
+                    )}
+                  </>
+                )}
               </div>
 
-              {isCurrentArchive && (
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-amber bg-amber/10 border border-amber/25 px-2 py-1 rounded-lg">
-                    Archive.org unreliable?
+              {/* Transport. The accent lands on the one action that writes something. */}
+              <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
+                {canSave && (
+                  <button
+                    onClick={handleCreateSave}
+                    disabled={isSaving}
+                    className="btn-primary h-9 px-3.5 text-[12px]"
+                    title="Commit a save slot for this title"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    {isSaving ? 'Saving…' : 'Save state'}
+                  </button>
+                )}
+                <button
+                  onClick={() => setIframeKey(k => k + 1)}
+                  className="btn-ghost btn-ghost-lit h-9 px-3 text-[12px]"
+                  title="Reload the cartridge"
+                >
+                  <RefreshCw className="w-3.5 h-3.5" />
+                  Restart
+                </button>
+                <button
+                  onClick={toggleFullscreen}
+                  className={`h-9 px-3 text-[12px] ${isFullscreen ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
+                >
+                  {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
+                  <span className="hidden sm:inline">Fullscreen</span>
+                </button>
+                <button
+                  onClick={() => setIsCrtMode(!isCrtMode)}
+                  className={`h-9 px-3 text-[12px] ${isCrtMode ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
+                  title="Toggle retro CRT scanlines"
+                >
+                  <Tv className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">CRT</span>
+                </button>
+                <button
+                  onClick={() => setIsTheaterMode(!isTheaterMode)}
+                  className={`h-9 px-3 text-[12px] ${isTheaterMode ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
+                  title="Toggle theater mode"
+                >
+                  <MonitorPlay className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Theater</span>
+                </button>
+                <button
+                  onClick={() => setShow404Panel(!show404Panel)}
+                  className={`h-9 w-9 justify-center ${show404Panel ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
+                  title="Port diagnostics"
+                >
+                  <AlertTriangle className="w-3.5 h-3.5" />
+                </button>
+                <a
+                  href={currentEmbedUrl || game.embedUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn-ghost btn-ghost-lit h-9 w-9 justify-center"
+                  title="Open in a new tab"
+                >
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+
+                {saveMessage && (
+                  <span className="ml-auto font-mono text-[11px] text-accent-lit truncate max-w-[240px]">
+                    {saveMessage}
                   </span>
+                )}
+              </div>
+            </div>
+
+            {/* Sidecar rail */}
+            <aside className="overflow-y-auto border-t-2 lg:border-t-0 border-rule-lit">
+              {/* Runtime & mirrors */}
+              <div className="px-5 py-4 border-b border-hair-lit">
+                <div className="eyebrow eyebrow-lit mb-2.5">Runtime</div>
+                <div className="flex flex-col gap-2">
+                  {availableMirrors.map((m) => {
+                    const isActive = selectedMirrorId === m.id || currentEmbedUrl === m.url;
+                    return (
+                      <button
+                        key={m.id}
+                        onClick={() => handleSelectMirror(m)}
+                        className={`flex items-center gap-2.5 px-2.5 py-2 text-left transition-colors ${
+                          isActive
+                            ? 'border border-rule-lit'
+                            : 'border border-hair-lit hover:bg-paper/10'
+                        }`}
+                      >
+                        {isActive ? (
+                          <span className="chip chip-accent flex-shrink-0">Active</span>
+                        ) : (
+                          <span className="font-mono text-[11px] text-paper/45 flex-shrink-0">ALT</span>
+                        )}
+                        <span className={`text-[12px] truncate ${isActive ? 'font-semibold' : 'text-paper/75'}`}>
+                          {m.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+                {isCurrentArchive && (
                   <button
                     onClick={() => {
                       const nonArchive = availableMirrors.find(m => m.isArchiveIndependent);
                       if (nonArchive) handleSelectMirror(nonArchive);
                     }}
-                    className="btn-volt text-[11px] px-2.5 py-0.5 rounded flex items-center gap-1"
+                    className="mt-2.5 font-display text-[11px] font-extrabold text-accent-lit hover:text-paper transition-colors"
                   >
-                    <RefreshCw className="w-2.5 h-2.5" /> Switch to Fallback
+                    Archive.org unreliable? Switch →
                   </button>
-                </div>
-              )}
-            </div>
-          )}
+                )}
+                {isolationBlocked && (
+                  <p className="mt-2.5 font-mono text-[10px] leading-relaxed text-paper/45">
+                    This browser refused a separate game origin; running on the hub's origin.
+                  </p>
+                )}
+                {frameError && (
+                  <p className="mt-2.5 font-mono text-[10px] leading-relaxed text-accent-lit">
+                    {frameError}
+                  </p>
+                )}
+              </div>
 
-          {/* Expandable Save Keeper Drawer */}
-          <AnimatePresence>
-            {showSaveDrawer && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="border-b border-edge bg-void/90 p-4 overflow-hidden"
-              >
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Create New Save Slot */}
-                  <form onSubmit={handleCreateSave} className="panel p-3.5 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <Save className="w-3.5 h-3.5 text-volt" />
-                        Create / Overwrite Save Slot
-                      </span>
-                      {saveMessage && (
-                        <span className="text-[11px] text-volt font-semibold">{saveMessage}</span>
-                      )}
+              {canSave ? (
+                <>
+                  {/* Cloud saves */}
+                  <div className="px-5 py-4 border-b border-hair-lit">
+                    <div className="eyebrow eyebrow-lit mb-2.5">
+                      Saves · {gameSaves.length} slot{gameSaves.length === 1 ? '' : 's'}
                     </div>
+                    {gameSaves.length === 0 ? (
+                      <p className="text-[12px] text-paper/45">No save states stored for this cartridge.</p>
+                    ) : (
+                      <div className="flex flex-col">
+                        {gameSaves.map(s => {
+                          const loadable = readSlotState(s) !== null;
+                          return (
+                            <div
+                              key={s.id}
+                              className="flex items-center justify-between gap-2 py-2 border-b border-hair-lit last:border-b-0"
+                            >
+                              <div className="min-w-0">
+                                <div className="text-[12px] font-semibold truncate">{s.slotName}</div>
+                                <div className="text-[11px] text-paper/45 truncate">
+                                  {new Date(s.timestamp).toLocaleDateString()}
+                                  {s.notes ? ` · ${s.notes}` : ''}
+                                  {!loadable && ' · no state'}
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-1.5 flex-shrink-0">
+                                <button
+                                  onClick={() => handleLoadSave(s)}
+                                  disabled={!loadable}
+                                  className="font-display text-[11px] font-extrabold text-accent-lit hover:text-paper disabled:text-paper/25 disabled:cursor-not-allowed transition-colors"
+                                  title={
+                                    loadable
+                                      ? 'Restart the game from this slot'
+                                      : 'This slot was written before saves captured game state'
+                                  }
+                                >
+                                  LOAD
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    const blob = new Blob([s.saveData], { type: 'application/json' });
+                                    const url = URL.createObjectURL(blob);
+                                    const a = document.createElement('a');
+                                    a.href = url;
+                                    a.download = `${game.title}_${s.slotName}.json`;
+                                    a.click();
+                                    URL.revokeObjectURL(url);
+                                  }}
+                                  className="text-paper/50 hover:text-paper transition-colors"
+                                  title="Download JSON save"
+                                >
+                                  <Download className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
 
-                    <div className="grid grid-cols-2 gap-2">
+                  {/* New slot */}
+                  <form onSubmit={handleCreateSave} className="px-5 py-4">
+                    <div className="eyebrow eyebrow-lit mb-2.5">New slot</div>
+                    <div className="flex flex-col gap-2">
                       <input
                         type="text"
-                        placeholder="Slot Name (e.g. Slot 1, Level 4)"
+                        placeholder="Slot name"
                         value={slotName}
                         onChange={e => setSlotName(e.target.value)}
-                        className="field px-2.5 py-1.5 text-xs"
+                        className="w-full bg-transparent border border-rule-lit px-2.5 py-2 text-[12px] text-paper placeholder:text-paper/40 outline-none focus:border-accent-lit"
                       />
                       <input
                         type="number"
-                        placeholder="Score / Checkpoint (optional)"
+                        placeholder="Score / checkpoint"
                         value={saveScore}
                         onChange={e => setSaveScore(e.target.value)}
-                        className="field px-2.5 py-1.5 text-xs"
+                        className="w-full bg-transparent border border-rule-lit px-2.5 py-2 text-[12px] text-paper placeholder:text-paper/40 outline-none focus:border-accent-lit"
                       />
+                      <input
+                        type="text"
+                        placeholder="Notes"
+                        value={saveNotes}
+                        onChange={e => setSaveNotes(e.target.value)}
+                        className="w-full bg-transparent border border-rule-lit px-2.5 py-2 text-[12px] text-paper placeholder:text-paper/40 outline-none focus:border-accent-lit"
+                      />
+                      <button type="submit" disabled={isSaving} className="btn-primary h-9 px-3.5 text-[12px]">
+                        <Plus className="w-3.5 h-3.5" />
+                        {isSaving ? 'Committing…' : 'Commit slot'}
+                      </button>
                     </div>
-
-                    <input
-                      type="text"
-                      placeholder="Notes / Boss battle status..."
-                      value={saveNotes}
-                      onChange={e => setSaveNotes(e.target.value)}
-                      className="field w-full px-2.5 py-1.5 text-xs"
-                    />
-
-                    <button
-                      type="submit"
-                      disabled={isSaving}
-                      className="btn-volt w-full py-2 rounded-xl text-xs flex items-center justify-center gap-1.5"
-                    >
-                      <Plus className="w-3.5 h-3.5" />
-                      {isSaving ? 'Saving to Cloud...' : 'Commit Save State'}
-                    </button>
+                    {!currentUser && (
+                      <p className="mt-2.5 font-mono text-[10px] leading-relaxed text-paper/45">
+                        Signed out — slots stay in this browser.
+                      </p>
+                    )}
                   </form>
-
-                  {/* Existing Saves List for this game */}
-                  <div className="panel p-3.5 flex flex-col">
-                    <span className="text-xs font-bold text-white mb-2">Saved States ({gameSaves.length})</span>
-                    <div className="flex-1 overflow-y-auto max-h-28 space-y-1.5">
-                      {gameSaves.length === 0 ? (
-                        <div className="text-[11px] text-zinc-500 py-4 text-center">No save states stored for this cartridge.</div>
-                      ) : (
-                        gameSaves.map(s => (
-                          <div key={s.id} className="p-2.5 rounded-xl bg-black/40 border border-edge flex items-center justify-between text-xs">
-                            <div>
-                              <span className="font-bold text-zinc-200">{s.slotName}</span>
-                              <span className="text-[10px] text-zinc-500 block">
-                                {new Date(s.timestamp).toLocaleDateString()} {s.notes && `• ${s.notes}`}
-                              </span>
-                            </div>
-                            <button
-                              onClick={() => {
-                                const blob = new Blob([s.saveData], { type: 'application/json' });
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `${game.title}_${s.slotName}.json`;
-                                a.click();
-                                URL.revokeObjectURL(url);
-                              }}
-                              className="btn-ghost p-1 rounded"
-                              title="Download JSON save"
-                            >
-                              <Download className="w-3 h-3" />
-                            </button>
-                          </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
+                </>
+              ) : (
+                /* Ruffle titles are the ones this hub can snapshot and restore, so a
+                   webport says so plainly rather than offering a slot that would not
+                   survive a reload. */
+                <div className="px-5 py-4">
+                  <div className="eyebrow eyebrow-lit mb-2.5">Saves</div>
+                  <p className="text-[12px] leading-relaxed text-paper/45">
+                    Save slots are available on Flash titles only. This game keeps its own
+                    progress in this browser while you play, but it cannot be committed to a
+                    slot or carried to another machine.
+                  </p>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-          
-          {/* Main Game Screen or 404 Diagnostics Panel */}
-          <div ref={stageRef} className="relative w-full bg-void flex-1 min-h-0 flex items-center justify-center overflow-hidden">
-            {show404Panel ? (
-              <div className="w-full h-full flex items-center justify-center p-6 bg-void overflow-y-auto">
-                <NotFoundPanel
-                  errorTitle={`Port Diagnostics: ${game.title}`}
-                  errorMessage="If this cartridge fails to boot in the player window, switch mirrors above or drag your own SWF file directly."
-                  targetId={game.id}
-                  onGoHome={() => setShow404Panel(false)}
-                  onRandomGame={() => {
-                    setShow404Panel(false);
-                    onClose(0);
-                  }}
-                  onRetry={() => {
-                    setShow404Panel(false);
-                    setIframeKey(k => k + 1);
-                  }}
-                />
-              </div>
-            ) : (
-              <>
-                {/* CRT Effect Overlay */}
-                {isCrtMode && (
-                  <div className="absolute inset-0 pointer-events-none z-10 crt-overlay mix-blend-overlay opacity-30"></div>
-                )}
-                {isCrtMode && (
-                  <div className="absolute inset-0 pointer-events-none z-20 scanlines opacity-10"></div>
-                )}
-                <div className={`w-full h-full min-h-[280px] flex items-center justify-center transition-transform duration-300 ${isCrtMode ? 'scale-[0.98]' : ''}`} style={{ transform: 'translateZ(0)' }}>
-                  {game.source === 'steam' ? (
-                    <iframe
-                      key={iframeKey}
-                      src={frameSrc}
-                      frameBorder="0"
-                      width="646"
-                      height="190"
-                      allow="autoplay; fullscreen"
-                      sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-                      className={`max-w-full ${isCrtMode ? 'rounded-2xl' : ''}`}
-                      title={`${game.title} Steam Widget`}
-                    ></iframe>
-                  ) : (
-                    <iframe
-                      key={iframeKey}
-                      ref={frameRef}
-                      src={frameSrc}
-                      frameBorder="0"
-                      allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
-                      /*
-                       * Isolation comes from gameOrigin being a different origin than the
-                       * hub, not from dropping allow-same-origin: an opaque sandbox stops
-                       * the game's own scripts from running at all.
-                       */
-                      sandbox={
-                        useIsolatedOrigin
-                          ? 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock'
-                          : 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
-                      }
-                      className={`w-full h-full min-h-[280px] ${isCrtMode ? 'rounded-xl border-2 border-black shadow-[inset_0_0_50px_rgba(0,0,0,0.8)]' : ''}`}
-                      title={`${game.title} Embed`}
-                    ></iframe>
-                  )}
-                </div>
-              </>
-            )}
+              )}
+            </aside>
           </div>
         </motion.div>
       </motion.div>
