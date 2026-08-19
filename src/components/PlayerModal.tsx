@@ -55,6 +55,9 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   const seedSent = useRef(false);
   const autoSaveId = useRef<string | null>(null);
   const [stateStatus, setStateStatus] = useState<'idle' | 'restored' | 'saving' | 'saved'>('idle');
+  // Read by the save bridge without being one of its dependencies: the timer ticks every
+  // second, and re-subscribing the message listener that often is pure overhead mid-game.
+  const elapsedRef = useRef(0);
   const [frameError, setFrameError] = useState<string | null>(null);
   // Some browsers and privacy extensions refuse to embed a second loopback origin. When
   // that happens the game frame is simply never reachable, so the player falls back to the
@@ -129,6 +132,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   // Set initial mirror on game load
   useEffect(() => {
     setElapsedSeconds(0);
+    elapsedRef.current = 0;
     setShow404Panel(false);
 
     if (game) {
@@ -143,7 +147,10 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
     }
 
     const interval = setInterval(() => {
-      setElapsedSeconds((prev) => prev + 1);
+      setElapsedSeconds((prev) => {
+        elapsedRef.current = prev + 1;
+        return prev + 1;
+      });
     }, 1000);
 
     return () => clearInterval(interval);
@@ -254,7 +261,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
             userId: currentUser.id,
             slotName: AUTO_SLOT,
             saveData: JSON.stringify(state),
-            playtimeMinutes: Math.round(elapsedSeconds / 60),
+            playtimeMinutes: Math.round(elapsedRef.current / 60),
             notes: 'Captured from the game automatically'
           })
         });
@@ -317,7 +324,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
 
     window.addEventListener('message', onMessage);
     return () => window.removeEventListener('message', onMessage);
-  }, [game?.id, currentUser?.id, elapsedSeconds, localStateKey]);
+  }, [game?.id, currentUser?.id, localStateKey]);
 
   // Watch for the frame checking in. Every game document this app serves carries the
   // storage bridge, so silence means the frame never ran.

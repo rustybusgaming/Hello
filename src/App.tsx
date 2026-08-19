@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Game, UserAccount } from './types';
 import { TopBar } from './components/TopBar';
 import { GenreTabs } from './components/GenreTabs';
@@ -45,6 +45,13 @@ export default function App() {
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [sessionRecap, setSessionRecap] = useState<SessionRecap | null>(null);
   const recapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // The grid renders in pages. Mounting all ~300 cards at once costs thousands of DOM nodes
+  // and starts every thumbnail download up front, which is bandwidth a running game needs.
+  const PAGE_SIZE = 60;
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  const scrollMemory = useRef(0);
   
   // Modals & Panels
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
@@ -188,6 +195,10 @@ export default function App() {
     });
   }, [games, searchQuery, activeGenre]);
 
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, activeGenre]);
+
   const recentlyPlayedGames = useMemo(() => {
     return recentlyPlayed.map(id => games.find(g => g.id === id)).filter(Boolean) as Game[];
   }, [recentlyPlayed, games]);
@@ -205,6 +216,8 @@ export default function App() {
   };
 
   const handleGameClick = (game: Game) => {
+    // Remember where the player was so closing the game puts them back
+    scrollMemory.current = window.scrollY;
     setSelectedGame(game);
     setShow404View(false);
     setRecentlyPlayed(prev => {
@@ -226,6 +239,8 @@ export default function App() {
   };
 
   const handleCloseModal = (elapsedSeconds: number) => {
+    // Restore the scroll position the grid had before it was unmounted
+    requestAnimationFrame(() => window.scrollTo(0, scrollMemory.current));
     if (selectedGame && elapsedSeconds > 0) {
       const durationText = formatSessionTime(elapsedSeconds);
       const recap: SessionRecap = {
@@ -252,6 +267,27 @@ export default function App() {
         : [...prev, gameId]
     );
   };
+
+  const pagedGames = useMemo(() => filteredGames.slice(0, visibleCount), [filteredGames, visibleCount]);
+  const hasMore = visibleCount < filteredGames.length;
+
+  // Reveal the next page as the sentinel comes into view
+  useEffect(() => {
+    if (!hasMore || selectedGame) return;
+    const target = loadMoreRef.current;
+    if (!target) return;
+
+    const observer = new IntersectionObserver(
+      entries => {
+        if (entries.some(e => e.isIntersecting)) {
+          setVisibleCount(count => Math.min(count + PAGE_SIZE, filteredGames.length));
+        }
+      },
+      { rootMargin: '600px' }
+    );
+    observer.observe(target);
+    return () => observer.disconnect();
+  }, [hasMore, filteredGames.length, selectedGame]);
 
   const isDefaultView = searchQuery === '' && activeGenre === 'All' && !show404View;
 
@@ -285,8 +321,11 @@ export default function App() {
         />
       )}
 
-      <main className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 pb-16">
-        {loading ? (
+      <main
+        className="flex-1 w-full max-w-[1400px] mx-auto px-4 sm:px-6 pb-16"
+        hidden={!!selectedGame}
+      >
+        {selectedGame ? null : loading ? (
           <div className="flex flex-col items-center justify-center py-40 text-zinc-600">
             <Loader2 className="w-5 h-5 animate-spin mb-4 text-flame" />
             <p className="eyebrow">Spinning up the cabinet…</p>
@@ -421,7 +460,7 @@ export default function App() {
                 </span>
               </div>
               <div className={GRID}>
-                {filteredGames.map((game, i) => (
+                {pagedGames.map((game, i) => (
                   <GameCard
                     key={game.id}
                     game={game}
@@ -432,6 +471,17 @@ export default function App() {
                   />
                 ))}
               </div>
+
+              {hasMore && (
+                <div ref={loadMoreRef} className="flex justify-center py-8">
+                  <button
+                    onClick={() => setVisibleCount(c => Math.min(c + PAGE_SIZE, filteredGames.length))}
+                    className="btn-ghost px-4 py-2 rounded-xl text-xs"
+                  >
+                    Show more ({filteredGames.length - visibleCount} left)
+                  </button>
+                </div>
+              )}
             </section>
           </div>
         ) : (

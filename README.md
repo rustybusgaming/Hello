@@ -95,6 +95,35 @@ their account; guests keep theirs in the hub's own browser storage.
 Unity's `PlayerPrefs` uses IndexedDB rather than `localStorage`, so WebGL saves are not
 carried across devices yet.
 
+## Performance
+
+The catalogue is a few hundred games, so the hub is careful about what it keeps on screen
+and what it re-downloads:
+
+- The grid renders in pages of 60 and reveals more on scroll, instead of mounting every card.
+- While a game is open the catalogue is unmounted entirely — it is fully covered by the
+  player, and cards left mounted keep competing for the main thread and for the bandwidth the
+  game is using.
+- Proxied game assets are cached on disk under `data/asset-cache/` (2 GB budget, least
+  recently used evicted first). A replay is served locally instead of being pulled through the
+  CDN again: an 8 MB Flash game drops from ~19s to ~0.06s.
+
+## Security
+
+- Sessions are httpOnly, SameSite=Strict cookies; the token is never exposed to page scripts.
+- Games run on a separate origin (see above) so their code cannot reach the hub's session.
+- Password checks are rate limited per account, and more loosely per IP so shared networks are
+  not locked out. Set `TRUSTED_PROXY_HOPS` to the number of proxies in front of the server;
+  leaving it unset means `X-Forwarded-For` is ignored, which is what stops a caller from
+  inventing a new IP per request to walk past the limiter.
+- Baseline headers (CSP, `X-Content-Type-Options`, `Referrer-Policy`, `X-Frame-Options`,
+  `Permissions-Policy`) are applied to the hub. Game routes are exempt on purpose: they must
+  stay embeddable and run third-party engine code.
+- Uploads are checked by content, not just by extension — a file claiming to be `.swf` has to
+  actually start with `FWS`/`CWS`/`ZWS`.
+- Passwords must be at least 8 characters and are refused if they appear in a small list of
+  the most commonly stuffed ones.
+
 ## Steam integration
 
 Linking a Steam account pulls in the persona, avatar and profile details. With a Web API key
@@ -142,6 +171,7 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | --- | --- | --- |
 | `PORT` | No | Server port (default `3000`) |
 | `GAME_ORIGIN` | No | Second origin that game frames load from; falls back to `127.0.0.1` on localhost |
+| `TRUSTED_PROXY_HOPS` | No | Number of reverse proxies in front of the server; unset means `X-Forwarded-For` is ignored |
 | `NODE_ENV` | No | Set to `production` to serve `dist/` instead of the Vite middleware |
 | `STEAM_API_KEY` | No | Steam Web API key; required for library, playtime and achievements |
 | `STEAM_API_BASE` | No | Overrides the Steam API host; used for testing against a stand-in |

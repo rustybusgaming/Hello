@@ -15,3 +15,6 @@ public/gameports
 public/quasar
 public/custom_games
 temp_quasar
+
+# Cached copies of proxied game assets
+data/asset-cache/

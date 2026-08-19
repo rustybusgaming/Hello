@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Game } from '../types';
 import { Heart, Play, Star } from 'lucide-react';
-import { motion } from 'motion/react';
 
 interface GameCardProps {
   game: Game;
@@ -30,14 +29,12 @@ export function GameCard({ game, isFavorite = false, onToggleFavorite, onClick, 
   const fallbackCover = `/api/cover/${encodeURIComponent(game.id)}?title=${encodeURIComponent(game.title)}`;
 
   return (
-    <motion.button
+    <button
       type="button"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.28, delay: Math.min(index, 12) * 0.015 }}
+      style={{ animationDelay: `${Math.min(index, 12) * 15}ms` }}
       onClick={() => onClick(game)}
       aria-label={`Play ${game.title}`}
-      className="panel panel-hover group relative text-left overflow-hidden flex flex-col focus:outline-none focus-visible:border-flame"
+      className="panel panel-hover card-enter group relative text-left overflow-hidden flex flex-col focus:outline-none focus-visible:border-flame"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-pit">
         <img
@@ -97,6 +94,6 @@ export function GameCard({ game, isFavorite = false, onToggleFavorite, onClick, 
           </span>
         </div>
       </div>
-    </motion.button>
+    </button>
   );
 }

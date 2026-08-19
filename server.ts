@@ -31,6 +31,7 @@ import {
 import { guardCredentials, recordFailure, clearFailures } from './server/rateLimit';
 import { runHealthCheck, getHealthReport } from './server/healthCheck';
 import { FRAME_STORAGE_SCRIPT, FRAME_STORAGE_MARKER } from './server/frameStorage';
+import { getCached, putCached, cacheStats, clearAssetCache } from './server/assetCache';
 import {
   isSteamConfigured,
   resolveSteamId,
@@ -145,6 +146,18 @@ function injectFrameStorage(html: string): string {
 const WEBPORT_SUBPATHS = GENIZY_WEBPORT_GAMES
   .map(g => g.repoKey)
   .filter(key => key.includes('/'));
+
+/**
+ * The handful of passwords that turn up first in any credential-stuffing list. A full
+ * breach corpus is out of scope here; this just stops the worst of it at the door.
+ */
+const COMMON_PASSWORDS = new Set([
+  'password', 'password1', 'password123', '12345678', '123456789', '1234567890',
+  'qwertyuiop', 'qwerty123', 'letmein1', 'welcome1', 'iloveyou', 'admin123',
+  'football1', 'monkey12', 'trustno1', 'sunshine', 'princess', 'dragon12',
+  'baseball', 'superman', 'starwars', 'passw0rd', 'flashhub', 'gamer1234',
+  'player1234', 'admin1234', 'changeme', 'secret12'
+]);
 
 // Escape untrusted text before interpolating it into HTML/SVG responses
 function escapeHtml(value: string): string {
@@ -415,8 +428,56 @@ async function startServer() {
   const app = express();
   const PORT = Number(process.env.PORT) || 3000;
 
-  // Behind Cloud Run / any reverse proxy, req.ip is the proxy without this
-  app.set('trust proxy', true);
+  /*
+   * Trust exactly as many proxy hops as are actually in front of this server. `true` would
+   * accept X-Forwarded-For from any caller, letting one client present a fresh IP per request
+   * and slip past the per-IP rate limit entirely.
+   */
+  const trustedProxyHops = Number(process.env.TRUSTED_PROXY_HOPS ?? 0);
+  app.set('trust proxy', Number.isFinite(trustedProxyHops) && trustedProxyHops > 0 ? trustedProxyHops : false);
+
+  /**
+   * Baseline security headers for the hub itself.
+   *
+   * Game routes are skipped on purpose: they are meant to be embedded, and they run
+   * third-party engine code that a strict policy would break. Their isolation comes from
+   * being served on a separate origin instead.
+   */
+  const GAME_ROUTES = /^\/(api\/(quasar|webports|webport-proxy|archive-swf)|custom_games|gameports|quasar|play\.html|frame-storage\.js)/;
+
+  app.use((req, res, next) => {
+    if (GAME_ROUTES.test(req.path)) return next();
+
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=(), payment=(), usb=()');
+    res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
+
+    // Vite injects inline scripts and styles in development, so the script policy can only
+    // be tightened for the built bundle.
+    const scriptSrc = process.env.NODE_ENV === 'production'
+      ? "'self'"
+      : "'self' 'unsafe-inline' 'unsafe-eval'";
+
+    res.setHeader(
+      'Content-Security-Policy',
+      [
+        "default-src 'self'",
+        `script-src ${scriptSrc} https://unpkg.com`,
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+        "font-src 'self' https://fonts.gstatic.com data:",
+        "img-src 'self' data: blob: https:",
+        "connect-src 'self' https://api.steampowered.com https://steamcommunity.com ws: wss:",
+        // Games are framed from the second origin, so frames must be allowed broadly
+        "frame-src 'self' http: https:",
+        "object-src 'none'",
+        "base-uri 'self'",
+        "form-action 'self'"
+      ].join('; ')
+    );
+    next();
+  });
 
   // Middleware to parse JSON (cloud saves and backup imports can be sizeable)
   app.use(express.json({ limit: '10mb' }));
@@ -699,6 +760,20 @@ async function startServer() {
 
     const ext = path.extname(assetPath.split('?')[0]).toLowerCase();
     const isEntryDocument = /(^|\/)index\.html?$/i.test(assetPath);
+    const cacheKey = `quasar:${assetPath}`;
+
+    // A replay should not re-pull tens of megabytes through the CDN. Entry documents are
+    // rewritten per request, so only the heavy static assets are cached.
+    if (!isEntryDocument) {
+      const hit = getCached(cacheKey);
+      if (hit) {
+        res.setHeader('Content-Type', MIME_TYPES[ext] || hit.contentType);
+        res.setHeader('Cache-Control', 'public, max-age=86400');
+        res.setHeader('Access-Control-Allow-Origin', '*');
+        res.setHeader('X-FlashHub-Cache', 'hit');
+        return res.sendFile(hit.path);
+      }
+    }
 
     try {
       let upstreamRes: Response | null = null;
@@ -757,12 +832,21 @@ async function startServer() {
         return res.send(injectFrameStorage(html));
       }
 
-      res.setHeader(
-        'Content-Type',
-        MIME_TYPES[ext] || upstreamRes.headers.get('content-type') || 'application/octet-stream'
-      );
-      copyLengthHeaders(upstreamRes, res);
+      const contentType = MIME_TYPES[ext] || upstreamRes.headers.get('content-type') || 'application/octet-stream';
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('X-FlashHub-Cache', 'miss');
 
+      // A whole-file response can be kept for next time; a ranged one cannot, since it is
+      // only a slice of the asset.
+      const isFullResponse = upstreamRes.status === 200 && !req.headers.range;
+      if (isFullResponse) {
+        const body = Buffer.from(await upstreamRes.arrayBuffer());
+        putCached(cacheKey, body, contentType);
+        res.setHeader('Content-Length', String(body.length));
+        return res.send(body);
+      }
+
+      copyLengthHeaders(upstreamRes, res);
       await streamUpstream(upstreamRes, res);
     } catch (err: any) {
       console.error(`Error proxying quasar asset ${assetPath}:`, err);
@@ -952,8 +1036,11 @@ async function startServer() {
         return res.status(400).json({ error: 'Valid email address is required' });
       }
 
-      if (!password || typeof password !== 'string' || password.length < 6) {
-        return res.status(400).json({ error: 'Password must be at least 6 characters' });
+      if (!password || typeof password !== 'string' || password.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters' });
+      }
+      if (COMMON_PASSWORDS.has(password.toLowerCase())) {
+        return res.status(400).json({ error: 'That password is too common; pick something less guessable' });
       }
 
       const storedAccounts = getStoredAccounts();
@@ -1153,8 +1240,11 @@ async function startServer() {
 
       const limitKeys = guardCredentials(req, res, 'change-password', user.id);
       if (!limitKeys) return;
-      if (newPassword.length < 6) {
-        return res.status(400).json({ error: 'New password must be at least 6 characters' });
+      if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'New password must be at least 8 characters' });
+      }
+      if (COMMON_PASSWORDS.has(newPassword.toLowerCase())) {
+        return res.status(400).json({ error: 'That password is too common; pick something less guessable' });
       }
 
       const storedAccounts = getStoredAccounts();
@@ -1829,7 +1919,8 @@ async function startServer() {
           totalGames,
           activeAccounts: accounts.length,
           totalSaves: saves.length,
-          cachedProxyItems: imgCache.size,
+          cachedProxyItems: imgCache.size + cacheStats().entries,
+          assetCacheMb: cacheStats().megabytes,
           memoryUsageMb: Math.round(mem.rss / 1024 / 1024),
           uptimeSeconds: Math.round(process.uptime()),
           isSyncing,
@@ -1847,6 +1938,7 @@ async function startServer() {
     cachedArchiveGames = [];
     imgCache.clear();
     clearSteamCache();
+    clearAssetCache();
     lastArchiveFetchTime = 0;
     res.json({ status: 'ok', message: 'All in-memory proxy & games cache purged successfully.' });
   });
@@ -1985,6 +2077,35 @@ async function startServer() {
 
     const originalName = gameFile.originalname;
     const ext = path.extname(originalName).toLowerCase();
+
+    /*
+     * Check what the file actually is, not just what it is called. A renamed binary would
+     * otherwise be written into a folder this server hands out over HTTP.
+     */
+    const head = (() => {
+      try {
+        const fd = fs.openSync(gameFile.path, 'r');
+        const buf = Buffer.alloc(256);
+        const read = fs.readSync(fd, buf, 0, 256, 0);
+        fs.closeSync(fd);
+        return buf.subarray(0, read);
+      } catch {
+        return Buffer.alloc(0);
+      }
+    })();
+
+    const magic = head.subarray(0, 3).toString('ascii');
+    const looksLikeSwf = ['FWS', 'CWS', 'ZWS'].includes(magic);
+    const looksLikeHtml = /<(!doctype|html|head|body|script|div|meta)\b/i.test(head.toString('utf8'));
+
+    if (ext === '.swf' ? !looksLikeSwf : !looksLikeHtml) {
+      [gameFile, thumbFile].forEach(f => { if (f) fs.rmSync(f.path, { force: true }); });
+      return res.status(400).json({
+        error: ext === '.swf'
+          ? 'That file is not a Flash movie (expected an FWS/CWS/ZWS header)'
+          : 'That file does not look like an HTML document'
+      });
+    }
     
     // Create a folder for the new game
     const gameId = `custom-${Date.now()}`;
