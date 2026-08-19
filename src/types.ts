@@ -109,3 +109,62 @@ export interface SystemStats {
   isSyncing: boolean;
   syncProgressMessage: string;
 }
+
+// --- Steam library & achievements (see server/steam.ts) ---
+
+export interface SteamGameSummary {
+  appId: number;
+  name: string;
+  playtimeMinutes: number;
+  playtimeRecentMinutes: number;
+  iconUrl: string | null;
+  headerUrl: string;
+}
+
+export interface SteamAchievementEntry {
+  id: string;
+  name: string;
+  description: string;
+  icon: string | null;
+  unlocked: boolean;
+  unlockedAt: string | null;
+  /** Percentage of all players who own it; null when Steam publishes no figure. */
+  globalPercent: number | null;
+}
+
+export interface SteamAchievementSet {
+  appId: number;
+  gameName: string;
+  total: number;
+  unlocked: number;
+  achievements: SteamAchievementEntry[];
+}
+
+export interface SteamProfileSummary {
+  steamId: string;
+  personaName: string;
+  avatar: string;
+  profileUrl: string;
+  state: string;
+  visibility: 'public' | 'private';
+  playingNow: string | null;
+  countryCode: string | null;
+  createdAt: string | null;
+}
+
+export interface SteamLibrary {
+  profile: SteamProfileSummary | null;
+  level: number | null;
+  gameCount: number;
+  totalPlaytimeMinutes: number;
+  topGames: SteamGameSummary[];
+  recentGames: SteamGameSummary[];
+}
+
+export interface SteamAchievementOverview {
+  unlocked: number;
+  total: number;
+  perfectGames: number;
+  recent: (SteamAchievementEntry & { appId: number; gameName: string })[];
+  perGame: { appId: number; gameName: string; unlocked: number; total: number; headerUrl: string }[];
+}

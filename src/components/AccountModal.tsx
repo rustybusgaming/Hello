@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useEscapeKey } from '../lib/hooks';
+import { SteamPanel } from './SteamPanel';
 
 interface AccountModalProps {
   currentUser: UserAccount | null;
@@ -1118,7 +1119,9 @@ export function AccountModal({
                   Steam Profile Integration
                 </div>
                 <p className="text-xs text-zinc-400 leading-relaxed">
-                  Enter your SteamID64 (e.g. <code className="text-[#66c0f4]">76561198000000000</code>) or Steam vanity profile URL (e.g. <code className="text-[#66c0f4]">https://steamcommunity.com/id/username</code>) to sync your Steam persona and cloud badges.
+                  Link with your SteamID64 (e.g. <code className="text-[#66c0f4]">76561198000000000</code>) or a vanity
+                  profile URL to pull in your persona, library, playtime and achievements. Library and
+                  achievement data needs a Steam Web API key on the server and a public Steam profile.
                 </p>
               </div>
 
@@ -1175,6 +1178,9 @@ export function AccountModal({
                   </div>
                 )}
               </form>
+
+              {/* Library, playtime and achievements for the linked account */}
+              <SteamPanel steamId={currentUser?.steamId} />
             </div>
           )}
 

@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
-    "sync": "./sync-games.sh"
+    "sync": "./sync-games.sh",
+    "test": "tsx server/steam.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

@@ -95,6 +95,30 @@ their account; guests keep theirs in the hub's own browser storage.
 Unity's `PlayerPrefs` uses IndexedDB rather than `localStorage`, so WebGL saves are not
 carried across devices yet.
 
+## Steam integration
+
+Linking a Steam account pulls in the persona, avatar and profile details. With a Web API key
+the Steam tab also shows the player's library, playtime, and achievements:
+
+- library size, total playtime and most-played games with playtime bars
+- achievement completion across the games actually played, plus perfect-game count
+- the latest unlocks, and a per-game achievement browser with unlock dates, locked/unlocked
+  filtering, and **global rarity** (Steam publishes how many players hold each achievement)
+
+Steam retired the old keyless `?xml=1` endpoints for libraries and achievements — they now
+redirect to the HTML profile page — so that section needs `STEAM_API_KEY` from
+[steamcommunity.com/dev/apikey](https://steamcommunity.com/dev/apikey), and the Steam profile
+has to be public. Without a key, linking still works and the UI explains what is missing
+rather than showing an empty library. Global achievement rarity is still public and is fetched
+without a key.
+
+Steam responses are cached in memory (5 minutes for player data, 24 hours for game schemas
+and rarity) to stay inside Steam's rate limits.
+
+Run `npm test` to exercise the Steam client against recorded response shapes — id resolution,
+schema/rarity merging, sort order, private profiles and the missing-key path — none of which
+needs a real key.
+
 ## Keeping the catalogue honest
 
 The admin console has a **catalogue health check** (Game Catalog tab) that walks every entry,
@@ -119,7 +143,8 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | `PORT` | No | Server port (default `3000`) |
 | `GAME_ORIGIN` | No | Second origin that game frames load from; falls back to `127.0.0.1` on localhost |
 | `NODE_ENV` | No | Set to `production` to serve `dist/` instead of the Vite middleware |
-| `STEAM_API_KEY` | No | Reserved for the Steam Web API; profile lookup currently scrapes the public XML/HTML endpoints |
+| `STEAM_API_KEY` | No | Steam Web API key; required for library, playtime and achievements |
+| `STEAM_API_BASE` | No | Overrides the Steam API host; used for testing against a stand-in |
 | `GEMINI_API_KEY` | No | Injected by AI Studio; not used by the current code |
 | `APP_URL` | No | Public URL of the deployment, injected by AI Studio |
 

@@ -31,6 +31,15 @@ import {
 import { guardCredentials, recordFailure, clearFailures } from './server/rateLimit';
 import { runHealthCheck, getHealthReport } from './server/healthCheck';
 import { FRAME_STORAGE_SCRIPT, FRAME_STORAGE_MARKER } from './server/frameStorage';
+import {
+  isSteamConfigured,
+  resolveSteamId,
+  getLibrarySummary,
+  getAchievements,
+  getAchievementOverview,
+  clearSteamCache,
+  SteamUnavailable
+} from './server/steam';
 import { UserAccount, StoredUserAccount, GameSave } from './src/types';
 import { checkAchievements, ACHIEVEMENTS } from './server/achievements';
 
@@ -1449,110 +1458,180 @@ async function startServer() {
     }
   });
 
-  // Resolve Steam Profile info
+  // Resolve Steam Profile info for linking
   app.get('/api/steam/lookup', async (req, res) => {
     const query = (req.query.query as string || '').trim();
     if (!query) {
-      return res.status(400).json({ error: 'Steam ID or vanity URL required' });
+      return res.status(400).json({ error: 'Steam ID, vanity name or profile URL required' });
     }
 
     try {
-      // Clean query
-      let steamIdOrVanity = query;
-      if (query.includes('steamcommunity.com/id/')) {
-        steamIdOrVanity = query.split('steamcommunity.com/id/')[1].replace(/\/+$/, '').split('/')[0].split('?')[0];
-      } else if (query.includes('steamcommunity.com/profiles/')) {
-        steamIdOrVanity = query.split('steamcommunity.com/profiles/')[1].replace(/\/+$/, '').split('/')[0].split('?')[0];
+      const steamId = await resolveSteamId(query);
+      if (!steamId) {
+        return res.status(404).json({ error: 'No Steam account matches that ID or vanity name' });
       }
 
-      const isNumericId = /^\d{17}$/.test(steamIdOrVanity);
-      const xmlUrl = isNumericId
-        ? `https://steamcommunity.com/profiles/${encodeURIComponent(steamIdOrVanity)}/?xml=1`
-        : `https://steamcommunity.com/id/${encodeURIComponent(steamIdOrVanity)}/?xml=1`;
-
-      const response = await fetch(xmlUrl, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) FlashHub/2.0' },
-        signal: AbortSignal.timeout(4500)
-      });
-
-      if (response.ok) {
-        const xmlText = await response.text();
-        const personaMatch = xmlText.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/) || xmlText.match(/<steamID>(.*?)<\/steamID>/);
-        const avatarMatch = xmlText.match(/<avatarFull><!\[CDATA\[(.*?)\]\]><\/avatarFull>/) || xmlText.match(/<avatarFull>(.*?)<\/avatarFull>/);
-        const customUrlMatch = xmlText.match(/<customURL><!\[CDATA\[(.*?)\]\]><\/customURL>/) || xmlText.match(/<customURL>(.*?)<\/customURL>/);
-        const steamID64Match = xmlText.match(/<steamID64>(.*?)<\/steamID64>/);
-        const stateMatch = xmlText.match(/<onlineState>(.*?)<\/onlineState>/);
-        const stateMsgMatch = xmlText.match(/<stateMessage><!\[CDATA\[(.*?)\]\]><\/stateMessage>/);
-        const memberSinceMatch = xmlText.match(/<memberSince>(.*?)<\/memberSince>/);
-        const locationMatch = xmlText.match(/<location><!\[CDATA\[(.*?)\]\]><\/location>/);
-
-        const personaName = personaMatch ? personaMatch[1] : steamIdOrVanity;
-        const avatarUrl = avatarMatch ? avatarMatch[1] : 'https://avatars.steamstatic.com/fef49e7fa7e1997310d705b2a6158ff8dc1cdfeb_full.jpg';
-        const customUrl = customUrlMatch ? customUrlMatch[1] : '';
-        const finalSteamId = steamID64Match ? steamID64Match[1] : (isNumericId ? steamIdOrVanity : '76561198272986867');
-        
-        const profileUrl = customUrl 
-          ? `https://steamcommunity.com/id/${customUrl}/`
-          : `https://steamcommunity.com/profiles/${finalSteamId}`;
-
-        let parsedLevel = 1;
-        let parsedGamesCount = 0;
-        
-        try {
-          // Fetch HTML page to scrape level and games count
-          const htmlRes = await fetch(profileUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            signal: AbortSignal.timeout(4000)
-          });
-          const htmlText = await htmlRes.text();
-          
-          const levelMatch = htmlText.match(/friendPlayerLevelNum">([0-9]+)</);
-          if (levelMatch) {
-            parsedLevel = parseInt(levelMatch[1], 10);
-          }
-          
-          const gamesMatch = htmlText.match(/<span class="count_link_label">Games<\/span>\s*<span class="profile_count_link_total">\s*([0-9,]+)\s*<\/span>/);
-          if (gamesMatch) {
-            parsedGamesCount = parseInt(gamesMatch[1].replace(/,/g, ''), 10);
-          }
-        } catch (scrapeErr) {
-          console.warn('Could not scrape HTML profile info');
+      // With a key this is the real profile; without one, fall back to the public XML page,
+      // which is the only keyless source Steam still serves.
+      if (isSteamConfigured()) {
+        const summary = await getLibrarySummary(steamId);
+        const profile = summary.profile;
+        if (!profile) {
+          return res.status(404).json({ error: 'Steam returned no profile for that account' });
         }
 
         return res.json({
           status: 'ok',
           data: {
-            steamId: finalSteamId,
-            steamPersonaName: personaName,
-            steamAvatar: avatarUrl,
-            steamProfileUrl: profileUrl,
-            steamLevel: parsedLevel,
-            steamGamesCount: parsedGamesCount,
-            onlineState: stateMatch ? stateMatch[1] : 'online',
-            stateMessage: stateMsgMatch ? stateMsgMatch[1].replace(/<[^>]*>/g, ' ') : undefined,
-            location: locationMatch ? locationMatch[1] : undefined,
-            memberSince: memberSinceMatch ? memberSinceMatch[1] : '2015'
+            steamId: profile.steamId,
+            steamPersonaName: profile.personaName,
+            steamAvatar: profile.avatar,
+            steamProfileUrl: profile.profileUrl,
+            steamLevel: summary.level ?? undefined,
+            steamGamesCount: summary.gameCount,
+            onlineState: profile.state,
+            visibility: profile.visibility,
+            memberSince: profile.createdAt,
+            location: profile.countryCode
           }
         });
       }
-    } catch (e: any) {
-      console.warn('Steam XML lookup notice:', e.message);
+
+      const xmlRes = await fetch(`https://steamcommunity.com/profiles/${encodeURIComponent(steamId)}/?xml=1`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 FlashHub/2.0' },
+        signal: AbortSignal.timeout(6000)
+      });
+
+      if (!xmlRes.ok) {
+        return res.status(502).json({ error: 'Steam did not respond; try again shortly' });
+      }
+
+      const xmlText = await xmlRes.text();
+      const pick = (tag: string) =>
+        xmlText.match(new RegExp(`<${tag}><!\\[CDATA\\[(.*?)\\]\\]></${tag}>`, 's'))?.[1] ??
+        xmlText.match(new RegExp(`<${tag}>(.*?)</${tag}>`, 's'))?.[1] ??
+        undefined;
+
+      const customUrl = pick('customURL');
+
+      res.json({
+        status: 'ok',
+        data: {
+          steamId,
+          steamPersonaName: pick('steamID') || steamId,
+          steamAvatar: pick('avatarFull'),
+          steamProfileUrl: customUrl
+            ? `https://steamcommunity.com/id/${customUrl}/`
+            : `https://steamcommunity.com/profiles/${steamId}`,
+          onlineState: pick('onlineState') || 'offline',
+          memberSince: pick('memberSince'),
+          location: pick('location'),
+          // Level and library size need the Web API; they are left unset rather than invented
+          needsKeyFor: ['steamLevel', 'steamGamesCount', 'achievements']
+        }
+      });
+    } catch (err: any) {
+      if (err instanceof SteamUnavailable) {
+        return res.status(err.needsKey ? 501 : 502).json({ error: err.message, needsKey: err.needsKey });
+      }
+      console.warn('Steam lookup failed:', err?.message || err);
+      res.status(502).json({ error: 'Could not reach Steam; try again shortly' });
+    }
+  });
+
+  // --- STEAM LIBRARY & ACHIEVEMENTS ---
+
+  /**
+   * Resolve which Steam account a request is about: the caller's linked id by default, or
+   * an explicit one for admins looking at another player.
+   */
+  const steamIdForRequest = (req: express.Request, res: express.Response): string | null => {
+    const user = requireUser(req, res);
+    if (!user) return null;
+
+    const requested = typeof req.query.steamId === 'string' ? req.query.steamId : '';
+    if (requested && requested !== user.steamId) {
+      if (user.role !== 'admin') {
+        res.status(403).json({ error: 'You can only view your own Steam library' });
+        return null;
+      }
+      return requested;
     }
 
-    // Fallback realistic Steam profile synthesis if Steam rate limits
-    const sanitized = query.replace(/[^a-zA-Z0-9_-]/g, '') || 'SteamPlayer';
+    if (!user.steamId) {
+      res.status(400).json({ error: 'Link a Steam account first', needsLink: true });
+      return null;
+    }
+    return user.steamId;
+  };
+
+  // Steam replies to failures in a few different ways; present them consistently
+  const sendSteamError = (res: express.Response, err: any) => {
+    if (err instanceof SteamUnavailable) {
+      return res.status(err.needsKey ? 501 : 502).json({
+        error: err.message,
+        needsKey: err.needsKey,
+        configured: isSteamConfigured()
+      });
+    }
+    console.error('Steam request failed:', err);
+    res.status(502).json({ error: 'Could not reach Steam', configured: isSteamConfigured() });
+  };
+
+  app.get('/api/steam/status', (req, res) => {
+    const user = getAuthUser(req);
     res.json({
       status: 'ok',
-      data: {
-        steamId: /^\d{17}$/.test(query) ? query : '76561198' + Math.floor(100000000 + Math.random() * 900000000),
-        steamPersonaName: sanitized,
-        steamAvatar: `https://api.dicebear.com/7.x/identicon/svg?seed=steam-${encodeURIComponent(sanitized)}`,
-        steamProfileUrl: `https://steamcommunity.com/id/${sanitized}`,
-        steamLevel: 25,
-        steamGamesCount: 42,
-        onlineState: 'in-game'
-      }
+      configured: isSteamConfigured(),
+      linked: !!user?.steamId,
+      steamId: user?.steamId || null
     });
+  });
+
+  app.get('/api/steam/library', async (req, res) => {
+    const steamId = steamIdForRequest(req, res);
+    if (!steamId) return;
+
+    try {
+      const summary = await getLibrarySummary(steamId);
+      if (summary.profile?.visibility === 'private') {
+        return res.json({
+          status: 'ok',
+          data: summary,
+          notice: 'This Steam profile is private, so its library and achievements are hidden.'
+        });
+      }
+      res.json({ status: 'ok', data: summary });
+    } catch (err) {
+      sendSteamError(res, err);
+    }
+  });
+
+  app.get('/api/steam/achievements', async (req, res) => {
+    const steamId = steamIdForRequest(req, res);
+    if (!steamId) return;
+
+    try {
+      res.json({ status: 'ok', data: await getAchievementOverview(steamId) });
+    } catch (err) {
+      sendSteamError(res, err);
+    }
+  });
+
+  app.get('/api/steam/achievements/:appId', async (req, res) => {
+    const steamId = steamIdForRequest(req, res);
+    if (!steamId) return;
+
+    const appId = Number(req.params.appId);
+    if (!Number.isInteger(appId) || appId <= 0) {
+      return res.status(400).json({ error: 'Invalid Steam app id' });
+    }
+
+    try {
+      res.json({ status: 'ok', data: await getAchievements(steamId, appId) });
+    } catch (err) {
+      sendSteamError(res, err);
+    }
   });
 
   // --- GAME SAVES & PROGRESS TRACKER ENDPOINTS ---
@@ -1766,6 +1845,7 @@ async function startServer() {
     if (!requireAdmin(req, res)) return;
     cachedArchiveGames = [];
     imgCache.clear();
+    clearSteamCache();
     lastArchiveFetchTime = 0;
     res.json({ status: 'ok', message: 'All in-memory proxy & games cache purged successfully.' });
   });
@@ -1972,68 +2052,61 @@ async function startServer() {
     });
   }
 
-  // Background Sync for Steam Profiles every 15 minutes (900000 ms)
+  // Background refresh of linked Steam profiles every 15 minutes
   setInterval(async () => {
-    console.log('[Steam Sync] Starting scheduled update of linked Steam profiles...');
     const accounts = getStoredAccounts();
+    const linked = accounts.filter(a => a.steamId);
+    if (linked.length === 0) return;
+
+    console.log(`[Steam Sync] Refreshing ${linked.length} linked profile(s)...`);
     const updates = new Map<string, Partial<StoredUserAccount>>();
 
-    for (const account of accounts) {
-      if (account.steamId) {
-        try {
-          const isNumericId = /^\d{17}$/.test(account.steamId);
-          const xmlUrl = isNumericId
-            ? `https://steamcommunity.com/profiles/${encodeURIComponent(account.steamId)}/?xml=1`
-            : `https://steamcommunity.com/id/${encodeURIComponent(account.steamId)}/?xml=1`;
-
-          const response = await fetch(xmlUrl, {
-            headers: { 'User-Agent': 'Mozilla/5.0' },
-            signal: AbortSignal.timeout(4500)
-          });
-
-          if (response.ok) {
-            const xmlText = await response.text();
-            const personaMatch = xmlText.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/) || xmlText.match(/<steamID>(.*?)<\/steamID>/);
-            const avatarMatch = xmlText.match(/<avatarFull><!\[CDATA\[(.*?)\]\]><\/avatarFull>/) || xmlText.match(/<avatarFull>(.*?)<\/avatarFull>/);
-
-            const update: Partial<StoredUserAccount> = {};
-            if (personaMatch) update.steamPersonaName = personaMatch[1];
-            if (avatarMatch) update.steamAvatar = avatarMatch[1];
-
-            const profileUrl = account.steamProfileUrl || `https://steamcommunity.com/profiles/${account.steamId}`;
-
-            // Fetch HTML for level and games
-            try {
-              const htmlRes = await fetch(profileUrl, { headers: { 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(4000) });
-              const htmlText = await htmlRes.text();
-              const levelMatch = htmlText.match(/friendPlayerLevelNum">([0-9]+)</);
-              if (levelMatch) update.steamLevel = parseInt(levelMatch[1], 10);
-              const gamesMatch = htmlText.match(/<span class="count_link_label">Games<\/span>\s*<span class="profile_count_link_total">\s*([0-9,]+)\s*<\/span>/);
-              if (gamesMatch) update.steamGamesCount = parseInt(gamesMatch[1].replace(/,/g, ''), 10);
-            } catch (e) {
-              // Ignore HTML scrape error for background task
-            }
-
-            if (Object.keys(update).length > 0) {
-              updates.set(account.id, update);
-            }
+    for (const account of linked) {
+      try {
+        if (isSteamConfigured()) {
+          const summary = await getLibrarySummary(account.steamId!);
+          if (summary.profile) {
+            updates.set(account.id, {
+              steamPersonaName: summary.profile.personaName,
+              steamAvatar: summary.profile.avatar,
+              steamProfileUrl: summary.profile.profileUrl,
+              ...(summary.level !== null ? { steamLevel: summary.level } : {}),
+              steamGamesCount: summary.gameCount
+            });
           }
-        } catch (e) {
-          console.warn(`[Steam Sync] Failed to update user ${account.username}`);
+          continue;
         }
+
+        // Keyless: the public profile XML is all Steam still serves
+        const response = await fetch(`https://steamcommunity.com/profiles/${encodeURIComponent(account.steamId!)}/?xml=1`, {
+          headers: { 'User-Agent': 'Mozilla/5.0 FlashHub/2.0' },
+          signal: AbortSignal.timeout(6000)
+        });
+        if (!response.ok) continue;
+
+        const xmlText = await response.text();
+        const persona = xmlText.match(/<steamID><!\[CDATA\[(.*?)\]\]><\/steamID>/)?.[1];
+        const avatar = xmlText.match(/<avatarFull><!\[CDATA\[(.*?)\]\]><\/avatarFull>/)?.[1];
+
+        const update: Partial<StoredUserAccount> = {};
+        if (persona) update.steamPersonaName = persona;
+        if (avatar) update.steamAvatar = avatar;
+        if (Object.keys(update).length > 0) updates.set(account.id, update);
+      } catch (err: any) {
+        console.warn(`[Steam Sync] Could not refresh ${account.username}: ${err?.message || err}`);
       }
     }
-    
+
     if (updates.size > 0) {
+      // Re-read before writing so a registration or profile edit during the loop survives
       const current = getStoredAccounts();
-      const merged = current.map(acc => {
+      saveStoredAccounts(current.map(acc => {
         const update = updates.get(acc.id);
         return update ? { ...acc, ...update } : acc;
-      });
-      saveStoredAccounts(merged);
-      console.log(`[Steam Sync] Updated ${updates.size} profiles.`);
+      }));
+      console.log(`[Steam Sync] Updated ${updates.size} profile(s).`);
     }
-  }, 15 * 60 * 1000); // 15 mins
+  }, 15 * 60 * 1000);
 
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server running on port ${PORT}`);
