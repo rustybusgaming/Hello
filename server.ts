@@ -184,6 +184,38 @@ function escapeHtml(value: string): string {
     .replace(/'/g, '&#39;');
 }
 
+/**
+ * Custom games that live in the repository.
+ *
+ * Every uploaded game already writes a `metadata.json` next to its file, so the folder is
+ * self-describing: committing `public/custom_games/` is enough to share a game with anyone
+ * who clones the repo. `data/game_settings.json` stays out of git — it is runtime state
+ * that sits next to password hashes and session tokens — so it cannot be the only record.
+ */
+function readCustomGamesFromDisk(): any[] {
+  const games: any[] = [];
+  try {
+    if (!fs.existsSync(customGamesDir)) return games;
+    for (const dir of fs.readdirSync(customGamesDir)) {
+      if (dir.startsWith('.')) continue;
+      const metaPath = path.join(customGamesDir, dir, 'metadata.json');
+      if (!fs.existsSync(metaPath)) continue;
+      try {
+        const meta = JSON.parse(fs.readFileSync(metaPath, 'utf8'));
+        // The folder name is the id of record; a metadata.json that disagrees is stale
+        if (meta && typeof meta === 'object' && meta.title) {
+          games.push({ ...meta, id: dir });
+        }
+      } catch (err) {
+        console.warn(`Skipping unreadable custom game metadata in ${dir}:`, err);
+      }
+    }
+  } catch (err) {
+    console.error('Could not scan custom games:', err);
+  }
+  return games;
+}
+
 // Track syncing status
 let isSyncing = false;
 let syncProgressMessage = 'Idle';
@@ -317,8 +349,8 @@ async function fetchArchiveGames() {
           genres: genres.length > 0 ? genres : ['Flash'],
           isArchiveIndependent: false,
           mirrors: [
-            { id: `${doc.identifier}-ruffle`, name: 'Ruffle WASM (Direct SWF)', type: 'ruffle', url: playUrl, isArchiveIndependent: true },
-            { id: `${doc.identifier}-embed`, name: 'Archive.org Player', type: 'archive', url: `https://archive.org/embed/${doc.identifier}`, isArchiveIndependent: false }
+            { id: `${doc.identifier}-ruffle`, name: 'Ruffle', type: 'ruffle', url: playUrl, isArchiveIndependent: true },
+            { id: `${doc.identifier}-embed`, name: 'Archive.org', type: 'archive', url: `https://archive.org/embed/${doc.identifier}`, isArchiveIndependent: false }
           ]
         };
       });
@@ -451,6 +483,45 @@ async function startServer() {
   const trustedProxyHops = Number(process.env.TRUSTED_PROXY_HOPS ?? 0);
   app.set('trust proxy', Number.isFinite(trustedProxyHops) && trustedProxyHops > 0 ? trustedProxyHops : false);
 
+  const isProduction = process.env.NODE_ENV === 'production';
+
+  /*
+   * Game isolation is the security model: games are third-party code and must not share an
+   * origin with the hub. In development that is free — localhost and 127.0.0.1 are the same
+   * server but distinct origins — but a real deployment has only one hostname unless
+   * GAME_ORIGIN names a second one. Without it every game runs with the hub's cookies in
+   * reach, silently. That is a refusal to start, not a warning to scroll past.
+   */
+  if (isProduction && !process.env.GAME_ORIGIN) {
+    if (process.env.ALLOW_SAME_ORIGIN_GAMES === '1') {
+      console.error(
+        '\n!!  GAME_ORIGIN is unset and ALLOW_SAME_ORIGIN_GAMES=1.\n' +
+        '!!  Games are running on the hub\'s own origin with no isolation.\n'
+      );
+    } else {
+      console.error(
+        '\nRefusing to start: GAME_ORIGIN is not set.\n\n' +
+        'Games are third-party code and must be framed from a second hostname pointing at\n' +
+        'this server, or they can reach the hub\'s session cookie and storage.\n\n' +
+        '  GAME_ORIGIN=https://games.example.com\n\n' +
+        'To start anyway and accept that risk, set ALLOW_SAME_ORIGIN_GAMES=1.\n'
+      );
+      process.exit(1);
+    }
+  }
+
+  /*
+   * With `trust proxy` off, req.ip is the peer address. Behind a load balancer that is the
+   * balancer for every request, so the per-IP rate limit becomes one shared bucket and the
+   * whole internet shares one budget.
+   */
+  if (isProduction && !(trustedProxyHops > 0)) {
+    console.warn(
+      'TRUSTED_PROXY_HOPS is 0. If anything proxies this server, set it to the number of\n' +
+      'hops in front — otherwise per-IP rate limiting sees only the proxy address.'
+    );
+  }
+
   /**
    * Baseline security headers for the hub itself.
    *
@@ -471,7 +542,7 @@ async function startServer() {
 
     // Vite injects inline scripts and styles in development, so the script policy can only
     // be tightened for the built bundle.
-    const scriptSrc = process.env.NODE_ENV === 'production'
+    const scriptSrc = isProduction
       ? "'self'"
       : "'self' 'unsafe-inline' 'unsafe-eval'";
 
@@ -886,7 +957,10 @@ async function startServer() {
     const settings = getGameSettings();
     const hiddenSet = new Set(settings.hiddenGameIds || []);
 
+    // Disk first: a committed metadata.json is the shared record, and the dedupe below
+    // keeps the local settings entry from shadowing it.
     let allGames = [
+      ...readCustomGamesFromDisk(),
       ...(settings.customGames || []),
       ...GENIZY_WEBPORT_GAMES,
       ...localGames,
@@ -1130,7 +1204,7 @@ async function startServer() {
       res.status(201).json({
         status: 'ok',
         token,
-        user: toPublicAccount(newAccount, 0, 0),
+        user: toPublicAccount(newAccount, 0),
         message: 'Account created successfully!'
       });
     } catch (err: any) {
@@ -1194,12 +1268,11 @@ async function startServer() {
       setSessionCookie(res, token);
 
       const saves = getSaves().filter(s => s.userId === user.id);
-      const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
 
       res.json({
         status: 'ok',
         token,
-        user: toPublicAccount(user, saves.length, totalPlaytime),
+        user: toPublicAccount(user, saves.length),
         message: `Welcome back, ${user.displayName || user.username}!`
       });
     } catch (err: any) {
@@ -1217,11 +1290,10 @@ async function startServer() {
       }
 
       const saves = getSaves().filter(s => s.userId === user.id);
-      const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
 
       res.json({
         status: 'ok',
-        user: toPublicAccount(user, saves.length, totalPlaytime)
+        user: toPublicAccount(user, saves.length)
       });
     } catch (err: any) {
       res.status(500).json({ error: err.message });
@@ -1262,11 +1334,10 @@ async function startServer() {
       saveStoredAccounts(storedAccounts);
 
       const saves = getSaves().filter(s => s.userId === user.id);
-      const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
 
       res.json({
         status: 'ok',
-        user: toPublicAccount(storedAccounts[index], saves.length, totalPlaytime),
+        user: toPublicAccount(storedAccounts[index], saves.length),
         message: 'Profile updated!'
       });
     } catch (err: any) {
@@ -1327,6 +1398,47 @@ async function startServer() {
     }
   });
 
+  /**
+   * Bank a finished session against the player's account.
+   *
+   * Playtime used to be inferred from save slots, which only Flash titles have and which
+   * are overwritten rather than accumulated. The player modal reports each session as it
+   * closes instead, so the figure covers every game and only ever goes up.
+   */
+  app.post('/api/auth/playtime', (req, res) => {
+    try {
+      const user = requireUser(req, res);
+      if (!user) return;
+
+      const minutes = Number(req.body?.minutes);
+      if (!Number.isFinite(minutes) || minutes <= 0) {
+        return res.status(400).json({ error: 'A positive number of minutes is required' });
+      }
+
+      // One sitting cannot plausibly exceed a day; anything larger is a bad clock or a
+      // client bug, and banking it would poison the counter permanently.
+      const capped = Math.min(Math.round(minutes), 60 * 24);
+
+      const storedAccounts = getStoredAccounts();
+      const index = storedAccounts.findIndex(a => a.id === user.id);
+      if (index === -1) return res.status(404).json({ error: 'User not found' });
+
+      storedAccounts[index].totalPlaytimeMinutes = (storedAccounts[index].totalPlaytimeMinutes || 0) + capped;
+      saveStoredAccounts(storedAccounts);
+
+      const newlyEarned = checkAchievements(user.id);
+      const saves = getSaves().filter(s => s.userId === user.id);
+
+      res.json({
+        status: 'ok',
+        user: toPublicAccount(storedAccounts[index], saves.length),
+        newlyEarned
+      });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // Link Steam to logged-in user
   app.post('/api/auth/link-steam', (req, res) => {
     try {
@@ -1355,11 +1467,10 @@ async function startServer() {
       saveStoredAccounts(storedAccounts);
 
       const saves = getSaves().filter(s => s.userId === user.id);
-      const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
 
       res.json({
         status: 'ok',
-        user: toPublicAccount(storedAccounts[index], saves.length, totalPlaytime),
+        user: toPublicAccount(storedAccounts[index], saves.length),
         message: 'Steam profile connected!'
       });
     } catch (err: any) {
@@ -1390,11 +1501,10 @@ async function startServer() {
       saveStoredAccounts(storedAccounts);
 
       const saves = getSaves().filter(s => s.userId === user.id);
-      const totalPlaytime = saves.reduce((sum, s) => sum + (s.playtimeMinutes || 0), 0);
 
       res.json({
         status: 'ok',
-        user: toPublicAccount(storedAccounts[index], saves.length, totalPlaytime),
+        user: toPublicAccount(storedAccounts[index], saves.length),
         message: 'Steam account unlinked.'
       });
     } catch (err: any) {
@@ -2201,18 +2311,44 @@ async function startServer() {
       thumbnailUrl = `/custom_games/${gameId}/${thumbName}`;
     }
 
-    // Create metadata.json for the game
-    const meta = {
+    /*
+     * An uploaded .swf plays through Ruffle exactly like every other Flash title, so it is
+     * tagged `Flash`. That tag is not cosmetic: it drives the RUFFLE badge and it is the
+     * gate for save slots, which are Flash-only — without it an uploaded Flash game would
+     * silently be the one Ruffle title on the hub that cannot be saved.
+     */
+    const isSwf = ext === '.swf';
+    const swfPath = `/custom_games/${gameId}/game.swf`;
+    const meta: Record<string, unknown> = {
       id: gameId,
       title,
       source: 'custom',
-      embedUrl: ext === '.swf' ? `/play.html?swf=/custom_games/${gameId}/game.swf` : `/custom_games/${gameId}/index.html`,
-      genres: ['Custom', 'Uploaded'],
+      embedUrl: isSwf
+        ? `/play.html?title=${encodeURIComponent(title)}&swf=${swfPath}&autoplay=1`
+        : `/custom_games/${gameId}/index.html`,
+      genres: isSwf ? ['Custom', 'Uploaded', 'Flash'] : ['Custom', 'Uploaded'],
       thumbnail: thumbnailUrl,
-      rating: 5.0
+      rating: 5.0,
+      isArchiveIndependent: true
     };
-    
-    fs.writeFileSync(path.join(gameDir, 'metadata.json'), JSON.stringify(meta));
+
+    if (isSwf) {
+      // Without explicit mirrors the player falls through to its generic branch and labels
+      // a Ruffle upload "HTML5 WebPort".
+      meta.swfUrl = swfPath;
+      meta.mirrors = [
+        {
+          id: `${gameId}-ruffle`,
+          name: 'Ruffle',
+          type: 'ruffle',
+          url: meta.embedUrl,
+          isArchiveIndependent: true
+        },
+        { id: `${gameId}-swf`, name: 'Direct file', type: 'mirror', url: swfPath, isArchiveIndependent: true }
+      ];
+    }
+
+    fs.writeFileSync(path.join(gameDir, 'metadata.json'), JSON.stringify(meta, null, 2));
 
     const settings = getGameSettings();
     if (!settings.customGames) settings.customGames = [];
@@ -2221,6 +2357,45 @@ async function startServer() {
 
     res.json({ status: 'ok', game: meta });
   };
+
+  /*
+   * Uploaded HTML is third-party code sitting on this server's own filesystem, and
+   * /custom_games is deliberately outside the security-header middleware so games can be
+   * embedded. That combination previously meant an uploaded index.html executed as
+   * first-party script on the hub's origin — reachable by navigating straight to it.
+   *
+   * Two things fix it, and both are needed:
+   *   - `Content-Security-Policy: sandbox` drops the document into an opaque origin, so it
+   *     cannot reach the hub's cookies, storage or DOM even when opened directly. Scripts
+   *     still run, so the game still works.
+   *   - The storage bridge is injected, because an opaque origin has no usable
+   *     localStorage — the same treatment every proxied game document already gets.
+   */
+  app.get(/^\/custom_games\/.+\.html?$/i, (req, res, next) => {
+    const relative = decodeURIComponent(req.path.replace(/^\/custom_games\//, ''));
+
+    // Resolve and confirm the result is still inside the uploads directory
+    const target = path.resolve(customGamesDir, relative);
+    if (target !== customGamesDir && !target.startsWith(customGamesDir + path.sep)) {
+      return res.status(400).type('text/plain').send('Invalid path');
+    }
+    if (!fs.existsSync(target) || !fs.statSync(target).isFile()) return next();
+
+    try {
+      const html = fs.readFileSync(target, 'utf8');
+      res.setHeader('Content-Type', 'text/html; charset=utf-8');
+      res.setHeader('Access-Control-Allow-Origin', '*');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader(
+        'Content-Security-Policy',
+        'sandbox allow-scripts allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
+      );
+      res.send(injectFrameStorage(html));
+    } catch (err: any) {
+      console.error(`Could not serve uploaded game ${relative}:`, err);
+      res.status(500).type('text/plain').send('Could not load this game');
+    }
+  });
 
   // Serve custom games directly
   app.use(

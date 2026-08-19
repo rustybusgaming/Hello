@@ -103,7 +103,13 @@ Games are third-party code, so they run walled off from the hub:
   by one attacker.
 
 If no second origin is available, frames fall back to the hub's own origin and this
-isolation is lost; the server logs a warning at startup when `GAME_ORIGIN` is unset.
+isolation is lost, so **in production the server refuses to start unless `GAME_ORIGIN` is
+set**. Set `ALLOW_SAME_ORIGIN_GAMES=1` to override that and accept the risk. In
+development the localhost/127.0.0.1 pair supplies the second origin for free.
+
+Uploaded HTML games are served with `Content-Security-Policy: sandbox`, which puts them in
+an opaque origin even when opened directly rather than embedded, and the frame storage
+bridge is injected so their progress still works without real `localStorage`.
 
 The server also inlines a small storage bridge (`server/frameStorage.ts`) into every game
 document. Games on the isolated origin would otherwise save into that origin's own storage,
@@ -191,7 +197,8 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `PORT` | No | Server port (default `3000`) |
-| `GAME_ORIGIN` | No | Second origin that game frames load from; falls back to `127.0.0.1` on localhost |
+| `GAME_ORIGIN` | **In production** | Second origin that game frames load from; falls back to `127.0.0.1` on localhost. The server refuses to start in production without it |
+| `ALLOW_SAME_ORIGIN_GAMES` | No | Set to `1` to start in production without `GAME_ORIGIN`, accepting that games run unisolated |
 | `TRUSTED_PROXY_HOPS` | No | Number of reverse proxies in front of the server; unset means `X-Forwarded-For` is ignored |
 | `NODE_ENV` | No | Set to `production` to serve `dist/` instead of the Vite middleware |
 | `STEAM_API_KEY` | No | Steam Web API key; required for library, playtime and achievements |

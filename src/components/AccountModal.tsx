@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { UserAccount, GameSave } from '../types';
+import { UserAccount, GameSave, Achievement } from '../types';
 import {
   X,
   User,
@@ -36,16 +36,31 @@ interface AccountModalProps {
   initialTab?: 'profile' | 'signin' | 'register' | 'steam' | 'saves' | 'security' | 'switch';
 }
 
-const AVATAR_PRESETS = [
-  { name: 'Cyber Bot', url: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&q=80' },
-  { name: 'Retro Gamer', url: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?w=150&q=80' },
-  { name: 'Arcade Pixel', url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&q=80' },
-  { name: 'Neon Samurai', url: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&q=80' },
-  { name: 'Synthwave', url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=150&q=80' },
-  { name: '8-Bit Hero', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=hero' },
-  { name: 'Pixel Fox', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=fox' },
-  { name: 'Mecha', url: 'https://api.dicebear.com/7.x/bottts/svg?seed=mecha' }
+/*
+ * Generated marks, not stock photography. The old presets pulled portraits from Unsplash —
+ * an external host the hub does not control, and faces sit oddly in a system that prints
+ * every other image in black and white.
+ */
+// Every style here was checked against the API — `beam` and `glass` are not DiceBear 7.x
+// styles and 404, which renders as a broken image in the picker.
+const AVATAR_STYLES = [
+  'bottts', 'pixel-art', 'identicon', 'shapes', 'rings', 'thumbs',
+  'avataaars', 'notionists', 'adventurer', 'lorelei', 'micah', 'miniavs',
+  'open-peeps', 'personas', 'big-ears', 'croodles', 'fun-emoji', 'big-smile'
 ];
+
+/*
+ * Generated marks, not stock photography. The old presets pulled portraits from Unsplash —
+ * an external host the hub does not control, and faces sit oddly in a system that prints
+ * every other image in black and white. Two seeds per style gives a decent spread without
+ * turning the picker into a wall.
+ */
+const AVATAR_PRESETS = AVATAR_STYLES.flatMap(style =>
+  ['a', 'b'].map(seed => ({
+    name: style.replace(/-/g, ' '),
+    url: `https://api.dicebear.com/7.x/${style}/svg?seed=flashhub-${style}-${seed}`
+  }))
+);
 
 export function AccountModal({
   currentUser,
@@ -111,6 +126,21 @@ export function AccountModal({
   // Switch / Accounts Directory
   const [allAccounts, setAllAccounts] = useState<UserAccount[]>([]);
 
+  // The achievement catalogue, so the profile can show what is still locked rather than
+  // repeating the server's list in a hardcoded if-chain that drifts from it.
+  const [achievementCatalog, setAchievementCatalog] = useState<Achievement[]>([]);
+
+  /** Minutes as something a person reads: "3h 12m", "45m", "—" for nothing yet. */
+  const formatPlaytime = (minutes: number): string => {
+    if (!minutes) return '—';
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    if (!hours) return `${mins}m`;
+    return mins ? `${hours}h ${mins}m` : `${hours}h`;
+  };
+
+  const earnedIds = new Set((currentUser?.achievements || []).map(a => a.achievementId));
+
   useEscapeKey(onClose);
 
   // Update edit form values when user changes
@@ -139,6 +169,13 @@ export function AccountModal({
       })
       .catch(() => {});
   }, [currentUser]);
+
+  useEffect(() => {
+    fetch('/api/achievements')
+      .then(res => (res.ok ? res.json() : null))
+      .then(d => { if (d?.status === 'ok') setAchievementCatalog(d.data || []); })
+      .catch(() => { /* the profile falls back to showing only what was earned */ });
+  }, []);
 
   // Load user saves when viewing saves tab
   useEffect(() => {
@@ -794,13 +831,13 @@ export function AccountModal({
                   <label className="block text-xs font-semibold text-ink/80 mb-2">
                     Choose Profile Avatar
                   </label>
-                  <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                  <div className="grid grid-cols-9 sm:grid-cols-12 gap-1.5 max-h-[152px] overflow-y-auto pr-1">
                     {AVATAR_PRESETS.map((preset, i) => (
                       <button
                         key={i}
                         type="button"
                         onClick={() => setRegAvatar(preset.url)}
-                        className={`relative flex-shrink-0 w-11 h-11  overflow-hidden border-2 transition-all ${
+                        className={`relative flex-shrink-0 w-10 h-10 overflow-hidden border-2 transition-all ${
                           regAvatar === preset.url ? 'border-accent scale-105  ring-accent/20' : 'border-rule hover:border-rule'
                         }`}
                         title={preset.name}
@@ -930,7 +967,7 @@ export function AccountModal({
 
                   <div>
                     <label className="block text-xs font-semibold text-ink/80 mb-2">Avatar Preset or Custom URL</label>
-                    <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                    <div className="grid grid-cols-9 sm:grid-cols-12 gap-1.5 max-h-[152px] overflow-y-auto pr-1">
                       {AVATAR_PRESETS.map((preset, i) => (
                         <button
                           key={i}
@@ -972,68 +1009,85 @@ export function AccountModal({
                 </form>
               )}
 
-              {/* Stats Metrics Cards */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div className="p-4 bg-shade/60 border border-rule">
-                  <span className="text-[11px] text-ink/60 uppercase font-mono tracking-wider block mb-1">
-                    Cloud Saves
-                  </span>
-                  <div className="text-sm font-semibold text-ink flex items-center gap-1.5">
-                    <Save className="w-4 h-4 text-accent" />
-                    {userSaves.length || currentUser.savesCount || 0} Slots Active
+              {/* The four figures a profile is actually about, on the system's stat band */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 border border-rule">
+                {[
+                  {
+                    label: 'Playtime',
+                    value: formatPlaytime(currentUser.totalPlaytimeMinutes || 0)
+                  },
+                  {
+                    label: 'Save slots',
+                    value: String(userSaves.length || currentUser.savesCount || 0)
+                  },
+                  {
+                    label: 'Achievements',
+                    value: `${earnedIds.size}/${achievementCatalog.length || earnedIds.size}`
+                  },
+                  {
+                    label: 'Member since',
+                    value: new Date(currentUser.createdAt).toLocaleDateString(undefined, {
+                      month: 'short',
+                      year: 'numeric'
+                    })
+                  }
+                ].map(({ label, value }, i) => (
+                  <div
+                    key={label}
+                    className={`px-4 py-3.5 border-rule ${i % 2 === 0 ? 'border-r' : ''} ${
+                      i < 2 ? 'border-b lg:border-b-0' : ''
+                    } lg:border-r lg:last:border-r-0`}
+                  >
+                    <div className="eyebrow mb-1.5">{label}</div>
+                    <div className="font-display text-[20px] font-extrabold leading-none text-ink">
+                      {value}
+                    </div>
                   </div>
-                </div>
-
-                <div className="p-4 bg-shade/60 border border-rule">
-                  <span className="text-[11px] text-ink/60 uppercase font-mono tracking-wider block mb-1">
-                    Steam Connection
-                  </span>
-                  <div className="text-sm font-semibold text-ink flex items-center gap-1.5">
-                    <Gamepad2 className="w-4 h-4 text-[#66c0f4]" />
-                    {currentUser.steamId ? `Level ${currentUser.steamLevel || 25} Linked` : 'Not Connected'}
-                  </div>
-                </div>
-
-                <div className="p-4 bg-shade/60 border border-rule">
-                  <span className="text-[11px] text-ink/60 uppercase font-mono tracking-wider block mb-1">
-                    Session Security
-                  </span>
-                  <div className="text-sm font-semibold text-accent flex items-center gap-1.5">
-                    <Shield className="w-4 h-4" />
-                    Encrypted Session
-                  </div>
-                </div>
+                ))}
               </div>
 
-              {/* Achievements Section */}
+              {/* Achievements — the whole catalogue, so the locked ones read as goals */}
               <div className="pt-2">
-                <div className="flex items-center gap-2 mb-3">
-                  <Flame className="w-4 h-4 text-accent" />
-                  <h4 className="text-sm font-bold text-ink uppercase tracking-wider">Unlocked Achievements</h4>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="flex items-center gap-2">
+                    <Flame className="w-4 h-4 text-accent" />
+                    <h4 className="text-sm font-bold text-ink uppercase tracking-wider">Achievements</h4>
+                  </div>
+                  <span className="font-mono text-[11px] text-ink/55">
+                    {earnedIds.size} / {achievementCatalog.length || earnedIds.size} unlocked
+                  </span>
                 </div>
-                {(!currentUser.achievements || currentUser.achievements.length === 0) ? (
-                  <div className="p-4 border border-dashed border-rule text-center">
-                    <p className="text-xs text-ink/55">No achievements unlocked yet. Play some games!</p>
+
+                {achievementCatalog.length === 0 ? (
+                  <div className="p-4 border border-dashed border-rule">
+                    <p className="text-xs text-ink/55">Achievement list unavailable.</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {currentUser.achievements.map(ach => {
-                      // Hardcoded lookup for display
-                      let icon = '🏆';
-                      let name = ach.achievementId;
-                      let desc = '';
-                      if (ach.achievementId === 'first_play') { icon = '🎮'; name = 'First Play'; desc = 'Played your first game'; }
-                      if (ach.achievementId === 'marathon_player') { icon = '⏳'; name = 'Marathon Player'; desc = '1 hour of total playtime'; }
-                      if (ach.achievementId === 'genre_explorer') { icon = '🌍'; name = 'Genre Explorer'; desc = 'Played 3 different genres'; }
-                      
+                    {achievementCatalog.map(ach => {
+                      const earned = currentUser.achievements?.find(a => a.achievementId === ach.id);
                       return (
-                        <div key={ach.achievementId} className="flex items-center gap-3 p-3 border border-rule bg-shade">
-                          <div className="w-10 h-10 bg-shade flex items-center justify-center text-lg border border-rule">
-                            {icon}
+                        <div
+                          key={ach.id}
+                          className={`flex items-start gap-3 p-3 border ${
+                            earned ? 'border-accent bg-accent/5' : 'border-rule bg-shade opacity-60'
+                          }`}
+                        >
+                          <div
+                            className={`w-10 h-10 flex items-center justify-center text-lg border flex-shrink-0 ${
+                              earned ? 'border-accent bg-paper' : 'border-rule bg-paper grayscale'
+                            }`}
+                          >
+                            {ach.icon}
                           </div>
-                          <div>
-                            <div className="text-xs font-bold text-ink">{name}</div>
-                            <div className="text-[10px] text-ink/60">{desc}</div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold text-ink">{ach.name}</div>
+                            <div className="text-[10px] text-ink/60 leading-relaxed">{ach.description}</div>
+                            <div className="text-[10px] font-mono text-ink/45 mt-1">
+                              {earned
+                                ? `Unlocked ${new Date(earned.earnedAt).toLocaleDateString()}`
+                                : 'Locked'}
+                            </div>
                           </div>
                         </div>
                       );

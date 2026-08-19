@@ -62,6 +62,8 @@ export interface StoredUserAccount {
   email: string;
   passwordHash: string;
   passwordSalt: string;
+  /** Cumulative minutes played, banked when a game closes. */
+  totalPlaytimeMinutes?: number;
   displayName?: string;
   bio?: string;
   role: 'admin' | 'user';

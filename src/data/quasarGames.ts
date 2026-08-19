@@ -34,8 +34,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Simulation', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-dl1-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Duck%20Life%201&swf=/api/quasar/storage/flash/dl1/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-dl1-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/dl1/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-dl1-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Duck%20Life%201&swf=/api/quasar/storage/flash/dl1/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-dl1-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/dl1/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -48,8 +48,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Simulation', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-dl2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Duck%20Life%202&swf=/api/quasar/storage/flash/dl2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-dl2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/dl2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-dl2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Duck%20Life%202&swf=/api/quasar/storage/flash/dl2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-dl2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/dl2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -62,8 +62,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Simulation', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-dl3-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Duck%20Life%203&swf=/api/quasar/storage/flash/dl3/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-dl3-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/dl3/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-dl3-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Duck%20Life%203&swf=/api/quasar/storage/flash/dl3/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-dl3-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/dl3/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -76,8 +76,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Simulation', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-dl4-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Duck%20Life%204&swf=/api/quasar/storage/flash/dl4/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-dl4-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/dl4/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-dl4-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Duck%20Life%204&swf=/api/quasar/storage/flash/dl4/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-dl4-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/dl4/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -90,8 +90,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pbake-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Bakeria&swf=/api/quasar/storage/flash/pbake/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pbake-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pbake/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pbake-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Bakeria&swf=/api/quasar/storage/flash/pbake/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pbake-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pbake/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -104,8 +104,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pburg-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Burgeria&swf=/api/quasar/storage/flash/pburg/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pburg-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pburg/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pburg-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Burgeria&swf=/api/quasar/storage/flash/pburg/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pburg-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pburg/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -118,8 +118,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pchee-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Cheeseria&swf=/api/quasar/storage/flash/pchee/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pchee-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pchee/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pchee-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Cheeseria&swf=/api/quasar/storage/flash/pchee/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pchee-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pchee/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -132,8 +132,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pcupc-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Cupcakeria&swf=/api/quasar/storage/flash/pcupc/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pcupc-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pcupc/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pcupc-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Cupcakeria&swf=/api/quasar/storage/flash/pcupc/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pcupc-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pcupc/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -146,8 +146,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pdonut-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Donuteria&swf=/api/quasar/storage/flash/pdonut/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pdonut-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pdonut/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pdonut-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Donuteria&swf=/api/quasar/storage/flash/pdonut/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pdonut-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pdonut/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -160,8 +160,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pfreeze-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Freezeria&swf=/api/quasar/storage/flash/pfreeze/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pfreeze-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pfreeze/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pfreeze-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Freezeria&swf=/api/quasar/storage/flash/pfreeze/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pfreeze-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pfreeze/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -174,8 +174,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-photdog-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Hotdoggeria&swf=/api/quasar/storage/flash/photdog/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-photdog-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/photdog/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-photdog-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Hotdoggeria&swf=/api/quasar/storage/flash/photdog/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-photdog-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/photdog/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -188,8 +188,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ppan-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pancakeria&swf=/api/quasar/storage/flash/ppan/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ppan-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ppan/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ppan-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pancakeria&swf=/api/quasar/storage/flash/ppan/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ppan-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ppan/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -202,8 +202,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ppasta-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pastaria&swf=/api/quasar/storage/flash/ppasta/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ppasta-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ppasta/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ppasta-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pastaria&swf=/api/quasar/storage/flash/ppasta/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ppasta-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ppasta/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -216,8 +216,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ppizza-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pizzaria&swf=/api/quasar/storage/flash/ppizza/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ppizza-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ppizza/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ppizza-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Pizzaria&swf=/api/quasar/storage/flash/ppizza/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ppizza-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ppizza/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -230,8 +230,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pscoop-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Scooperia&swf=/api/quasar/storage/flash/pscoop/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pscoop-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pscoop/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pscoop-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Scooperia&swf=/api/quasar/storage/flash/pscoop/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pscoop-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pscoop/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -244,8 +244,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-psushi-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Sushieria&swf=/api/quasar/storage/flash/psushi/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-psushi-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/psushi/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-psushi-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Sushieria&swf=/api/quasar/storage/flash/psushi/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-psushi-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/psushi/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -258,8 +258,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-pwing-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Papa%27s%20Wingeria&swf=/api/quasar/storage/flash/pwing/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-pwing-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/pwing/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-pwing-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Papa%27s%20Wingeria&swf=/api/quasar/storage/flash/pwing/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-pwing-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/pwing/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -272,8 +272,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-whg-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Worlds%20Hardest%20Game&swf=/api/quasar/storage/flash/whg/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-whg-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/whg/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-whg-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Worlds%20Hardest%20Game&swf=/api/quasar/storage/flash/whg/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-whg-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/whg/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -286,8 +286,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-whg2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Worlds%20Hardest%20Game%202&swf=/api/quasar/storage/flash/whg2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-whg2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/whg2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-whg2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Worlds%20Hardest%20Game%202&swf=/api/quasar/storage/flash/whg2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-whg2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/whg2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -300,8 +300,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-au-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Achievement%20Unlocked&swf=/api/quasar/storage/flash/au1/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-au-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/au1/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-au-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Achievement%20Unlocked&swf=/api/quasar/storage/flash/au1/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-au-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/au1/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -314,8 +314,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-au2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Achievement%20Unlocked%202&swf=/api/quasar/storage/flash/au2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-au2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/au2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-au2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Achievement%20Unlocked%202&swf=/api/quasar/storage/flash/au2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-au2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/au2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -328,8 +328,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-au3-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Achievement%20Unlocked%203&swf=/api/quasar/storage/flash/au3/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-au3-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/au3/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-au3-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Achievement%20Unlocked%203&swf=/api/quasar/storage/flash/au3/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-au3-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/au3/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -342,8 +342,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Action', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rw-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Raft%20Wars&swf=/api/quasar/storage/flash/rw/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rw-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rw/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rw-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Raft%20Wars&swf=/api/quasar/storage/flash/rw/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rw-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rw/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -356,8 +356,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Action', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rw2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Raft%20Wars%202&swf=/api/quasar/storage/flash/rw2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rw2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rw2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rw2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Raft%20Wars%202&swf=/api/quasar/storage/flash/rw2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rw2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rw2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -370,8 +370,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-btd-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense&swf=/api/quasar/storage/flash/btd/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-btd-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/btd/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-btd-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense&swf=/api/quasar/storage/flash/btd/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-btd-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/btd/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -384,8 +384,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-btd2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%202&swf=/api/quasar/storage/flash/btd2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-btd2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/btd2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-btd2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%202&swf=/api/quasar/storage/flash/btd2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-btd2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/btd2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -398,8 +398,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-btdd3-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%203&swf=/api/quasar/storage/flash/btd3/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-btdd3-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/btd3/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-btdd3-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%203&swf=/api/quasar/storage/flash/btd3/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-btdd3-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/btd3/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -412,8 +412,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-btd4-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%204&swf=/api/quasar/storage/flash/btd4/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-btd4-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/btd4/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-btd4-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%204&swf=/api/quasar/storage/flash/btd4/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-btd4-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/btd4/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -426,8 +426,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-hsbtb-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Breaking%20the%20Bank&swf=/api/quasar/storage/flash/btb/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-hsbtb-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/btb/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-hsbtb-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Breaking%20the%20Bank&swf=/api/quasar/storage/flash/btb/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-hsbtb-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/btb/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -440,8 +440,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-hsetp-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Escaping%20the%20Prison&swf=/api/quasar/storage/flash/etp/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-hsetp-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/etp/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-hsetp-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Escaping%20the%20Prison&swf=/api/quasar/storage/flash/etp/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-hsetp-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/etp/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -454,8 +454,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-hsstd-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Stealing%20the%20Diamond&swf=/api/quasar/storage/flash/std/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-hsstd-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/std/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-hsstd-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Stealing%20the%20Diamond&swf=/api/quasar/storage/flash/std/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-hsstd-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/std/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -468,8 +468,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-hsita-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Infiltrating%20the%20Airship&swf=/api/quasar/storage/flash/ita/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-hsita-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ita/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-hsita-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Infiltrating%20the%20Airship&swf=/api/quasar/storage/flash/ita/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-hsita-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ita/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -482,8 +482,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Puzzle', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-hsftc-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Fleeing%20the%20Complex&swf=/api/quasar/storage/flash/ftc/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-hsftc-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ftc/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-hsftc-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Henry%20Stickmin%3A%20Fleeing%20the%20Complex&swf=/api/quasar/storage/flash/ftc/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-hsftc-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ftc/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -496,8 +496,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Simulation', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ffs-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Flash%20Flight%20Simulator&swf=/api/quasar/storage/flash/ffs/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ffs-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ffs/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ffs-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Flash%20Flight%20Simulator&swf=/api/quasar/storage/flash/ffs/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ffs-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ffs/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -510,8 +510,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-sth2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Storm%20the%20House%202&swf=/api/quasar/storage/flash/sth2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-sth2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/sth2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-sth2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Storm%20the%20House%202&swf=/api/quasar/storage/flash/sth2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-sth2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/sth2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -524,8 +524,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rs1-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Riddle%20School&swf=/api/quasar/storage/flash/rs1/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rs1-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rs1/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rs1-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Riddle%20School&swf=/api/quasar/storage/flash/rs1/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rs1-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rs1/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -538,8 +538,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rs2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Riddle%20School%202&swf=/api/quasar/storage/flash/rs2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rs2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rs2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rs2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Riddle%20School%202&swf=/api/quasar/storage/flash/rs2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rs2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rs2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -552,8 +552,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rs3-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Riddle%20School%203&swf=/api/quasar/storage/flash/rs3/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rs3-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rs3/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rs3-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Riddle%20School%203&swf=/api/quasar/storage/flash/rs3/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rs3-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rs3/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -566,8 +566,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rs4-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Riddle%20School%204&swf=/api/quasar/storage/flash/rs4/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rs4-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rs4/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rs4-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Riddle%20School%204&swf=/api/quasar/storage/flash/rs4/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rs4-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rs4/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -580,8 +580,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rs5-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Riddle%20School%205&swf=/api/quasar/storage/flash/rs5/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rs5-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rs5/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rs5-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Riddle%20School%205&swf=/api/quasar/storage/flash/rs5/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rs5-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rs5/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -594,8 +594,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rt1-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Riddle%20Transfer&swf=/api/quasar/storage/flash/rt1/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rt1-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rt1/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rt1-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Riddle%20Transfer&swf=/api/quasar/storage/flash/rt1/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rt1-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rt1/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -608,8 +608,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rt2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Riddle%20Transfer%202&swf=/api/quasar/storage/flash/rt2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rt2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rt2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rt2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Riddle%20Transfer%202&swf=/api/quasar/storage/flash/rt2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rt2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rt2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -622,8 +622,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Casual', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-stm-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Spank%20the%20Monkey&swf=/api/quasar/storage/flash/stm/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-stm-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/stm/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-stm-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Spank%20the%20Monkey&swf=/api/quasar/storage/flash/stm/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-stm-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/stm/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -636,8 +636,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-bp-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Bad%20Piggies&swf=/api/quasar/storage/flash/bp/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-bp-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/bp/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-bp-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bad%20Piggies&swf=/api/quasar/storage/flash/bp/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-bp-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/bp/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -650,8 +650,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-sugasuga-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Sugar%20Sugar&swf=/api/quasar/storage/flash/ss/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-sugasuga-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ss/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-sugasuga-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Sugar%20Sugar&swf=/api/quasar/storage/flash/ss/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-sugasuga-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ss/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -664,8 +664,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ltf-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Learn%20to%20Fly&swf=/api/quasar/storage/flash/ltf/ltf.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ltf-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ltf/ltf.swf', isArchiveIndependent: true }
+      { id: 'quasar-ltf-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Learn%20to%20Fly&swf=/api/quasar/storage/flash/ltf/ltf.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ltf-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ltf/ltf.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -678,8 +678,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ltf2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Learn%20to%20Fly%202&swf=/api/quasar/storage/flash/ltf2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ltf2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ltf2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ltf2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Learn%20to%20Fly%202&swf=/api/quasar/storage/flash/ltf2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ltf2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ltf2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -692,8 +692,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-idek-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=I%20Don%27t%20Even%20Know&swf=/api/quasar/storage/flash/idek/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-idek-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/idek/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-idek-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=I%20Don%27t%20Even%20Know&swf=/api/quasar/storage/flash/idek/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-idek-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/idek/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -706,8 +706,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ol-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=This%20is%20the%20only%20level&swf=/api/quasar/storage/flash/ol/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ol-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ol/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ol-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=This%20is%20the%20only%20level&swf=/api/quasar/storage/flash/ol/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ol-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ol/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -720,8 +720,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ib2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Interactive%20Buddy%202&swf=/api/quasar/storage/flash/ib2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ib2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ib2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ib2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Interactive%20Buddy%202&swf=/api/quasar/storage/flash/ib2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ib2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ib2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -734,8 +734,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Platformer', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-fpa-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Fancy%20Pants%20Adventure&swf=/api/quasar/storage/flash/fpa/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-fpa-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/fpa/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-fpa-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Fancy%20Pants%20Adventure&swf=/api/quasar/storage/flash/fpa/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-fpa-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/fpa/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -748,8 +748,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Platformer', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-fpw2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Fancy%20Pants%20Adventure%202&swf=/api/quasar/storage/flash/fpw2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-fpw2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/fpw2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-fpw2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Fancy%20Pants%20Adventure%202&swf=/api/quasar/storage/flash/fpw2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-fpw2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/fpw2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -762,8 +762,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Platformer', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-portalflash-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Portal%20%28flash%29&swf=/api/quasar/storage/flash/portal/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-portalflash-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/portal/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-portalflash-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Portal%20%28flash%29&swf=/api/quasar/storage/flash/portal/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-portalflash-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/portal/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -776,8 +776,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-tiq-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=The%20Impossible%20Quiz&swf=/api/quasar/storage/flash/tiq/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-tiq-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/tiq/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-tiq-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=The%20Impossible%20Quiz&swf=/api/quasar/storage/flash/tiq/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-tiq-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/tiq/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -790,8 +790,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-tiq2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=The%20Impossible%20Quiz%202&swf=/api/quasar/storage/flash/tiq2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-tiq2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/tiq2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-tiq2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=The%20Impossible%20Quiz%202&swf=/api/quasar/storage/flash/tiq2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-tiq2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/tiq2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -804,8 +804,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Action', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-hw-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Happy%20Wheels&swf=/api/quasar/storage/flash/hw/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-hw-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/hw/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-hw-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Happy%20Wheels&swf=/api/quasar/storage/flash/hw/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-hw-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/hw/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -818,8 +818,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Platformer', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-rb4-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Red%20Ball%204&swf=/api/quasar/storage/flash/rb4/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-rb4-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/rb4/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-rb4-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Red%20Ball%204&swf=/api/quasar/storage/flash/rb4/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-rb4-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/rb4/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -832,8 +832,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-fb-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Factory%20Balls&swf=/api/quasar/storage/flash/fb/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-fb-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/fb/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-fb-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Factory%20Balls&swf=/api/quasar/storage/flash/fb/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-fb-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/fb/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -846,8 +846,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-fb2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Factory%20Balls%202&swf=/api/quasar/storage/flash/fb2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-fb2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/fb2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-fb2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Factory%20Balls%202&swf=/api/quasar/storage/flash/fb2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-fb2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/fb2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -860,8 +860,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-fb3-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Factory%20Balls%203&swf=/api/quasar/storage/flash/fb3/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-fb3-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/fb3/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-fb3-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Factory%20Balls%203&swf=/api/quasar/storage/flash/fb3/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-fb3-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/fb3/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -874,8 +874,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-fb4-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Factory%20Balls%204&swf=/api/quasar/storage/flash/fb4/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-fb4-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/fb4/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-fb4-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Factory%20Balls%204&swf=/api/quasar/storage/flash/fb4/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-fb4-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/fb4/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -888,8 +888,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ss2-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Sugar%20Sugar%202&swf=/api/quasar/storage/flash/ss2/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ss2-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ss2/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ss2-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Sugar%20Sugar%202&swf=/api/quasar/storage/flash/ss2/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ss2-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ss2/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -902,8 +902,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Flash', 'Strategy', 'Arcade'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-bloxorz-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Bloxorz&swf=/api/quasar/storage/flash/bloxorz/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-bloxorz-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/bloxorz/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-bloxorz-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bloxorz&swf=/api/quasar/storage/flash/bloxorz/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-bloxorz-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/bloxorz/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -916,8 +916,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-btd5-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%205&swf=/api/quasar/storage/flash/btd5/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-btd5-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/btd5/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-btd5-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Bloons%20Tower%20Defense%205&swf=/api/quasar/storage/flash/btd5/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-btd5-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/btd5/game.swf', isArchiveIndependent: true }
     ]
   },
   {
@@ -930,8 +930,8 @@ export const QUASAR_FLASH_GAMES: QuasarGameEntry[] = [
     genres: ['Arcade', 'Strategy', 'Flash'],
     isArchiveIndependent: true,
     mirrors: [
-      { id: 'quasar-ltf3-ruffle', name: 'Ruffle WASM (CDN)', type: 'ruffle', url: '/play.html?title=Learn%20to%20Fly%203&swf=/api/quasar/storage/flash/ltf3/game.swf&autoplay=1', isArchiveIndependent: true },
-      { id: 'quasar-ltf3-swf', name: 'Direct .swf File', type: 'mirror', url: '/api/quasar/storage/flash/ltf3/game.swf', isArchiveIndependent: true }
+      { id: 'quasar-ltf3-ruffle', name: 'Ruffle', type: 'ruffle', url: '/play.html?title=Learn%20to%20Fly%203&swf=/api/quasar/storage/flash/ltf3/game.swf&autoplay=1', isArchiveIndependent: true },
+      { id: 'quasar-ltf3-swf', name: 'Direct file', type: 'mirror', url: '/api/quasar/storage/flash/ltf3/game.swf', isArchiveIndependent: true }
     ]
   },
 ];

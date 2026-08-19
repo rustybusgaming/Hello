@@ -56,14 +56,11 @@ export function TopBar({
         {/* Wordmark. Flush left, set solid, with the archive's own datum beside it. */}
         <button
           onClick={() => setSearchQuery('')}
-          className="order-1 flex items-baseline gap-2 flex-shrink-0"
+          className="order-1 flex items-baseline flex-shrink-0"
           title="Back to the full catalogue"
         >
           <span className="font-display text-[19px] font-extrabold leading-none tracking-[-0.02em]">
             FLASHHUB
-          </span>
-          <span className="hidden sm:inline font-mono text-[10px] leading-none tracking-[0.18em] text-ink/55">
-            EST. 2019
           </span>
         </button>
 
