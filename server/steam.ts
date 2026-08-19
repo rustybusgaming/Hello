@@ -119,8 +119,16 @@ async function getJson(url: string): Promise<any> {
     throw new SteamUnavailable(redactSteamKey(err?.message || 'Could not reach Steam'));
   }
 
-  if (res.status === 401 || res.status === 403) {
+  // Steam uses 401 for a bad key, but 403 for "this key may not see that" — an app with no
+  // stats, or a profile whose game details are private. Reporting both as a rejected key
+  // sends people off to regenerate a key that was working fine.
+  if (res.status === 401) {
     throw new SteamUnavailable('Steam rejected the API key', true);
+  }
+  if (res.status === 403) {
+    throw new SteamUnavailable(
+      'Steam would not share stats for this game. It may publish no achievements, or the profile\'s game details may be private.'
+    );
   }
   if (!res.ok) {
     throw new SteamUnavailable(`Steam returned ${res.status}`);

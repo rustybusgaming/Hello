@@ -177,6 +177,27 @@ test('surfaces the reason when a game exposes no achievements', async () => {
   });
 });
 
+test('a 403 is not reported as a bad API key', async () => {
+  process.env.STEAM_API_KEY = 'test-key';
+  const steam = await import('./steam');
+  steam.clearSteamCache();
+  // Steam answers 403 for apps without stats as well as for a rejected key
+  mockFetch({ 'GetOwnedGames': 403 });
+
+  await assert.rejects(() => steam.getOwnedGames('76561198000000011'), (err: any) => {
+    assert.strictEqual(err.needsKey, false, 'a working key must not be blamed');
+    assert.match(err.message, /would not share/i);
+    return true;
+  });
+
+  steam.clearSteamCache();
+  mockFetch({ 'GetOwnedGames': 401 });
+  await assert.rejects(() => steam.getOwnedGames('76561198000000012'), (err: any) => {
+    assert.strictEqual(err.needsKey, true, '401 really is a key problem');
+    return true;
+  });
+});
+
 test('marks a private profile so the UI can explain the empty library', async () => {
   process.env.STEAM_API_KEY = 'test-key';
   const steam = await import('./steam');
