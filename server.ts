@@ -38,6 +38,7 @@ import {
   getAchievements,
   getAchievementOverview,
   clearSteamCache,
+  redactSteamKey,
   SteamUnavailable
 } from './server/steam';
 import { UserAccount, StoredUserAccount, GameSave } from './src/types';
@@ -1534,7 +1535,7 @@ async function startServer() {
       if (err instanceof SteamUnavailable) {
         return res.status(err.needsKey ? 501 : 502).json({ error: err.message, needsKey: err.needsKey });
       }
-      console.warn('Steam lookup failed:', err?.message || err);
+      console.warn('Steam lookup failed:', redactSteamKey(err?.message || String(err)));
       res.status(502).json({ error: 'Could not reach Steam; try again shortly' });
     }
   });
@@ -1574,7 +1575,7 @@ async function startServer() {
         configured: isSteamConfigured()
       });
     }
-    console.error('Steam request failed:', err);
+    console.error('Steam request failed:', redactSteamKey(err?.message || String(err)));
     res.status(502).json({ error: 'Could not reach Steam', configured: isSteamConfigured() });
   };
 

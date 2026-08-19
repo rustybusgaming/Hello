@@ -66,6 +66,18 @@ export function isSteamConfigured(): boolean {
   return !!process.env.STEAM_API_KEY;
 }
 
+/**
+ * Strip the API key out of any text before it is logged or returned.
+ * The key travels in the query string, and a network-level failure ("fetch failed") carries
+ * the full URL in its cause — which would otherwise write the key straight into the logs.
+ */
+export function redactSteamKey(text: string): string {
+  const key = process.env.STEAM_API_KEY;
+  let output = String(text);
+  if (key) output = output.split(key).join('[redacted]');
+  return output.replace(/([?&]key=)[^&\s]+/gi, '$1[redacted]');
+}
+
 // --- tiny TTL cache -----------------------------------------------------------------
 // Steam rate limits per key, and a player flipping between games in the UI would otherwise
 // re-request the same schema repeatedly.
@@ -96,10 +108,16 @@ export function clearSteamCache() {
 }
 
 async function getJson(url: string): Promise<any> {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': 'FlashHub/2.0' },
-    signal: AbortSignal.timeout(TIMEOUT_MS)
-  });
+  let res: Response;
+  try {
+    res = await fetch(url, {
+      headers: { 'User-Agent': 'FlashHub/2.0' },
+      signal: AbortSignal.timeout(TIMEOUT_MS)
+    });
+  } catch (err: any) {
+    // Never let a transport error carry the key-bearing URL any further
+    throw new SteamUnavailable(redactSteamKey(err?.message || 'Could not reach Steam'));
+  }
 
   if (res.status === 401 || res.status === 403) {
     throw new SteamUnavailable('Steam rejected the API key', true);

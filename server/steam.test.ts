@@ -81,6 +81,24 @@ test('an empty library is never mistaken for a missing key', async () => {
   });
 });
 
+test('never leaks the API key into errors or logs', async () => {
+  process.env.STEAM_API_KEY = 'SUPERSECRETKEY123';
+  const steam = await import('./steam');
+  steam.clearSteamCache();
+
+  // A transport failure in Node carries the requested URL, key and all
+  globalThis.fetch = (async () => { throw new Error('fetch failed to https://api.steampowered.com/x?key=SUPERSECRETKEY123&steamid=7'); }) as any;
+
+  await assert.rejects(() => steam.getOwnedGames('76561198000000010'), (err: any) => {
+    assert.ok(!err.message.includes('SUPERSECRETKEY123'), `key leaked: ${err.message}`);
+    assert.match(err.message, /redacted/);
+    return true;
+  });
+
+  assert.strictEqual(steam.redactSteamKey('...key=SUPERSECRETKEY123&x=1'), '...key=[redacted]&x=1');
+  assert.ok(!steam.redactSteamKey('bare SUPERSECRETKEY123 in text').includes('SUPERSECRETKEY123'));
+});
+
 test('merges player progress with schema art and global rarity', async () => {
   process.env.STEAM_API_KEY = 'test-key';
   const steam = await import('./steam');
