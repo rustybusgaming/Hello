@@ -1,79 +1,95 @@
 @import "tailwindcss";
 
 /*
- * FlashHub design tokens — "Modernist", per the Flash Archive mockups.
+ * FlashHub design tokens.
  *
- * Flat, architectural, set entirely in Archivo: ink on a light ground with a single red
- * accent, a visible modular grid, zero corner radius and strong 2px rules. Nothing floats
- * and nothing is decorated — alignment and the strength of the dividers do the organising.
- * Photography prints in pure black and white.
+ * App style "True-black flat" (tasteskill, seed 1812660482) with the brand kept: one warm
+ * near-black ground taken from the brand's own ink, surfaces lifted from it by lightness alone,
+ * off-white text, Archivo throughout, square corners, and the brand red #ec3013 as the one hue
+ * — on the primary action, the selected state and focus, and nowhere else.
+ *
+ * The token names predate the dark theme and are kept so every component still composes the
+ * same roles: ground = the page, paper = a surface one step up, shade = a raised panel,
+ * ink = text. Lines come in two strengths: rule (control and panel edges) and hair (rows).
  */
 @theme {
-  /* Ground → paper, the two surfaces the whole layout is built from */
-  --color-ground: #e6e4e3;  /* the page behind the cards */
-  --color-paper: #f3f2f2;   /* every card, panel and sheet */
-  --color-shade: #eae9e9;   /* secondary bands inside a card */
-  --color-ink: #201e1d;
+  --color-ground: #0e0d0d;
+  --color-paper: #171615;
+  --color-shade: #22201f;
+  --color-ink: #f3f2f2;
+  --color-muted: #b5b2b1;
+  --color-faint: #959291;
 
-  /* A mono scheme: one accent, no second hue. */
   --color-accent: #ec3013;
-  --color-accent-lit: #ff563c;   /* the accent on an ink ground */
-  --color-accent-deep: #ae1800;  /* accent-sized text, pressed states */
+  --color-accent-lit: #ff6a4d;   /* the accent as text on the dark ground: 6.4:1 */
+  --color-accent-deep: #c4260c;  /* pressed */
+  --color-on-accent: #0e0d0d;    /* label on the accent: 4.6:1 (white is 4.2:1 and fails) */
 
-  /* Rules. 2px between major sections, 1px hairlines between rows. */
-  --color-rule: rgba(32, 30, 29, 0.4);
-  --color-hair: rgba(32, 30, 29, 0.18);
-  /* Their counterparts inside the ink-surround player */
-  --color-rule-lit: rgba(243, 242, 242, 0.25);
-  --color-hair-lit: rgba(243, 242, 242, 0.14);
+  --color-rule: #2a2827;
+  --color-hair: #1f1d1c;
+  --color-control: #46423f;
+  /* Kept for components written for the old inverted player; same values now */
+  --color-rule-lit: #2a2827;
+  --color-hair-lit: #1f1d1c;
 
-  /* Neutral ramp, generated in OKLCH on one shared lightness scale */
   --color-neutral-100: #f8f4f4;
   --color-neutral-200: #eae7e7;
-  --color-neutral-300: #d7d3d3;
-  --color-neutral-400: #bab6b6;
-  --color-neutral-500: #9b9797;
-  --color-neutral-600: #7d7979;
-  --color-neutral-700: #605d5d;
-  --color-neutral-800: #444141;
-  --color-neutral-900: #2d2b2b;
+  --color-neutral-300: #3a3735;
+  --color-neutral-400: #57534f;
+  --color-neutral-500: #7b7775;
+  --color-neutral-600: #9b9796;
+  --color-neutral-700: #c9c6c5;
+  --color-neutral-800: #22201f;
+  --color-neutral-900: #171615;
 
-  --font-display: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-sans: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: ui-monospace, Menlo, "SF Mono", monospace;
+  --font-display: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  --font-sans: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
+  /* No monospace in this system: figures use the text face with tabular numerals */
+  --font-mono: "Archivo", "Helvetica Neue", Arial, system-ui, sans-serif;
 
   --radius-none: 0px;
+
+  /* Two widths the card grid steps at, beyond Tailwind's own: 5 and 6 columns */
+  --breakpoint-wide: 77.5rem;  /* 1240px */
+  --breakpoint-huge: 87.5rem;  /* 1400px */
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @layer base {
   html {
     background-color: var(--color-ground);
+    color-scheme: dark;
   }
 
   body {
     @apply antialiased;
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.55;
+    font-size: 14px;
+    line-height: 1.45;
     background-color: var(--color-ground);
     color: var(--color-ink);
   }
 
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
-    font-weight: 800;
-    line-height: 1.12;
-    letter-spacing: -0.015em;
+    font-weight: 600;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
   }
 
   ::selection {
-    background: rgba(236, 48, 19, 0.3);
-    color: var(--color-ink);
+    background: var(--color-accent);
+    color: var(--color-on-accent);
   }
 
   input, textarea, select, button {
     font-family: inherit;
   }
+
+  /* Figures that line up or update never jitter */
+  .tabular-nums, time, td, .font-mono { font-variant-numeric: tabular-nums; }
 
   /* Keyboard focus is themed, never the browser default */
   :focus { outline: none; }
@@ -86,124 +102,134 @@
 @layer components {
   /* ---- Surfaces -------------------------------------------------------------------- */
 
-  /* Panel: the one surface every card, section and sheet shares. Squared, ruled, flat. */
+  /* Panel: a surface one tone step above the ground. The tone does the separating. */
   .panel {
     background: var(--color-paper);
-    border: 2px solid var(--color-rule);
     border-radius: 0;
   }
 
-  /* Sheet: a panel that sits over a scrim. Same surface — it does not float, it stacks. */
+  /* Sheet: a dialog. It floats, so it is the one surface allowed a shadow. */
   .sheet {
     position: relative;
     background: var(--color-paper);
-    border: 2px solid var(--color-ink);
+    border: 1px solid var(--color-rule);
     border-radius: 0;
     overflow: hidden;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
   }
 
-  /* Row hover across grids and tables, from the readme's table spec */
   .row-hover {
-    transition: background 0.12s linear;
+    transition: background-color 0.18s ease;
   }
   .row-hover:hover {
     background: var(--color-shade);
   }
 
   .hr {
-    height: 2px;
+    height: 1px;
     border: 0;
     background: var(--color-rule);
   }
 
   /* ---- Type ------------------------------------------------------------------------ */
 
-  /* The micro-label that sits above every band, column and section */
+  /* A small sentence-case label: the group name over a column or a block */
   .eyebrow {
-    font-family: var(--font-mono);
-    font-size: 10px;
+    font-family: var(--font-sans);
+    font-size: 12px;
     font-weight: 400;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    color: rgba(32, 30, 29, 0.55);
+    letter-spacing: 0;
+    text-transform: none;
+    color: var(--color-faint);
   }
-  /* On the ink ground of the player */
   .eyebrow-lit {
-    color: rgba(243, 242, 242, 0.5);
+    color: var(--color-faint);
   }
 
+  /* Figures and ids: the text face, tabular */
   .mono {
-    font-family: var(--font-mono);
+    font-family: var(--font-sans);
     font-size: 12px;
-    color: rgba(32, 30, 29, 0.6);
+    font-variant-numeric: tabular-nums;
+    color: var(--color-muted);
   }
 
   /* ---- Controls -------------------------------------------------------------------- */
 
-  /*
-   * Button labels are flush left: a button wider than its label starts the text at the
-   * left padding edge, trailing icon and all — never centred.
-   */
   .btn-primary {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 6px;
-    text-align: left;
-    font-family: var(--font-display);
-    font-weight: 800;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-weight: 600;
     background: var(--color-accent);
-    color: var(--color-paper);
-    border: 1px solid transparent;
+    color: var(--color-on-accent);
+    border: 0;
     border-radius: 0;
     cursor: pointer;
-    transition: background 0.12s linear;
+    transition: background-color 0.18s ease, transform 0.14s var(--ease-out);
   }
-  .btn-primary:hover { background: #dd2b0f; }
-  .btn-primary:active { background: var(--color-accent-deep); }
-  .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-primary:active { transform: scale(0.97); background: var(--color-accent-deep); }
+  .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-primary:hover:not(:disabled) { background: #ff4426; }
+  }
 
+  /* Secondary: a raised tone with a quiet edge */
   .btn-ghost {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 6px;
-    text-align: left;
-    font-family: var(--font-display);
-    font-weight: 800;
-    background: transparent;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-weight: 600;
+    background: var(--color-shade);
     border: 1px solid var(--color-rule);
     border-radius: 0;
     color: var(--color-ink);
     cursor: pointer;
-    transition: background 0.12s linear, border-color 0.12s linear;
+    transition: background-color 0.18s ease, border-color 0.18s ease, transform 0.14s var(--ease-out);
   }
-  .btn-ghost:hover { background: rgba(32, 30, 29, 0.07); }
-  .btn-ghost:active { background: rgba(32, 30, 29, 0.14); }
-  .btn-ghost:disabled { opacity: 0.45; cursor: not-allowed; }
+  .btn-ghost:active { transform: scale(0.97); }
+  .btn-ghost:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  @media (hover: hover) and (pointer: fine) {
+    .btn-ghost:hover:not(:disabled) { background: #2c2a28; border-color: var(--color-control); }
+  }
+  .btn-ghost-lit { color: var(--color-ink); }
 
-  /* The same two buttons where they sit on the player's ink ground */
-  .btn-ghost-lit {
-    border-color: rgba(243, 242, 242, 0.35);
-    color: var(--color-paper);
+  /* A bare icon or text control: no fill until the pointer is on it */
+  .btn-quiet {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-weight: 600;
+    color: var(--color-muted);
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    cursor: pointer;
+    transition: background-color 0.18s ease, color 0.18s ease;
   }
-  .btn-ghost-lit:hover { background: rgba(243, 242, 242, 0.1); }
+  .btn-quiet:hover { color: var(--color-ink); background: var(--color-shade); }
+  .btn-quiet[aria-pressed='true'] { color: var(--color-ink); background: var(--color-shade); }
 
   .btn-danger {
     display: inline-flex;
     align-items: center;
-    justify-content: flex-start;
-    gap: 6px;
-    font-family: var(--font-display);
-    font-weight: 800;
+    justify-content: center;
+    gap: 8px;
+    font-family: var(--font-sans);
+    font-weight: 600;
     background: transparent;
-    border: 1px solid var(--color-accent);
+    border: 1px solid #5a2a22;
     border-radius: 0;
-    color: var(--color-accent-deep);
+    color: var(--color-accent-lit);
     cursor: pointer;
-    transition: background 0.12s linear;
+    transition: background-color 0.18s ease;
   }
-  .btn-danger:hover { background: rgba(236, 48, 19, 0.1); }
+  .btn-danger:hover { background: rgba(236, 48, 19, 0.12); }
 
   .field {
     background: var(--color-shade);
@@ -211,136 +237,157 @@
     border-radius: 0;
     color: var(--color-ink);
     caret-color: var(--color-accent);
-    transition: border-color 0.12s linear;
+    transition: border-color 0.18s ease;
   }
-  .field::placeholder { color: rgba(32, 30, 29, 0.45); }
-  .field:hover { border-color: rgba(32, 30, 29, 0.45); }
+  .field::placeholder { color: var(--color-faint); }
+  .field:hover { border-color: var(--color-control); }
   .field:focus {
     outline: 2px solid var(--color-accent);
-    outline-offset: 0;
-    border-color: var(--color-accent);
+    outline-offset: -1px;
+    border-color: transparent;
   }
 
-  /* Filter rail: the active option is an ink fill, the rest are outlined */
+  /* A select styled as a control, with its own chevron */
+  .select {
+    appearance: none;
+    height: 36px;
+    padding: 0 30px 0 12px;
+    background-color: var(--color-shade);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23b5b2b1' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    border: 1px solid var(--color-rule);
+    border-radius: 0;
+    color: var(--color-ink);
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .select:hover { border-color: var(--color-control); }
+
+  /* Option pill (genre rails in older panels): the selected one inverts */
   .rail-pill {
     flex-shrink: 0;
-    padding: 4px 10px;
+    padding: 6px 12px;
     border-radius: 0;
-    font-family: var(--font-display);
-    font-size: 11px;
-    font-weight: 600;
+    font-size: 13px;
+    font-weight: 500;
     white-space: nowrap;
-    color: var(--color-ink);
+    color: var(--color-muted);
     border: 1px solid var(--color-rule);
     background: transparent;
     cursor: pointer;
-    transition: background 0.12s linear, color 0.12s linear;
+    transition: background-color 0.18s ease, color 0.18s ease;
   }
-  .rail-pill:hover { background: rgba(32, 30, 29, 0.07); }
+  .rail-pill:hover { color: var(--color-ink); background: var(--color-shade); }
   .rail-pill[data-active='true'] {
-    font-weight: 800;
     background: var(--color-ink);
-    color: var(--color-paper);
+    color: var(--color-ground);
     border-color: var(--color-ink);
+  }
+
+  /* Underline tabs on one full-width rule; the selected label carries a 2px red line */
+  .tab {
+    position: relative;
+    height: 40px;
+    padding: 0 2px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--color-muted);
+    white-space: nowrap;
+    background: none;
+    border: 0;
+    cursor: pointer;
+    transition: color 0.18s ease;
+  }
+  .tab:hover { color: var(--color-ink); }
+  .tab[aria-selected='true'] { color: var(--color-ink); }
+  .tab[aria-selected='true']::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    background: var(--color-accent);
   }
 
   /* ---- Tags ------------------------------------------------------------------------ */
 
-  /*
-   * One accent, so a runtime badge is an accent fill and everything else is outlined ink.
-   * The catalogue's source is carried by the label, not by a second hue.
-   */
   .chip {
     display: inline-flex;
+    flex: none;
     align-items: center;
     gap: 4px;
-    padding: 3px 6px;
+    height: 20px;
+    padding: 0 6px;
     border-radius: 0;
-    font-family: var(--font-display);
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
+    letter-spacing: 0;
+    text-transform: none;
     white-space: nowrap;
   }
-  .chip-accent  { background: var(--color-accent); color: var(--color-paper); }
-  .chip-ink     { background: var(--color-ink); color: var(--color-paper); }
-  .chip-outline { border: 1px solid var(--color-rule); color: var(--color-ink); }
-  .chip-quiet   { border: 1px solid var(--color-hair); color: rgba(32, 30, 29, 0.55); }
-
-  /* ---- Stat band ------------------------------------------------------------------- */
-
-  /* Equal-width cells divided by 2px rules — the band under the masthead */
-  .stat {
-    padding: 20px 28px;
-  }
-  .stat-value {
-    font-family: var(--font-display);
-    font-size: 30px;
-    font-weight: 800;
-    line-height: 1;
-    color: var(--color-ink);
-  }
+  .chip-accent  { background: #3a150e; color: var(--color-accent-lit); }
+  .chip-ink     { background: var(--color-ink); color: var(--color-ground); }
+  .chip-outline { background: var(--color-shade); color: var(--color-ink); }
+  .chip-quiet   { background: var(--color-shade); color: var(--color-muted); }
 
   /* ---- Imagery --------------------------------------------------------------------- */
 
-  /* Every content photograph goes through this: pure black and white, never tinted */
-  .duotone {
-    filter: grayscale(1) contrast(1.08);
-  }
+  /* Artwork stays in full colour; the class is kept so old call sites still compile */
+  .duotone { filter: none; }
 
-  /* The placeholder hatch standing in for a cover that has not loaded */
-  .hatch {
-    background: repeating-linear-gradient(45deg, #d7d3d3 0 8px, #bab6b6 8px 16px);
-  }
-  .hatch-lit {
-    background: repeating-linear-gradient(45deg, #605d5d 0 5px, #444141 5px 10px);
-  }
+  /* The flat tone that stands in for a cover that has not loaded */
+  .hatch, .hatch-lit { background: var(--color-shade); }
 }
 
 /* Horizontal rails hide their scrollbar but stay swipeable */
 .no-scrollbar::-webkit-scrollbar { display: none; }
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
+* { scrollbar-color: #3a3735 transparent; }
 ::-webkit-scrollbar { width: 12px; height: 12px; }
-::-webkit-scrollbar-track { background: var(--color-ground); }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--color-neutral-400);
+  background: #3a3735;
   border: 3px solid var(--color-ground);
 }
-::-webkit-scrollbar-thumb:hover { background: var(--color-neutral-600); }
+::-webkit-scrollbar-thumb:hover { background: #57534f; }
 
-/* Retro CRT effects for the player */
+/* Retro CRT effect: a player option the player switches on, not page decoration */
 .crt-overlay {
   background:
-    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%),
-    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06));
+    linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%), /* taste-skill-ignore: CRT option */
+    linear-gradient(90deg, rgba(255, 0, 0, 0.06), rgba(0, 255, 0, 0.02), rgba(0, 0, 255, 0.06)); /* taste-skill-ignore: CRT option */
   background-size: 100% 2px, 3px 100%;
   pointer-events: none;
 }
 
 .scanlines {
-  background: linear-gradient(
-    to bottom,
-    rgba(255, 255, 255, 0),
-    rgba(255, 255, 255, 0) 50%,
-    rgba(0, 0, 0, 0.2) 50%,
-    rgba(0, 0, 0, 0.2)
-  );
-  background-size: 100% 4px;
+  background: repeating-linear-gradient(to bottom, transparent 0 2px, rgba(0, 0, 0, 0.2) 2px 4px); /* taste-skill-ignore: CRT option */
   pointer-events: none;
 }
 
-/* Card entrance. A short fade only — nothing in this system slides or floats. */
-@keyframes card-enter {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+/* A card's artwork answers the pointer with a ring, not a zoom */
+.art-frame {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-shade);
+  outline: 1px solid transparent;
+  outline-offset: 0;
+  transition: outline-color 0.18s ease;
+}
+.group:hover .art-frame,
+.group:focus-within .art-frame { outline-color: var(--color-control); }
+/* The card's link is what the keyboard lands on; the ring goes round the art it opens */
+.group:has([data-nav-item]:focus-visible) .art-frame {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
 }
 
-.card-enter {
-  animation: card-enter 0.18s linear both;
-}
+/* A flat placeholder at the real size of what is loading; no shimmer */
+.skeleton { background: var(--color-shade); }
 
 @media (prefers-reduced-motion: reduce) {
-  .card-enter { animation: none; }
+  *, *::before, *::after { transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; }
 }

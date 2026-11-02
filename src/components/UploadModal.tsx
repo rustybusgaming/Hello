@@ -75,7 +75,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
           <div className="flex items-center justify-between p-4 border-b border-rule">
             <h2 className="text-sm font-semibold text-ink tracking-tight flex items-center gap-2.5">
               <span className="w-8 h-8 bg-accent/12 border border-accent/30 flex items-center justify-center">
-                <UploadCloud className="w-4 h-4 text-accent" />
+                <UploadCloud className="w-4 h-4 text-accent-lit" />
               </span>
               Upload a game
             </h2>
@@ -89,7 +89,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
           
           <form onSubmit={handleSubmit} className="p-5 space-y-5">
             {uploadError && (
-              <div className="p-3 bg-accent/10 border border-accent/25 text-xs text-accent font-medium text-center">
+              <div className="p-3 bg-accent/10 border border-accent/25 text-xs text-accent-lit font-medium text-center">
                 {uploadError}
               </div>
             )}
@@ -116,7 +116,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
                 required
                 accept=".swf,.html,.htm"
                 onChange={(e) => setFile(e.target.files?.[0] || null)}
-                className="w-full text-ink/60 file:mr-3 file:py-1.5 file:px-3 file: file:border-0 file:text-[10px] file:font-semibold file:bg-accent/20 file:text-accent hover:file:bg-accent/30 transition-colors cursor-pointer text-xs"
+                className="w-full text-ink/60 file:mr-3 file:py-1.5 file:px-3 file: file:border-0 file:text-[12px] file:font-semibold file:bg-accent/20 file:text-accent-lit hover:file:bg-accent/30 transition-colors cursor-pointer text-xs"
               />
             </div>
             <div>
@@ -127,7 +127,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
                 type="file"
                 accept=".png,.jpg,.jpeg,.gif,.webp"
                 onChange={(e) => setThumb(e.target.files?.[0] || null)}
-                className="w-full text-ink/60 file:mr-3 file:py-1.5 file:px-3 file: file:border-0 file:text-[10px] file:font-semibold file:bg-accent/20 file:text-accent hover:file:bg-accent/30 transition-colors cursor-pointer text-xs"
+                className="w-full text-ink/60 file:mr-3 file:py-1.5 file:px-3 file: file:border-0 file:text-[12px] file:font-semibold file:bg-accent/20 file:text-accent-lit hover:file:bg-accent/30 transition-colors cursor-pointer text-xs"
               />
             </div>
 
@@ -138,7 +138,7 @@ export function UploadModal({ onClose, onUploadComplete, isAuthenticated }: Uplo
             >
               {isUploading ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-rule border-t-white animate-spin" />
+                  <div className="w-3.5 h-3.5 border border-rule border-t-white animate-spin" />
                   Uploading...
                 </>
               ) : (

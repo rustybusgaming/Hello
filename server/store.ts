@@ -90,9 +90,12 @@ export function saveStoredAccounts(accounts: StoredUserAccount[]) {
  * titles have them at all, which made the old derived figure meaningless.
  */
 export function toPublicAccount(stored: StoredUserAccount, savesCount?: number): UserAccount {
-  const { passwordHash, passwordSalt, ...safe } = stored;
+  const { passwordHash, passwordSalt, steamStatsAt, steamLevel, steamGamesCount, ...safe } = stored;
   return {
     ...safe,
+    // Older builds stored a made-up level (25) and game count (50) when Steam gave none. Only
+    // figures that came from Steam's API are passed on; the rest stay unknown.
+    ...(steamStatsAt ? { steamLevel, steamGamesCount } : {}),
     savesCount: typeof savesCount === 'number' ? savesCount : 0,
     totalPlaytimeMinutes: stored.totalPlaytimeMinutes || 0,
     achievements: stored.achievements || []

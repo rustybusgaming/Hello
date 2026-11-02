@@ -20,3 +20,8 @@ temp_quasar
 
 # Cached copies of proxied game assets
 data/asset-cache/
+
+# tasteskill working files: keep the notes and the dealt direction, not the screenshots
+.taste-skill/before/
+.taste-skill/after/
+.taste-skill/inspect/

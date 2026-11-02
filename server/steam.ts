@@ -20,6 +20,8 @@ export interface SteamGame {
   name: string;
   playtimeMinutes: number;
   playtimeRecentMinutes: number;
+  /** When the player last ran it, from Steam's own clock; null when Steam has no record. */
+  lastPlayedAt: string | null;
   iconUrl: string | null;
   headerUrl: string;
 }
@@ -105,6 +107,11 @@ function store<T>(key: string, value: T, ttlMs: number): T {
 
 export function clearSteamCache() {
   cache.clear();
+}
+
+/** Forget one player's cached library and profile, so the next request asks Steam again. */
+export function forgetPlayerCache(steamId: string) {
+  for (const prefix of ['games', 'recent', 'profile', 'level']) cache.delete(`${prefix}:${steamId}`);
 }
 
 async function getJson(url: string): Promise<any> {
@@ -221,6 +228,8 @@ function toGame(raw: any): SteamGame {
     name: raw.name || `App ${raw.appid}`,
     playtimeMinutes: raw.playtime_forever || 0,
     playtimeRecentMinutes: raw.playtime_2weeks || 0,
+    // GetOwnedGames reports 0 for a game that has never been launched
+    lastPlayedAt: raw.rtime_last_played ? new Date(raw.rtime_last_played * 1000).toISOString() : null,
     iconUrl: raw.img_icon_url
       ? `https://media.steampowered.com/steamcommunity/public/images/apps/${raw.appid}/${raw.img_icon_url}.jpg`
       : null,

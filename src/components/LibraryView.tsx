@@ -1,0 +1,456 @@
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { LayoutGrid, List, RefreshCw } from 'lucide-react';
+import { LibraryEntry, RUNTIME_ORDER, Runtime, formatMinutes, formatSeconds, formatWhen } from '../lib/library';
+import { useLibrary } from '../lib/libraryContext';
+import { LibraryTab, hrefFor } from '../lib/router';
+import { onGridKeyDown } from '../lib/navigation';
+import { GameCard, GameCardSkeleton } from './GameCard';
+import { GameRow, GameRowHeader } from './GameRow';
+import { CARD_GRID, EmptyBlock } from './Section';
+
+export type SortOrder = 'catalogue' | 'title' | 'recent' | 'played' | 'popular' | 'added';
+
+export interface LibraryFilters {
+  runtime: Runtime | 'all';
+  genre: string;
+  sort: SortOrder;
+  view: 'grid' | 'list';
+}
+
+export const DEFAULT_FILTERS: LibraryFilters = { runtime: 'all', genre: 'all', sort: 'catalogue', view: 'grid' };
+
+interface LibraryViewProps {
+  tab: LibraryTab;
+  searchQuery: string;
+  onClearSearch: () => void;
+  filters: LibraryFilters;
+  onFilters: (next: LibraryFilters) => void;
+}
+
+const TAB_LABEL: Record<LibraryTab, string> = {
+  all: 'All',
+  flashhub: 'Plays in Flashhub',
+  steam: 'Steam',
+  favourites: 'Favourites',
+  recent: 'Recently played'
+};
+
+const SORT_LABEL: Record<SortOrder, string> = {
+  catalogue: 'Catalogue order',
+  title: 'Title, A to Z',
+  recent: 'Last played',
+  played: 'Most played by you',
+  popular: 'Most played on Flashhub',
+  added: 'Recently added'
+};
+
+// Divisible by 2, 3, 4, 5 and 6, so every page ends on a full row
+const PAGE_SIZE = 60;
+
+/** Recently played, in periods a person thinks in. Untimed entries (older builds) go last. */
+export function groupByWhen(entries: LibraryEntry[], playedAt: (e: LibraryEntry) => string, now = new Date()) {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const day = 86400000;
+  const t0 = startOfToday.getTime();
+  const buckets: { label: string; test: (t: number) => boolean }[] = [
+    { label: 'Today', test: t => t >= t0 },
+    { label: 'Yesterday', test: t => t >= t0 - day },
+    { label: 'Earlier this week', test: t => t >= t0 - 6 * day },
+    { label: 'Earlier this month', test: t => t >= t0 - 29 * day },
+    { label: 'Older', test: () => true }
+  ];
+  const groups = new Map<string, LibraryEntry[]>();
+  for (const e of entries) {
+    const at = playedAt(e);
+    const label = at ? buckets.find(b => b.test(Date.parse(at)))!.label : 'Before play times were kept';
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label)!.push(e);
+  }
+  return Array.from(groups, ([label, items]) => ({ label, items }));
+}
+
+export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilters }: LibraryViewProps) {
+  const { entries, byKey, favourites, recentKeys, history, steam, reloadSteam, linkSteam, currentUser, loading, loadError, reloadCatalogue } =
+    useLibrary();
+  const [visible, setVisible] = useState(PAGE_SIZE);
+  const sentinel = useRef<HTMLDivElement>(null);
+
+  const tabEntries = useMemo<Record<LibraryTab, LibraryEntry[]>>(() => {
+    const pick = (keys: string[]) => keys.map(k => byKey.get(k)).filter(Boolean) as LibraryEntry[];
+    return {
+      all: entries,
+      flashhub: entries.filter(e => e.launch === 'flashhub'),
+      steam: entries.filter(e => e.launch === 'steam'),
+      favourites: pick(favourites),
+      recent: pick(recentKeys)
+    };
+  }, [entries, byKey, favourites, recentKeys]);
+
+  const base = tabEntries[tab];
+
+  const runtimes = useMemo(() => RUNTIME_ORDER.filter(r => base.some(e => e.runtime === r)), [base]);
+  const genres = useMemo(() => {
+    const counts = new Map<string, number>();
+    base.forEach(e => e.genres.forEach(g => counts.set(g, (counts.get(g) || 0) + 1)));
+    return Array.from(counts.entries())
+      .filter(([, n]) => n >= 3)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([g]) => g);
+  }, [base]);
+
+  const playedSeconds = (e: LibraryEntry) =>
+    e.launch === 'steam' ? (e.steam?.playtimeMinutes ?? 0) * 60 : history[e.key]?.totalSeconds ?? 0;
+  const lastPlayed = (e: LibraryEntry) =>
+    (e.launch === 'steam' ? e.steam?.lastPlayedAt : history[e.key]?.lastPlayedAt) || '';
+
+  const results = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let list = base.filter(e => {
+      if (filters.runtime !== 'all' && e.runtime !== filters.runtime) return false;
+      if (filters.genre !== 'all' && !e.genres.includes(filters.genre)) return false;
+      if (!q) return true;
+      return (
+        e.title.toLowerCase().includes(q) ||
+        e.genres.some(g => g.toLowerCase().includes(q)) ||
+        !!e.description?.toLowerCase().includes(q)
+      );
+    });
+    // The recently played tab is already in play order; other sorts are on request
+    const sort = filters.sort;
+    if (sort === 'title') list = list.slice().sort((a, b) => a.title.localeCompare(b.title));
+    if (sort === 'recent') list = list.slice().sort((a, b) => lastPlayed(b).localeCompare(lastPlayed(a)));
+    if (sort === 'played') list = list.slice().sort((a, b) => playedSeconds(b) - playedSeconds(a));
+    // Hub-wide plays this month, then all time; Steam games have no Flashhub plays and go last
+    if (sort === 'popular') {
+      list = list.slice().sort((a, b) => (b.plays?.recent ?? -1) - (a.plays?.recent ?? -1) || (b.plays?.total ?? -1) - (a.plays?.total ?? -1));
+    }
+    // Dated arrivals newest first; the undated starting catalogue keeps its order after them
+    if (sort === 'added') list = list.slice().sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || ''));
+    return list;
+  }, [base, filters, searchQuery, history]);
+
+  useEffect(() => setVisible(PAGE_SIZE), [tab, filters, searchQuery]);
+
+  const hasMore = visible < results.length;
+  useEffect(() => {
+    if (!hasMore || !sentinel.current) return;
+    const observer = new IntersectionObserver(
+      items => {
+        if (items.some(i => i.isIntersecting)) setVisible(v => Math.min(v + PAGE_SIZE, results.length));
+      },
+      { rootMargin: '800px' }
+    );
+    observer.observe(sentinel.current);
+    return () => observer.disconnect();
+  }, [hasMore, results.length]);
+
+  /** Under each recently played card: where it launches and how long it has been played. */
+  const recentLine = (e: LibraryEntry): string => {
+    if (e.launch === 'steam') return `Steam · ${formatMinutes(e.steam?.playtimeMinutes ?? 0)}`;
+    const seconds = history[e.key]?.totalSeconds ?? 0;
+    return [e.runtime, seconds ? formatSeconds(seconds) : null].filter(Boolean).join(' · ');
+  };
+
+  const set = (patch: Partial<LibraryFilters>) => onFilters({ ...filters, ...patch });
+  const filtered = filters.runtime !== 'all' || filters.genre !== 'all' || !!searchQuery;
+
+  const flashhubCount = tabEntries.flashhub.length;
+  const steamCount = tabEntries.steam.length;
+  const subtitle =
+    steam.status === 'ready'
+      ? `${entries.length.toLocaleString()} games: ${flashhubCount.toLocaleString()} play in Flashhub, ${steamCount.toLocaleString()} open in Steam.`
+      : `${flashhubCount.toLocaleString()} games play in Flashhub. Link Steam to add your Steam games.`;
+
+  return (
+    <div>
+      <div className="flex flex-col gap-1">
+        <h1 className="text-[20px] font-semibold">Library</h1>
+        <p className="text-[14px] text-muted">{loading ? 'Loading the catalogue…' : subtitle}</p>
+      </div>
+
+      {/* The list's states, on one full-width rule */}
+      <div role="tablist" aria-label="Library views" className="no-scrollbar mt-5 flex gap-6 overflow-x-auto border-b border-rule">
+        {(Object.keys(TAB_LABEL) as LibraryTab[]).map(t => {
+          const count = t === 'steam' && steam.status !== 'ready' ? null : tabEntries[t].length;
+          return (
+            <a
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              href={hrefFor({ name: 'library', tab: t })}
+              className="tab flex flex-none items-center gap-2"
+            >
+              {TAB_LABEL[t]}
+              {count !== null && <span className="text-[12px] tabular-nums text-faint">{count.toLocaleString()}</span>}
+            </a>
+          );
+        })}
+      </div>
+
+      {tab === 'steam' && steam.status !== 'ready' ? (
+        <SteamState />
+      ) : (
+        <>
+          {tab === 'steam' && <SteamStatusLine />}
+
+          {/* Toolbar: scope on the left, the count and the view on the right */}
+          <div className="mt-6 flex flex-wrap items-center gap-2">
+            <label className="sr-only" htmlFor="filter-runtime">Runs on</label>
+            <select
+              id="filter-runtime"
+              className="select"
+              value={filters.runtime}
+              onChange={e => set({ runtime: e.target.value as LibraryFilters['runtime'] })}
+            >
+              <option value="all">Any runtime</option>
+              {runtimes.map(r => (
+                <option key={r} value={r}>{r === 'Steam' ? 'Steam library' : r}</option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor="filter-genre">Genre</label>
+            <select id="filter-genre" className="select" value={filters.genre} onChange={e => set({ genre: e.target.value })}>
+              <option value="all">Any genre</option>
+              {genres.map(g => (
+                <option key={g} value={g}>{g}</option>
+              ))}
+            </select>
+            <label className="sr-only" htmlFor="filter-sort">Sort by</label>
+            <select id="filter-sort" className="select" value={filters.sort} onChange={e => set({ sort: e.target.value as SortOrder })}>
+              {(Object.keys(SORT_LABEL) as SortOrder[]).map(s => (
+                <option key={s} value={s}>{s === 'catalogue' && tab === 'recent' ? 'Play order' : SORT_LABEL[s]}</option>
+              ))}
+            </select>
+            {filtered && (
+              <button
+                type="button"
+                onClick={() => {
+                  onFilters({ ...filters, runtime: 'all', genre: 'all' });
+                  onClearSearch();
+                }}
+                className="btn-quiet h-9 px-3 text-[13px]"
+              >
+                Clear filters
+              </button>
+            )}
+
+            <div className="ml-auto flex items-center gap-3">
+              <span className="text-[13px] tabular-nums text-faint">
+                {results.length.toLocaleString()} {results.length === 1 ? 'game' : 'games'}
+                {searchQuery && <> matching “{searchQuery}”</>}
+              </span>
+              <div className="flex" role="group" aria-label="Layout">
+                <button
+                  type="button"
+                  onClick={() => set({ view: 'grid' })}
+                  aria-pressed={filters.view === 'grid'}
+                  aria-label="Show as a grid"
+                  className="btn-quiet h-9 w-9"
+                >
+                  <LayoutGrid className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => set({ view: 'list' })}
+                  aria-pressed={filters.view === 'list'}
+                  aria-label="Show as a list"
+                  className="btn-quiet h-9 w-9"
+                >
+                  <List className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-6">
+            {loadError ? (
+              <EmptyBlock
+                action={
+                  <button type="button" onClick={reloadCatalogue} className="btn-ghost h-9 px-4 text-[13px]">
+                    <RefreshCw className="h-4 w-4" aria-hidden /> Retry
+                  </button>
+                }
+              >
+                The catalogue did not load. Check the connection and try again.
+              </EmptyBlock>
+            ) : loading ? (
+              <div className={CARD_GRID} aria-busy="true">
+                {Array.from({ length: 18 }, (_, i) => <GameCardSkeleton key={i} />)}
+              </div>
+            ) : results.length === 0 ? (
+              <EmptyBlock
+                action={
+                  filtered ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onFilters({ ...filters, runtime: 'all', genre: 'all' });
+                        onClearSearch();
+                      }}
+                      className="btn-ghost h-9 px-4 text-[13px]"
+                    >
+                      Clear filters
+                    </button>
+                  ) : undefined
+                }
+              >
+                {filtered
+                  ? `No games in ${TAB_LABEL[tab].toLowerCase()} match${searchQuery ? ` “${searchQuery}”` : ' these filters'}.`
+                  : tab === 'favourites'
+                    ? 'No favourites yet. Press the heart on any game to keep it here.'
+                    : tab === 'recent'
+                      ? 'Nothing played yet. Games you launch show up here, newest first.'
+                      : 'This part of the library is empty.'}
+              </EmptyBlock>
+            ) : filters.view === 'grid' && tab === 'recent' && filters.sort === 'catalogue' ? (
+              // Recently played reads like a diary: grouped by when, newest first
+              <div className="flex flex-col gap-10" onKeyDown={onGridKeyDown}>
+                {groupByWhen(results.slice(0, visible), lastPlayed).map(group => (
+                  <section key={group.label} aria-labelledby={`when-${group.label.replace(/\W+/g, "-")}`}>
+                    <h2 id={`when-${group.label.replace(/\W+/g, "-")}`} className="mb-4 text-[16px] font-semibold">
+                      {group.label} <span className="ml-1 text-[13px] font-normal tabular-nums text-faint">{group.items.length}</span>
+                    </h2>
+                    <div className={CARD_GRID}>
+                      {group.items.map(entry => (
+                        <GameCard key={entry.key} entry={entry} meta={recentLine(entry)} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
+            ) : filters.view === 'grid' ? (
+              <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
+                {results.slice(0, visible).map((entry, i) => (
+                  <GameCard key={entry.key} entry={entry} eager={i < 12} />
+                ))}
+              </div>
+            ) : (
+              <>
+                <GameRowHeader />
+                <ul className="border-t border-hair" onKeyDown={onGridKeyDown}>
+                  {results.slice(0, visible).map(entry => (
+                    <GameRow key={entry.key} entry={entry} />
+                  ))}
+                </ul>
+              </>
+            )}
+
+            {hasMore && !loading && (
+              <div ref={sentinel} className="mt-8 flex items-center justify-between gap-4">
+                <span className="text-[13px] tabular-nums text-faint">
+                  {visible.toLocaleString()} of {results.length.toLocaleString()}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setVisible(v => Math.min(v + PAGE_SIZE, results.length))}
+                  className="btn-ghost h-9 px-4 text-[13px]"
+                >
+                  Show {Math.min(PAGE_SIZE, results.length - visible)} more
+                </button>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  /**
+   * Over the Steam list: when Steam last answered (and a refresh), the outage notice when the
+   * list is the last one Steam gave, and the prompt to confirm a link made before Flashhub
+   * could check ownership.
+   */
+  function SteamStatusLine() {
+    if (steam.status !== 'ready' && steam.status !== 'private') return null;
+    const { fetchedAt, stale } = steam.library;
+    const unconfirmed = !!currentUser?.steamId && !currentUser.steamVerifiedAt;
+    const when = formatWhen(fetchedAt);
+    const time = new Date(fetchedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return (
+      <div className="mt-6 flex flex-col gap-3">
+        {unconfirmed && (
+          <EmptyBlock action={<button type="button" onClick={linkSteam} className="btn-ghost h-9 flex-none px-4 text-[13px]">Confirm with Steam</button>}>
+            This Steam account was linked before Flashhub could check who owns it. Confirm it with Steam; it keeps working until you do.
+          </EmptyBlock>
+        )}
+        {stale && (
+          <EmptyBlock>Steam is not answering, so this is your library as Steam last gave it, {when?.toLowerCase()} at {time}.</EmptyBlock>
+        )}
+        <p className="flex items-center gap-3 text-[13px] text-faint">
+          <span>From Steam, {when?.toLowerCase()} at {time}</span>
+          <button type="button" onClick={() => reloadSteam(true)} className="font-semibold text-muted underline decoration-control underline-offset-4 hover:text-ink">
+            Refresh
+          </button>
+        </p>
+      </div>
+    );
+  }
+
+  /** What the Steam tab shows when there is no list to show, and what to do about it. */
+  function SteamState() {
+    // Whatever Steam says, the tab still shows something real: the games in the catalogue that
+    // began on Steam and already play here in the browser
+    const fromSteamInFlashhub = tabEntries.flashhub.filter(e => e.steamAppId);
+    const box = (text: React.ReactNode, action?: React.ReactNode) => (
+      <div className="mt-6">
+        <EmptyBlock action={action}>{text}</EmptyBlock>
+        {fromSteamInFlashhub.length > 0 && (
+          <section aria-labelledby="steam-ports" className="pt-10">
+            <h2 id="steam-ports" className="text-[16px] font-semibold">Steam games that play here</h2>
+            <p className="mt-1 text-[13px] text-faint">
+              {fromSteamInFlashhub.length} games in the catalogue are browser versions of Steam games. They play in Flashhub, no Steam needed.
+            </p>
+            <div className={`${CARD_GRID} mt-4`} onKeyDown={onGridKeyDown}>
+              {fromSteamInFlashhub.map(entry => (
+                <GameCard key={entry.key} entry={entry} />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+    );
+    switch (steam.status) {
+      case 'loading':
+        return (
+          <div className={`${CARD_GRID} mt-6`} aria-busy="true">
+            {Array.from({ length: 12 }, (_, i) => <GameCardSkeleton key={i} />)}
+          </div>
+        );
+      case 'signed-out':
+        return box(
+          'Sign in and link your Steam account to see your Steam games here. They open in the Steam client.',
+          <button type="button" onClick={linkSteam} className="btn-ghost h-9 px-4 text-[13px]">Sign in</button>
+        );
+      case 'not-linked':
+        return box(
+          'Sign in through Steam and your Steam games join this library, each marked to open in Steam. Steam confirms the account is yours; Flashhub never sees your Steam password.',
+          <button type="button" onClick={linkSteam} className="btn-ghost h-9 px-4 text-[13px]">Sign in through Steam</button>
+        );
+      case 'needs-key':
+        return box(
+          currentUser?.role === 'admin'
+            ? 'Steam libraries need a Steam Web API key on the server. Set STEAM_API_KEY and restart.'
+            : 'This server has no Steam Web API key yet, so Steam libraries cannot be read. Ask the admin to add one.'
+        );
+      case 'private':
+        return box(
+          'Steam hides this account’s games because its game details are private. Make them public in Steam’s privacy settings, then refresh.',
+          <div className="flex gap-2">
+            <a href="https://steamcommunity.com/my/edit/settings" target="_blank" rel="noopener noreferrer" className="btn-ghost h-9 px-4 text-[13px]">
+              Privacy settings
+            </a>
+            <button type="button" onClick={() => reloadSteam(true)} className="btn-ghost h-9 px-4 text-[13px]">Refresh</button>
+          </div>
+        );
+      case 'error':
+        return box(
+          `${steam.message}. Your Flashhub games are unaffected.`,
+          <button type="button" onClick={() => reloadSteam(true)} className="btn-ghost h-9 px-4 text-[13px]">
+            <RefreshCw className="h-4 w-4" aria-hidden /> Retry
+          </button>
+        );
+      default:
+        return null;
+    }
+  }
+}

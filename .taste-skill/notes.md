@@ -1,0 +1,143 @@
+# Flashhub redesign — working notes (tasteskill v2.1.5, app-screen run)
+
+Kind of work: app screens (a library to work through, a detail page, a player). Redesign of an
+existing React 19 + Tailwind v4 + Express app. Stage 1 of 3 (see the user's staging).
+
+## 2.1 Inventory: objects, magnitudes, people, jobs, the product's own things
+
+- Flashhub games (391 from /api/games): id, title, thumbnail, genres (runtime tags mixed in:
+  Flash 100, HTML5 122, 3D/WebGL 99, Webport 97, Emulator 7), embedUrl, mirrors (126 with >1),
+  description (46 have one), source (webporting 329, archive 60, custom 1; steam 1 = fake HL2).
+- Ratings: every one is hard-coded 4.5-5.0 in src/utils/gameTitles.ts -> invented; not shown.
+- Artwork: 291 quasar squares (200-225px), 20 Steam header.jpg (460x215), 60 archive images,
+  19 server-drawn SVG covers (400x300). 17 of the 20 Steam-art webports also have
+  library_hero.jpg (3840x1240) and library_600x900.jpg; 3 do not (Baldi Classic Remastered 1712710,
+  Kindergarten 578590, Happy Sheepies 2764950).
+- Steam owned games (when linked + server key): appId, name, playtime_forever, playtime_2weeks,
+  rtime_last_played, icon; header/hero art by appId. Typical library: 50-500 games, many with
+  0 minutes. Private "game details" -> empty list.
+- Play history today: localStorage list of up to 8 ids, no times. Session length is measured
+  (elapsedSeconds) and banked to the account as total minutes only.
+- People: one player, evenings, a laptop or a phone; sessions of 5-60 minutes; returns to the
+  same few games.
+- Jobs: play a game (most frequent), continue the last game, find a game by name, browse by kind,
+  keep favourites, open a Steam game in Steam, manage saves (Flash only).
+- The product's own things: the FLASHHUB wordmark in Archivo 800, the red #ec3013, the runtimes
+  (Ruffle for Flash, HTML5, WebGL/Unity, EmulatorJS), the preservation sources (quasar, genizy
+  web-port, Internet Archive), the player's linked Steam account.
+
+## 2.2 Questions and findings
+
+- Home: "What do I play now?" Biggest block: the lead banner. With history it is the last game
+  played (Continue); without, today's featured pick from the games that have full-size art.
+  Finding under the title: the last game and when, or the size of the catalogue for a new player.
+- Library: "Where is the game I want, and where will it launch?" Biggest block: the cover grid.
+  Tabs carry the launch split (All / Plays in Flashhub / Steam / Favourites / Recently played).
+- Game page: "Can I play this, and how?" Header = the game, with Play or Open in Steam.
+- Player: the game itself; everything else folds away.
+- Most frequent job one click away: Play on the banner, on every card (hover/focus), on rows.
+
+## 2.3 Style
+
+Dealt: true-black-flat (seed 1812660482), over data-terminal (built for long monitoring sessions).
+Redraw: shell No sidebar -> Ruled T-frame. Reason: six destinations (Home, Library, Recently
+played, Favourites, Steam, account/admin utilities) and the brief asks for sidebar library
+navigation; "No sidebar" is for products with few destinations.
+
+Brand kept (--keep palette,type): Archivo; accent #ec3013; square corners (the brand's zero
+radius and the brief's "sharp edges" replace the style's 20px cards and pill controls).
+Brand overrides the style's "accent never on buttons": the brief asks for the red on important
+actions, so the red fills the one primary action per screen (Play / Open in Steam) and marks the
+selected tab and focus. Budget held: under 3% of any screen.
+
+Face: a warm near-black ground taken from the brand's own ink (#201e1d) instead of #000, with the
+brand red as the one hue. Signature element: "Jump back in", one row ordered by real last-played
+time across Flashhub sessions and Steam playtime, each tile saying where it launches.
+
+## Tokens (style roles <- brand)
+
+ground #0e0d0d · surface #171615 · raised #22201f · border #2a2827 · rule #1f1d1c ·
+control #46423f · text #f3f2f2 (brand paper) · muted #b5b2b1 · faint #959291 ·
+accent #ec3013 (label on it: #0e0d0d, 4.5:1; white is 4.0:1 and fails) · accent text #ff6a4d.
+Sizes: title 20 · section 16 · kpi 24 · body 14 · small 12 (banner name 32, nothing >= 34).
+Weights 400/600, 800 only in the wordmark. Gap 14 · pad 22 · control 36 · sidebar 220.
+
+## Grid arithmetic (1440)
+
+sidebar 220 + 1px rule = 221; canvas 1219; gutter 29 + 29 -> content 1161.
+Cover grid: auto-fill minmax(172px, 1fr) with 14px gap -> 6 columns of 181.8px:
+6 x 181.83 + 5 x 14 = 1161. Same 14px gap everywhere, so rows land on the content edges.
+Rails (Jump back in, Favourites): the same 6 columns, capped at 6 items.
+Art: one 4:3 frame; square art covers it, wide Steam headers sit whole on the raised tone.
+
+## Before (recorded 2026-11-02, production build, `inspect.mjs --app`)
+
+5 FAIL, 2 WARN: micro-labels (6 tracked mono labels), gradient (120 hatch placeholders),
+palette-terracotta (the brand red, kept by decision), tiny text (126 blocks under 11px), no h1.
+Contrast WARN: white on #ec3013 at 3.8:1. Lint: 20 FAIL, 124 WARN (mono x57, eyebrow x21).
+Seen: light Modernist sheet, greyscale covers, stat band of four totals, mono "Shelf 03" kicker,
+4.5-5.0 ratings on every card (hard-coded, not data).
+
+## Critique (app-screen questions, app-screens.md 2.7)
+
+ROUND 1 (first build, 1440/768/390)
+1. Question answered by the biggest block? Library yes (grid). Home no for a new player: banner,
+   then three empty sentences; no game below the banner on the first screen.
+2. Shared edges? Library grid stopped at 4 columns at 1440 (breakpoint order bug); game page
+   details list spanned 1161px with 600px gaps between label and value.
+3. Colour on data/action only? Yes; red on Play, the selected tab, focus, the achievements bar.
+4. Numbers add up? Steam playtime and local session time shown once each; counts from rows.
+5. Zeros and missing values? A 24px dash for "Last played" on an unplayed game (reads as loading).
+6. Legends: n/a.
+7. Phone: game page showed the same art twice (banner, then a full-width cover); More like this
+   left one card alone on a row.
+Fixed: theme breakpoints (6 columns at 1440); first-run order (picks under the banner, one
+"Your games" line); details beside More like this; words not dashes at figure size; cover hidden
+under the banner on phones; two cards on phones.
+
+ROUND 2
+- Steam tab, not linked: one sentence over 600px of nothing (hero-void). Fixed: the 20 catalogue
+  games that began on Steam and play here, under it.
+- Cached wide art lost its letterbox (load fired before a reset effect). Fixed: measured per URL.
+- List view: a red Play on every row read as a stripe. Fixed: quiet buttons in rows.
+- Admin monitor still light, badges in capitals; diagnostics opened on a red field with an
+  eyebrow. Fixed: ground tone, sentence case, a plain panel.
+
+ROUND 3 (final, production build)
+inspect --app --allow palette-terracotta: home 0 FAIL / 3 WARN, library 0 / 1, detail 0 / 1,
+steam 0 / 1, diagnostics 0 / 1. lint --app: 0 FAIL, 21 WARN.
+Defended WARNs: icon-chips = the favourite and quick-launch buttons on cards (controls shown on
+hover/focus, not decoration); colour-sprawl on Home = cover art, which the brief makes the focus;
+below-fold on Home = banner plus the first row of picks are on the first screen, the rest are
+secondary; hero-void on Diagnostics = a one-panel utility page. Lint: shadows only on floating
+layers (toast, slide-over panel, dialogs); small labels in the account/admin dialogs (allowed on
+app screens); padStart in the session clock; "unlock" in catalogue game descriptions.
+Remaining weak spots: wide Steam headers letterboxed in a 4:3 frame beside square art; the
+admin and account dialogs were restyled through tokens rather than redesigned; one catalogue
+entry (Happy Sheepies, app 2764950) points at unrelated DLC art.
+
+## Stage 2 (Steam OpenID, account data, counts) — look round
+
+New screens: collection page, collections menu on game pages, sidebar collections, Steam tab
+freshness line / stale notice / confirm prompt, Popular and New rails on Home, account Steam tab.
+inspect --app (production build, signed out): home 0 FAIL / 3 WARN, library 0 / 1, detail 0 / 1,
+collection 0 / 1 (hero-void: the signed-out sign-in prompt; a rare state). lint --app 0 FAIL / 23.
+Found and fixed: the About panel stretched to the Details list's height (panel-void, now
+self-start); "LEVEL 12" in capitals in the Steam panel. Defended: the collections menu shadow
+(a floating layer), the Steam-outcome toast shadow.
+Rails only render with data behind them: Popular needs counted plays this month, New needs a
+dated arrival in the last 60 days, so a fresh install shows neither rather than an empty shelf.
+
+## Stage 3 (store metadata, recommendations, recently played) — look round
+
+Round 1: the same game twice in the sidebar's Jump back in (browser port and Steam, identical
+names) -> Steam entries carry "Steam"; Steam game page row ragged (short About beside a ten-line
+Details list) -> screenshots moved into the About column; a two-card Popular row -> Popular
+needs three games played this month, like the recommendation rows.
+Round 2: Details stretched 190px past its content to meet the screenshot column (panel-void)
+-> one row of two screenshots in the column plus "All 8 screenshots", Details self-start;
+rows now end within about 40px.
+Final: inspect --app home 0 FAIL / 3 WARN (defended as before), library (recently played)
+0 / 1 (hero-void: a signed-out recently played tab is nearly empty), detail 0 / 1. Lint 0 / 23.
+Store data is credited "From the Steam store" wherever it shows; a catalogue port only shows
+its original's store page when the store says it is a game and the names agree.

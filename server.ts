@@ -1,4 +1,5 @@
 import express from 'express';
+import crypto from 'crypto';
 import path from 'path';
 import { Readable } from 'stream';
 import { pipeline } from 'stream/promises';
@@ -37,6 +38,9 @@ import {
   isSteamConfigured,
   resolveSteamId,
   getLibrarySummary,
+  getProfile,
+  getOwnedGames,
+  forgetPlayerCache,
   getAchievements,
   getAchievementOverview,
   clearSteamCache,
@@ -44,6 +48,9 @@ import {
   SteamUnavailable
 } from './server/steam';
 import { UserAccount, StoredUserAccount, GameSave } from './src/types';
+import { buildSteamLoginUrl, verifySteamAssertion, OPENID_FAILURE_MESSAGE } from './server/steamOpenId';
+import { createUserDataStore } from './server/userData';
+import { createSteamStore } from './server/steamStore';
 import { checkAchievements, ACHIEVEMENTS } from './server/achievements';
 import { isFlashGame } from './src/lib/games';
 
@@ -78,6 +85,11 @@ const upload = multer({
     cb(null, true);
   }
 });
+
+// Play history, favourites, collections, play counts, dates added and Steam snapshots
+const userData = createUserDataStore(path.join(process.cwd(), 'data'));
+// Steam store metadata (descriptions, genres, screenshots), cached on disk; see server/steamStore.ts
+const steamStore = createSteamStore(path.join(process.cwd(), 'data'));
 
 // Ensure custom_games dir exists
 const customGamesDir = path.join(process.cwd(), 'public', 'custom_games');
@@ -238,19 +250,6 @@ async function runSync() {
   }
 }
 
-// Keep a few webports and steam games for variety
-const MOCK_GAMES = [
-  {
-    id: '220',
-    title: 'Half-Life 2',
-    thumbnail: 'https://cdn.akamai.steamstatic.com/steam/apps/220/header.jpg',
-    rating: 5.0,
-    source: 'steam' as const,
-    embedUrl: 'https://store.steampowered.com/widget/220/',
-    genres: ['Action', 'Shooter']
-  }
-];
-
 // itemId -> best .swf filename inside that Archive.org item (null = item has no playable SWF)
 const archiveSwfCache = new Map<string, string | null>();
 
@@ -343,7 +342,6 @@ async function fetchArchiveGames() {
           id: doc.identifier,
           title,
           thumbnail: `/api/archive-img/${doc.identifier}`,
-          rating: 4.8,
           source: 'archive',
           embedUrl: playUrl,
           genres: genres.length > 0 ? genres : ['Flash'],
@@ -405,7 +403,7 @@ async function fetchLocalWebports() {
             title: info.title,
             description: info.description,
             thumbnail: `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(info.title)}&backgroundColor=09090b`,
-            rating: info.rating || 4.8,
+            rating: info.rating,
             source: 'webporting',
             embedUrl: `/gameports/${encodeURIComponent(dir)}/index.html`,
             genres: info.genres,
@@ -441,7 +439,7 @@ async function fetchLocalWebports() {
             title: info.title,
             description: info.description,
             thumbnail: `/quasar/img/games/${encodeURIComponent(dir)}.png`, // fallback handled by frontend if needed
-            rating: info.rating || 4.8,
+            rating: info.rating,
             source: 'webporting',
             embedUrl,
             genres: info.genres,
@@ -600,8 +598,10 @@ async function startServer() {
     '.wav': 'audio/wav',
   };
 
-  // API Route: Play any genizy/web-port game with dynamic CDN patching
-  app.get('/api/webports/play/*', async (req, res) => {
+  // API Route: Play any genizy/web-port game with dynamic CDN patching.
+  // Catch-all paths are regex routes: Express 5 rejects a bare `*`, and a regex capture
+  // still arrives as req.params[0], which is what these handlers read.
+  app.get(/^\/api\/webports\/play\/(.+)$/, async (req, res) => {
     const gameId = (req.params as any)[0] as string;
 
     if (!gameId || gameId.split('/').some(segment => segment === '..')) {
@@ -651,7 +651,7 @@ async function startServer() {
   });
 
   // API Route: Proxy assets for genizy/web-port games on demand (no 10GB download needed, no 403 errors)
-  app.get('/api/webport-proxy/*', async (req, res) => {
+  app.get(/^\/api\/webport-proxy\/(.+)$/, async (req, res) => {
     // The game id may itself contain a slash, so split on the first path segment that
     // belongs to the asset: everything before it identifies the port.
     const fullPath = (req.params as any)[0] as string;
@@ -783,15 +783,15 @@ async function startServer() {
     for (let i = 0; i < seed.length; i++) {
       hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
     }
+    // One flat, low-chroma field per game: enough to tell covers apart in a grid without
+    // turning the library into a row of candy. No gradients, no pattern.
     const hue = hash % 360;
-    const hue2 = (hue + 42 + (hash % 60)) % 360;
-    const angle = hash % 2 === 0 ? 135 : 45;
 
     const words = rawTitle.split(/\s+/).filter(Boolean);
     const lines: string[] = [];
     let current = '';
     for (const word of words) {
-      if ((current + ' ' + word).trim().length > 15 && current) {
+      if ((current + ' ' + word).trim().length > 16 && current) {
         lines.push(current);
         current = word;
       } else {
@@ -801,25 +801,17 @@ async function startServer() {
     }
     if (current && lines.length < 3) lines.push(current);
 
-    const fontSize = lines.length > 2 ? 30 : 38;
-    const startY = 150 - (lines.length - 1) * (fontSize * 0.55);
+    // The title sits flush left at the foot of the cover, the way the hub sets type
+    const fontSize = lines.length > 2 ? 32 : 38;
+    const leading = fontSize * 1.04;
+    const firstBaseline = 300 - 28 - (lines.length - 1) * leading;
     const textNodes = lines
-      .map((line, i) => `<text x="200" y="${(startY + i * fontSize * 1.05).toFixed(1)}" fill="#fff" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="${fontSize}" font-weight="800" text-anchor="middle" letter-spacing="-1">${escapeHtml(line)}</text>`)
+      .map((line, i) => `<text x="26" y="${(firstBaseline + i * leading).toFixed(1)}" fill="#f3f2f2" font-family="Archivo, Helvetica Neue, Arial, system-ui, sans-serif" font-size="${fontSize}" font-weight="800" letter-spacing="-0.8">${escapeHtml(line)}</text>`)
       .join('');
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="${angle === 135 ? 1 : 0}" y2="1">
-          <stop offset="0%" stop-color="hsl(${hue}, 72%, 46%)"/>
-          <stop offset="100%" stop-color="hsl(${hue2}, 68%, 22%)"/>
-        </linearGradient>
-        <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1.4" fill="rgba(255,255,255,0.16)"/>
-        </pattern>
-      </defs>
-      <rect width="400" height="300" fill="url(#g)"/>
-      <rect width="400" height="300" fill="url(#dots)"/>
-      <rect width="400" height="300" fill="rgba(9,9,11,0.28)"/>
+      <rect width="400" height="300" fill="hsl(${hue}, 18%, 17%)"/>
+      <rect x="26" y="26" width="28" height="6" fill="#ec3013"/>
       ${textNodes}
     </svg>`;
 
@@ -841,7 +833,7 @@ async function startServer() {
     `https://raw.githubusercontent.com/${QUASAR_REPO_PATH}/${QUASAR_REF}/${QUASAR_ROOT}/${assetPath}`
   ];
 
-  app.get('/api/quasar/*', async (req, res) => {
+  app.get(/^\/api\/quasar\/(.+)$/, async (req, res) => {
     const assetPath = (req.params as any)[0] as string;
 
     if (!assetPath || assetPath.split('/').some(segment => segment === '..')) {
@@ -965,8 +957,7 @@ async function startServer() {
       ...GENIZY_WEBPORT_GAMES,
       ...localGames,
       ...QUASAR_GAMES,
-      ...archiveGames,
-      ...MOCK_GAMES
+      ...archiveGames
     ];
 
     // Deduplicate games by ID
@@ -985,11 +976,39 @@ async function startServer() {
         title: info.title,
         genres: (info.genres && info.genres.length > 0) ? info.genres : g.genres,
         description: g.description || info.description,
-        rating: g.rating || info.rating || 4.8,
+        rating: g.rating ?? info.rating,
         hidden: hiddenSet.has(g.id)
       };
     });
   };
+
+  /**
+   * The catalogue with what the hub has counted about each game: when it first appeared
+   * (null for the catalogue the hub started with) and how often it has been played.
+   */
+  const buildCatalogWithStats = async () => {
+    const games = await buildCatalog();
+    // Uploads carry their own date in metadata.json; everything else is dated when first seen
+    const knownDates: Record<string, string> = {};
+    for (const g of games) if (typeof (g as any).addedAt === 'string') knownDates[g.id] = (g as any).addedAt;
+    const { baselineAt, addedAt } = userData.noteCatalogue(games.map(g => g.id), knownDates);
+    const plays = userData.getPlayCounts(30);
+    catalogueIds = new Set(games.map(g => g.id));
+    catalogueSteamAppIds = new Set(
+      games.map(g => Number(String(g.thumbnail || '').match(/steam\/apps\/(\d+)\//)?.[1])).filter(n => Number.isInteger(n) && n > 0)
+    );
+    return {
+      baselineAt,
+      games: games.map(g => ({
+        ...g,
+        addedAt: addedAt.get(g.id) ?? null,
+        plays: plays.get(g.id) || { total: 0, recent: 0 }
+      }))
+    };
+  };
+  let catalogueIds = new Set<string>();
+  // Steam app ids the catalogue's own games point at (their art comes from Steam)
+  let catalogueSteamAppIds = new Set<number>();
 
   /*
    * Save slots are a Flash-only feature, so a write is checked against the catalogue rather
@@ -1042,8 +1061,8 @@ async function startServer() {
   // API Route to fetch games
   app.get('/api/games', async (req, res) => {
     try {
-      const games = await buildCatalog();
-      res.json({ status: 'ok', data: games, isSyncing, syncProgressMessage });
+      const { games, baselineAt } = await buildCatalogWithStats();
+      res.json({ status: 'ok', data: games, catalogueSince: baselineAt, isSyncing, syncProgressMessage });
     } catch (error) {
       console.error('Error fetching games:', error);
       res.status(500).json({ error: 'Failed to fetch games' });
@@ -1439,43 +1458,155 @@ async function startServer() {
     }
   });
 
-  // Link Steam to logged-in user
-  app.post('/api/auth/link-steam', (req, res) => {
+  // --- STEAM: SIGN IN THROUGH STEAM ------------------------------------------------------
+  //
+  // Linking used to accept any Steam id posted from the browser, so an account could claim
+  // someone else's profile. It now goes through Steam's own OpenID sign-in, and only an id
+  // Steam confirms is stored. Links made the old way stay in place, marked unverified, until
+  // their owner confirms them; nothing is disconnected without the owner doing it.
+
+  const STEAM_STATE_COOKIE = 'fh_steam_state';
+  const STEAM_STATE_TTL_MS = 10 * 60 * 1000;
+  const steamStates = new Map<string, { userId: string; createdAt: number }>();
+
+  /** The public origin of this hub: APP_URL when set, otherwise the request's own host. */
+  const publicOrigin = (req: express.Request): string => {
+    const configured = (process.env.APP_URL || '').replace(/\/$/, '');
+    if (/^https?:\/\/[^/]+$/.test(configured)) return configured;
+    return `${req.protocol}://${req.get('host')}`;
+  };
+
+  /** Where the player lands afterwards, with the outcome for the library to show. */
+  const steamOutcome = (res: express.Response, outcome: 'verified' | 'error', reason?: string) => {
+    const query = outcome === 'verified' ? 'steam=verified' : `steam=error&reason=${encodeURIComponent(reason || 'rejected')}`;
+    res.redirect(302, `/?${query}#/library/steam`);
+  };
+
+  /** Refresh the profile fields Steam owns, from Steam. Only what Steam returns is stored. */
+  const steamProfileFields = async (steamId: string): Promise<Partial<StoredUserAccount>> => {
     try {
-      const user = getAuthUser(req);
-      if (!user) {
-        return res.status(401).json({ error: 'Authentication required' });
+      if (isSteamConfigured()) {
+        const summary = await getLibrarySummary(steamId);
+        if (!summary.profile) return {};
+        return {
+          steamPersonaName: summary.profile.personaName,
+          steamAvatar: summary.profile.avatar || undefined,
+          steamProfileUrl: summary.profile.profileUrl,
+          ...(summary.level !== null ? { steamLevel: summary.level } : {}),
+          steamGamesCount: summary.gameCount,
+          steamStatsAt: new Date().toISOString()
+        };
       }
-
-      const { steamId, steamPersonaName, steamAvatar, steamProfileUrl, steamLevel, steamGamesCount } = req.body;
-      if (!steamId) {
-        return res.status(400).json({ error: 'Steam ID is required' });
-      }
-
-      const storedAccounts = getStoredAccounts();
-      const index = storedAccounts.findIndex(a => a.id === user.id);
-      if (index === -1) return res.status(404).json({ error: 'User not found' });
-
-      storedAccounts[index].steamId = steamId;
-      storedAccounts[index].steamPersonaName = steamPersonaName || user.username;
-      storedAccounts[index].steamAvatar = steamAvatar || undefined;
-      storedAccounts[index].steamProfileUrl = steamProfileUrl || `https://steamcommunity.com/profiles/${steamId}`;
-      storedAccounts[index].steamLevel = steamLevel || 25;
-      storedAccounts[index].steamGamesCount = steamGamesCount || 50;
-      storedAccounts[index].steamLinkedAt = new Date().toISOString();
-
-      saveStoredAccounts(storedAccounts);
-
-      const saves = getSaves().filter(s => s.userId === user.id);
-
-      res.json({
-        status: 'ok',
-        user: toPublicAccount(storedAccounts[index], saves.length),
-        message: 'Steam profile connected!'
-      });
-    } catch (err: any) {
-      res.status(500).json({ error: err.message });
+      const xml = await fetch(`https://steamcommunity.com/profiles/${encodeURIComponent(steamId)}/?xml=1`, {
+        headers: { 'User-Agent': 'FlashHub/2.0' },
+        signal: AbortSignal.timeout(6000)
+      }).then(r => (r.ok ? r.text() : ''));
+      const pick = (tag: string) => xml.match(new RegExp(`<${tag}><!\\[CDATA\\[(.*?)\\]\\]></${tag}>`))?.[1];
+      const persona = pick('steamID');
+      const avatar = pick('avatarFull');
+      return {
+        ...(persona ? { steamPersonaName: persona } : {}),
+        ...(avatar ? { steamAvatar: avatar } : {}),
+        steamProfileUrl: `https://steamcommunity.com/profiles/${steamId}`
+      };
+    } catch {
+      return {};
     }
+  };
+
+  // Step 1: send the signed-in player to Steam
+  app.get('/api/auth/steam/start', (req, res) => {
+    const user = getAuthUser(req);
+    if (!user) return steamOutcome(res, 'error', 'signed-out');
+
+    // Expired states go first so the map cannot grow without bound
+    const now = Date.now();
+    for (const [token, record] of steamStates) if (now - record.createdAt > STEAM_STATE_TTL_MS) steamStates.delete(token);
+
+    const state = crypto.randomBytes(24).toString('hex');
+    steamStates.set(state, { userId: user.id, createdAt: now });
+
+    // The session cookie is SameSite=Strict, so it does not come back on Steam's redirect.
+    // This cookie is Lax, which does, and proves the browser returning is the one that left.
+    res.cookie(STEAM_STATE_COOKIE, state, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: process.env.NODE_ENV === 'production',
+      maxAge: STEAM_STATE_TTL_MS,
+      path: '/api/auth/steam'
+    });
+
+    const origin = publicOrigin(req);
+    res.redirect(302, buildSteamLoginUrl(`${origin}/api/auth/steam/return?state=${state}`, origin));
+  });
+
+  // Step 2: Steam sends the player back; trust nothing until Steam confirms it
+  app.get('/api/auth/steam/return', async (req, res) => {
+    const state = typeof req.query.state === 'string' ? req.query.state : '';
+    const record = steamStates.get(state);
+    const cookieState = readCookie(req, STEAM_STATE_COOKIE);
+    res.clearCookie(STEAM_STATE_COOKIE, { path: '/api/auth/steam' });
+
+    // One use per state, and only from the browser that started it
+    steamStates.delete(state);
+    if (!record || Date.now() - record.createdAt > STEAM_STATE_TTL_MS || cookieState !== state) {
+      return steamOutcome(res, 'error', 'expired');
+    }
+
+    const params: Record<string, string> = {};
+    for (const [key, value] of Object.entries(req.query)) if (typeof value === 'string') params[key] = value;
+
+    const expectedReturn = `${publicOrigin(req)}/api/auth/steam/return?state=${state}`;
+    const result = await verifySteamAssertion(params, expectedReturn);
+    if ('reason' in result) return steamOutcome(res, 'error', result.reason);
+
+    const accounts = getStoredAccounts();
+    const index = accounts.findIndex(a => a.id === record.userId);
+    if (index === -1) return steamOutcome(res, 'error', 'signed-out');
+
+    // A Steam account confirmed on one Flashhub account cannot be confirmed on another.
+    // An unconfirmed claim elsewhere gives way: Steam has just said who really owns it.
+    const confirmedElsewhere = accounts.find(a => a.id !== record.userId && a.steamId === result.steamId && a.steamVerifiedAt);
+    if (confirmedElsewhere) return steamOutcome(res, 'error', 'taken');
+    for (const other of accounts) {
+      if (other.id !== record.userId && other.steamId === result.steamId && !other.steamVerifiedAt) {
+        console.warn(`[Steam] Unconfirmed link on ${other.username} released: ${accounts[index].username} proved ownership.`);
+        for (const field of ['steamId', 'steamPersonaName', 'steamAvatar', 'steamProfileUrl', 'steamLevel', 'steamGamesCount', 'steamLinkedAt', 'steamStatsAt'] as const) {
+          delete (other as any)[field];
+        }
+      }
+    }
+
+    const account = accounts[index];
+    const switching = account.steamId && account.steamId !== result.steamId;
+    if (switching) {
+      // A different Steam account than the one linked before: start its data afresh
+      userData.dropSteamSnapshot(account.steamId!);
+      for (const field of ['steamPersonaName', 'steamAvatar', 'steamProfileUrl', 'steamLevel', 'steamGamesCount', 'steamStatsAt'] as const) {
+        delete (account as any)[field];
+      }
+    }
+
+    Object.assign(account, await steamProfileFields(result.steamId), {
+      steamId: result.steamId,
+      steamVerifiedAt: new Date().toISOString(),
+      steamLinkedAt: switching || !account.steamLinkedAt ? new Date().toISOString() : account.steamLinkedAt
+    });
+    saveStoredAccounts(accounts);
+    steamOutcome(res, 'verified');
+  });
+
+  // The words for an outcome, so the client does not have to keep its own copy
+  app.get('/api/auth/steam/messages', (_req, res) => {
+    res.json({ status: 'ok', data: OPENID_FAILURE_MESSAGE });
+  });
+
+  // The old form-posted link. Retired: it could claim any profile.
+  app.post('/api/auth/link-steam', (_req, res) => {
+    res.status(410).json({
+      error: 'Steam accounts are now linked with Sign in through Steam, so Steam can confirm they are yours.',
+      signInUrl: '/api/auth/steam/start'
+    });
   });
 
   // Unlink Steam
@@ -1497,8 +1628,11 @@ async function startServer() {
       delete storedAccounts[index].steamLevel;
       delete storedAccounts[index].steamGamesCount;
       delete storedAccounts[index].steamLinkedAt;
+      delete storedAccounts[index].steamVerifiedAt;
+      delete storedAccounts[index].steamStatsAt;
 
       saveStoredAccounts(storedAccounts);
+      if (user.steamId) userData.dropSteamSnapshot(user.steamId);
 
       const saves = getSaves().filter(s => s.userId === user.id);
 
@@ -1539,6 +1673,10 @@ async function startServer() {
       let storedAccounts = getStoredAccounts();
       storedAccounts = storedAccounts.filter(a => a.id !== user.id);
       saveStoredAccounts(storedAccounts);
+
+      // Favourites, collections, play history and the cached Steam library go with it
+      userData.forgetUser(user.id);
+      if (user.steamId) userData.dropSteamSnapshot(user.steamId);
 
       // Clean up saves
       let saves = getSaves();
@@ -1603,36 +1741,13 @@ async function startServer() {
       // Upstream rate limit, timeout or reset
     }
 
-    // High quality instant retro SVG cartridge banner
+    // No cover from Archive.org: fall back to the same drawn cover every other game uses.
+    // Not cached under the item id, so a later request can still pick up the real image.
     const readableTitle = id
+      .replace(/_\d{6,}$/, '')
       .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase())
-      .slice(0, 24);
-
-    const svgFallback = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240">
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#18181b"/>
-          <stop offset="100%" stop-color="#09090b"/>
-        </linearGradient>
-        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#f59e0b"/>
-          <stop offset="100%" stop-color="#ef4444"/>
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#bg)"/>
-      <rect x="12" y="12" width="376" height="216" rx="10" fill="none" stroke="#27272a" stroke-width="1.5"/>
-      <circle cx="200" cy="95" r="36" fill="#27272a" opacity="0.6"/>
-      <polygon points="190,80 218,95 190,110" fill="url(#accent)"/>
-      <text x="200" y="165" fill="#f4f4f5" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="0.5">${escapeHtml(readableTitle)}</text>
-      <text x="200" y="190" fill="#71717a" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">FLASH ARCADE CLASSIC</text>
-    </svg>`;
-
-    const buf = Buffer.from(svgFallback, 'utf-8');
-    cacheImage(id, buf, 'image/svg+xml');
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.send(buf);
+      .replace(/\b\w/g, c => c.toUpperCase());
+    return res.redirect(302, `/api/cover/${encodeURIComponent(id)}?title=${encodeURIComponent(readableTitle)}`);
   });
 
   // List all accounts (public directory)
@@ -1700,8 +1815,11 @@ async function startServer() {
       if (!storedAccounts.some(a => a.id === id)) {
         return res.status(404).json({ error: 'User not found' });
       }
+      const removed = storedAccounts.find(a => a.id === id);
       storedAccounts = storedAccounts.filter(a => a.id !== id);
       saveStoredAccounts(storedAccounts);
+      userData.forgetUser(id);
+      if (removed?.steamId) userData.dropSteamSnapshot(removed.steamId);
 
       // Clean up saves
       let saves = getSaves();
@@ -1861,6 +1979,224 @@ async function startServer() {
     } catch (err) {
       sendSteamError(res, err);
     }
+  });
+
+  /**
+   * The player's whole owned-games list, for the unified library. Official Web API only
+   * (GetOwnedGames, cached for five minutes in server/steam.ts); store metadata never gates it.
+   * A private "Game details" setting makes Steam answer with an empty list, so the profile's
+   * visibility travels with the games and the client can say why the list is empty.
+   */
+  const steamRefreshAt = new Map<string, number>();
+  const STEAM_REFRESH_MIN_MS = 60 * 1000;
+  const STEAM_SNAPSHOT_MAX_AGE_MS = 5 * 60 * 1000;
+
+  app.get('/api/steam/owned', async (req, res) => {
+    const steamId = steamIdForRequest(req, res);
+    if (!steamId) return;
+
+    type Owned = { steamId: string; personaName: string | null; visibility: string; games: unknown[] };
+    const snapshot = userData.getSteamSnapshot<Owned>(steamId);
+
+    // "Refresh" skips the five-minute cache, at most once a minute per player
+    if (req.query.refresh === '1') {
+      const last = steamRefreshAt.get(steamId) || 0;
+      if (Date.now() - last >= STEAM_REFRESH_MIN_MS) {
+        steamRefreshAt.set(steamId, Date.now());
+        forgetPlayerCache(steamId);
+      }
+    }
+
+    try {
+      if (!isSteamConfigured()) {
+        throw new SteamUnavailable('No Steam Web API key is configured on this server', true);
+      }
+      const [profile, games] = await Promise.all([
+        getProfile(steamId).catch(() => null),
+        getOwnedGames(steamId)
+      ]);
+      const data: Owned = {
+        steamId,
+        personaName: profile?.personaName ?? null,
+        visibility: profile?.visibility ?? 'unknown',
+        games
+      };
+
+      // Keep the last list Steam gave, so an outage does not empty the library. The memory
+      // cache already answers repeats within five minutes, so the file is written at most
+      // that often, or when the list changes.
+      let fetchedAt = snapshot?.fetchedAt;
+      const snapshotAge = snapshot ? Date.now() - Date.parse(snapshot.fetchedAt) : Infinity;
+      if (!snapshot || snapshotAge > STEAM_SNAPSHOT_MAX_AGE_MS || snapshot.data.games.length !== games.length) {
+        const now = new Date();
+        fetchedAt = now.toISOString();
+        userData.saveSteamSnapshot(steamId, data, now);
+      }
+      res.json({ status: 'ok', data: { ...data, fetchedAt } });
+    } catch (err) {
+      // Steam is down or refused: show the last list it gave, plainly marked as such
+      if (snapshot && err instanceof SteamUnavailable && !err.needsKey) {
+        return res.json({ status: 'ok', data: { ...snapshot.data, fetchedAt: snapshot.fetchedAt, stale: true } });
+      }
+      sendSteamError(res, err);
+    }
+  });
+
+  // --- PLAY HISTORY AND PLAY COUNTS ---------------------------------------------------------
+
+  /** Whether an id is in the catalogue; rebuilds the catalogue once if it has not run yet. */
+  const isCatalogueGame = async (id: unknown): Promise<boolean> => {
+    if (typeof id !== 'string') return false;
+    if (catalogueIds.size === 0) await buildCatalogWithStats();
+    return catalogueIds.has(id);
+  };
+
+  /**
+   * A finished sitting. Signed in, it is added to the player's history and banked as playtime;
+   * signed in or not, a sitting of 30 seconds or more counts once toward the game's plays.
+   */
+  const sessionPosts = new Map<string, number[]>();
+  const SESSION_POST_WINDOW_MS = 15 * 60 * 1000;
+  const SESSION_POST_LIMIT = 60;
+
+  app.post('/api/play/session', async (req, res) => {
+    try {
+      const gameId = req.body?.gameId;
+      const seconds = Number(req.body?.seconds);
+      if (!(await isCatalogueGame(gameId)) || !Number.isFinite(seconds) || seconds < 0) {
+        return res.status(400).json({ error: 'A catalogue game id and a number of seconds are required' });
+      }
+
+      const user = getAuthUser(req);
+      const actor = user ? `user:${user.id}` : `ip:${clientIp(req)}`;
+
+      // A player finishes a handful of sittings an hour; sixty in fifteen minutes is a script.
+      // (The credential limiter's thresholds are far too tight for this, so it has its own.)
+      const now = Date.now();
+      const recent = (sessionPosts.get(actor) || []).filter(t => now - t < SESSION_POST_WINDOW_MS);
+      if (recent.length >= SESSION_POST_LIMIT) {
+        res.setHeader('Retry-After', String(Math.ceil((SESSION_POST_WINDOW_MS - (now - recent[0])) / 1000)));
+        return res.status(429).json({ error: 'Too many sessions reported. Try again shortly.' });
+      }
+      recent.push(now);
+      sessionPosts.set(actor, recent);
+      if (sessionPosts.size > 5000) {
+        for (const [key, times] of sessionPosts) if (!times.some(t => now - t < SESSION_POST_WINDOW_MS)) sessionPosts.delete(key);
+      }
+
+      const counted = userData.recordPlay(gameId, actor, seconds);
+      if (!user) return res.json({ status: 'ok', counted });
+
+      const record = userData.recordSession(user.id, gameId, seconds);
+
+      // The account's total playtime, as /api/auth/playtime banked it before
+      let publicUser: UserAccount | undefined;
+      let newlyEarned: unknown[] = [];
+      if (seconds >= 30) {
+        const accounts = getStoredAccounts();
+        const index = accounts.findIndex(a => a.id === user.id);
+        if (index !== -1) {
+          accounts[index].totalPlaytimeMinutes = (accounts[index].totalPlaytimeMinutes || 0) + Math.max(1, Math.round(Math.min(seconds, 86400) / 60));
+          saveStoredAccounts(accounts);
+          newlyEarned = checkAchievements(user.id);
+          publicUser = toPublicAccount(getStoredAccounts().find(a => a.id === user.id)!, getSaves().filter(sv => sv.userId === user.id).length);
+        }
+      }
+      res.json({ status: 'ok', counted, record, user: publicUser, newlyEarned });
+    } catch (err: any) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.get('/api/play/history', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    res.json({ status: 'ok', data: userData.getHistory(user.id) });
+  });
+
+  /** Take one game out of the player's own history. The hub-wide play count is not changed. */
+  app.delete('/api/play/history/:key', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    if (!userData.removeHistoryEntry(user.id, req.params.key)) return res.status(404).json({ error: 'That game is not in your history' });
+    res.json({ status: 'ok', data: userData.getHistory(user.id) });
+  });
+
+  /** Fold a browser's local history into the account (larger value wins; never a sum). */
+  app.post('/api/play/history/import', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const merged = userData.importHistory(user.id, req.body?.history);
+    if (!merged) return res.status(400).json({ error: 'A history object is required' });
+    res.json({ status: 'ok', data: merged });
+  });
+
+  // --- FAVOURITES AND COLLECTIONS -------------------------------------------------------
+
+  app.get('/api/library/me', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    res.json({ status: 'ok', data: userData.getLibrary(user.id) });
+  });
+
+  app.put('/api/library/favourites', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const lib = userData.setFavourites(user.id, req.body?.keys);
+    if (!lib) return res.status(400).json({ error: 'Favourites must be a list of game keys' });
+    res.json({ status: 'ok', data: lib });
+  });
+
+  /** Add a browser's local favourites to the account without removing any. */
+  app.post('/api/library/favourites/merge', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const lib = userData.mergeFavourites(user.id, req.body?.keys);
+    if (!lib) return res.status(400).json({ error: 'Favourites must be a list of game keys' });
+    res.json({ status: 'ok', data: lib });
+  });
+
+  app.post('/api/library/collections', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const created = userData.createCollection(user.id, req.body?.name, req.body?.keys ?? []);
+    if (created === 'invalid') return res.status(400).json({ error: 'A collection needs a name of 1 to 60 characters' });
+    if (created === 'limit') return res.status(400).json({ error: 'You have reached the limit of 100 collections' });
+    res.status(201).json({ status: 'ok', data: created });
+  });
+
+  app.patch('/api/library/collections/:id', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    const updated = userData.updateCollection(user.id, req.params.id, { name: req.body?.name, keys: req.body?.keys });
+    if (updated === 'missing') return res.status(404).json({ error: 'Collection not found' });
+    if (updated === 'invalid') return res.status(400).json({ error: 'A collection needs a name of 1 to 60 characters and valid game keys' });
+    res.json({ status: 'ok', data: updated });
+  });
+
+  app.delete('/api/library/collections/:id', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    if (!userData.deleteCollection(user.id, req.params.id)) return res.status(404).json({ error: 'Collection not found' });
+    res.json({ status: 'ok' });
+  });
+
+  /**
+   * Store details for one Steam app: description, genres, developer, release, screenshots.
+   * Answered from the disk cache when it can be; asked of Steam (carefully, see
+   * server/steamStore.ts) when not. Open to any app the catalogue points at, and to signed-in
+   * players for anything else, so the hub is not a free relay for the store.
+   */
+  app.get('/api/steam/store/:appId', async (req, res) => {
+    const appId = Number(req.params.appId);
+    if (!Number.isInteger(appId) || appId <= 0) return res.status(400).json({ error: 'Invalid Steam app id' });
+    if (catalogueSteamAppIds.size === 0) await buildCatalogWithStats().catch(() => {});
+    if (!catalogueSteamAppIds.has(appId) && !getAuthUser(req)) {
+      return res.status(401).json({ error: 'Sign in to see store details for this game' });
+    }
+    const result = await steamStore.getDetails(appId);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.json({ status: 'ok', data: result });
   });
 
   app.get('/api/steam/achievements', async (req, res) => {
@@ -2080,8 +2416,7 @@ async function startServer() {
         GENIZY_WEBPORT_GAMES.length +
         cachedArchiveGames.length +
         localGames.length +
-        (settings.customGames || []).length +
-        MOCK_GAMES.length;
+        (settings.customGames || []).length;
 
       res.json({
         status: 'ok',
@@ -2145,7 +2480,7 @@ async function startServer() {
     try {
       if (!requireAdmin(req, res)) return;
 
-      const { title, embedUrl, thumbnail, genres, rating, source } = req.body;
+      const { title, embedUrl, thumbnail, genres, source } = req.body;
       if (!title || !embedUrl) {
         return res.status(400).json({ error: 'Title and embed URL required' });
       }
@@ -2157,8 +2492,8 @@ async function startServer() {
         embedUrl,
         thumbnail: thumbnail || `https://api.dicebear.com/7.x/shapes/svg?seed=${encodeURIComponent(title)}&backgroundColor=09090b`,
         genres: Array.isArray(genres) && genres.length ? genres : ['Custom', 'Web Port'],
-        rating: Number(rating) || 5.0,
-        source: source || 'webporting'
+        source: source || 'webporting',
+        addedAt: new Date().toISOString()
       };
 
       settings.customGames = settings.customGames || [];
@@ -2328,7 +2663,7 @@ async function startServer() {
         : `/custom_games/${gameId}/index.html`,
       genres: isSwf ? ['Custom', 'Uploaded', 'Flash'] : ['Custom', 'Uploaded'],
       thumbnail: thumbnailUrl,
-      rating: 5.0,
+      addedAt: new Date().toISOString(),
       isArchiveIndependent: true
     };
 
@@ -2420,10 +2755,10 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('/api/*', (_req, res) => {
+    app.get(/^\/api\//, (_req, res) => {
       res.status(404).json({ error: 'Unknown API endpoint' });
     });
-    app.get('*', (_req, res) => {
+    app.get(/.*/, (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }
@@ -2447,7 +2782,9 @@ async function startServer() {
               steamAvatar: summary.profile.avatar,
               steamProfileUrl: summary.profile.profileUrl,
               ...(summary.level !== null ? { steamLevel: summary.level } : {}),
-              steamGamesCount: summary.gameCount
+              steamGamesCount: summary.gameCount,
+              // Marks these figures as Steam's own, so the account shows them
+              steamStatsAt: new Date().toISOString()
             });
           }
           continue;
