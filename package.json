@@ -11,7 +11,7 @@
     "clean": "rm -rf dist",
     "lint": "tsc --noEmit",
     "sync": "./sync-games.sh",
-    "test": "tsx server/steam.test.ts && tsx server/rateLimit.test.ts"
+    "test": "tsx server/steam.test.ts && tsx server/rateLimit.test.ts && tsx server/steamOpenId.test.ts && tsx server/userData.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

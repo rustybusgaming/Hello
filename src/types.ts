@@ -10,7 +10,8 @@ export interface Game {
   id: string;
   title: string;
   thumbnail: string;
-  rating: number;
+  /** Hand-assigned in the catalogue data; not a measured figure, so the UI does not show it */
+  rating?: number;
   source: 'webporting' | 'steam' | 'archive' | 'custom';
   embedUrl: string;
   genres: string[];
@@ -20,6 +21,10 @@ export interface Game {
   html5Url?: string;
   isArchiveIndependent?: boolean;
   description?: string;
+  /** When the hub first saw the game; null for the catalogue it started with */
+  addedAt?: string | null;
+  /** Counted plays: sessions of 30 s or more, one per player per half hour */
+  plays?: { total: number; recent: number };
 }
 
 export interface Achievement {
@@ -51,6 +56,8 @@ export interface UserAccount {
   steamLevel?: number;
   steamGamesCount?: number;
   steamLinkedAt?: string;
+  /** Set when Steam itself confirmed ownership through Sign in through Steam */
+  steamVerifiedAt?: string;
   savesCount: number;
   totalPlaytimeMinutes?: number;
   achievements?: UserAchievement[];
@@ -77,6 +84,9 @@ export interface StoredUserAccount {
   steamLevel?: number;
   steamGamesCount?: number;
   steamLinkedAt?: string;
+  steamVerifiedAt?: string;
+  /** When steamLevel / steamGamesCount last came from Steam's API; absent means not from Steam */
+  steamStatsAt?: string;
   achievements?: UserAchievement[];
 }
 
@@ -131,6 +141,24 @@ export interface SteamOwnedLibrary {
   personaName: string | null;
   visibility: 'public' | 'private' | 'unknown';
   games: SteamGameSummary[];
+  /** When this list came from Steam */
+  fetchedAt: string;
+  /** True when Steam could not be reached and this is the last list it gave */
+  stale?: boolean;
+}
+
+export interface PlayRecord {
+  lastPlayedAt: string | null;
+  totalSeconds: number;
+  sessions: number;
+}
+
+export interface GameCollection {
+  id: string;
+  name: string;
+  keys: string[];
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface SteamAchievementEntry {

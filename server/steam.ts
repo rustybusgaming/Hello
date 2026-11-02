@@ -109,6 +109,11 @@ export function clearSteamCache() {
   cache.clear();
 }
 
+/** Forget one player's cached library and profile, so the next request asks Steam again. */
+export function forgetPlayerCache(steamId: string) {
+  for (const prefix of ['games', 'recent', 'profile', 'level']) cache.delete(`${prefix}:${steamId}`);
+}
+
 async function getJson(url: string): Promise<any> {
   let res: Response;
   try {
