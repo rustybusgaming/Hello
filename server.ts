@@ -483,6 +483,24 @@ async function startServer() {
 
   const isProduction = process.env.NODE_ENV === 'production';
 
+  /**
+   * An origin from the environment, as "https://host". Hosts like Render fill in another
+   * service's address as a bare hostname, so a value without a scheme is taken as https.
+   */
+  const originFromEnv = (value: string | undefined): string => {
+    const trimmed = (value || '').trim().replace(/\/+$/, '');
+    if (!trimmed) return '';
+    return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  };
+
+  /*
+   * FLASHHUB_ROLE=games runs this server as the game origin only: a second deployment of the
+   * same code whose own address isolates games from the hub, for hosts where one service
+   * cannot have two hostnames (no custom domain). It serves the game routes and sends
+   * everything else to the hub at HUB_ORIGIN, so it never shows a second, separate hub.
+   */
+  const gamesOnly = process.env.FLASHHUB_ROLE === 'games';
+
   /*
    * Game isolation is the security model: games are third-party code and must not share an
    * origin with the hub. In development that is free — localhost and 127.0.0.1 are the same
@@ -490,7 +508,8 @@ async function startServer() {
    * GAME_ORIGIN names a second one. Without it every game runs with the hub's cookies in
    * reach, silently. That is a refusal to start, not a warning to scroll past.
    */
-  if (isProduction && !process.env.GAME_ORIGIN) {
+  // The games-only server is itself the second origin, so it needs no GAME_ORIGIN of its own
+  if (isProduction && !gamesOnly && !process.env.GAME_ORIGIN) {
     if (process.env.ALLOW_SAME_ORIGIN_GAMES === '1') {
       console.error(
         '\n!!  GAME_ORIGIN is unset and ALLOW_SAME_ORIGIN_GAMES=1.\n' +
@@ -528,6 +547,16 @@ async function startServer() {
    * being served on a separate origin instead.
    */
   const GAME_ROUTES = /^\/(api\/(quasar|webports|webport-proxy|archive-swf)|custom_games|gameports|quasar|play\.html|frame-storage\.js)/;
+
+  if (gamesOnly) {
+    const hub = originFromEnv(process.env.HUB_ORIGIN);
+    console.log(`[FlashHub] Running as the game origin only${hub ? `; everything else goes to ${hub}` : ''}.`);
+    app.use((req, res, next) => {
+      if (GAME_ROUTES.test(req.path)) return next();
+      if (hub) return res.redirect(302, hub + req.originalUrl);
+      res.status(404).type('text/plain').send('This server only serves games for the Flashhub hub.');
+    });
+  }
 
   app.use((req, res, next) => {
     if (GAME_ROUTES.test(req.path)) return next();
@@ -1040,7 +1069,7 @@ async function startServer() {
    * Deployments behind a real domain should set GAME_ORIGIN to a second hostname.
    */
   const resolveGameOrigin = (req: express.Request): string => {
-    if (process.env.GAME_ORIGIN) return process.env.GAME_ORIGIN.replace(/\/$/, '');
+    if (process.env.GAME_ORIGIN) return originFromEnv(process.env.GAME_ORIGIN);
 
     const host = (req.headers.host || '').split(':')[0];
     const port = (req.headers.host || '').split(':')[1];
@@ -1055,7 +1084,9 @@ async function startServer() {
   };
 
   app.get('/api/config', (req, res) => {
-    res.json({ status: 'ok', gameOrigin: resolveGameOrigin(req) });
+    // isolationRequired: a game origin was configured, so a game must never quietly fall back
+    // to running on the hub's own origin (that rescue is for local development only)
+    res.json({ status: 'ok', gameOrigin: resolveGameOrigin(req), isolationRequired: !!process.env.GAME_ORIGIN });
   });
 
   // API Route to fetch games
@@ -1469,9 +1500,12 @@ async function startServer() {
   const STEAM_STATE_TTL_MS = 10 * 60 * 1000;
   const steamStates = new Map<string, { userId: string; createdAt: number }>();
 
-  /** The public origin of this hub: APP_URL when set, otherwise the request's own host. */
+  /**
+   * The public origin of this hub: APP_URL when set, then the address the host reports
+   * (Render sets RENDER_EXTERNAL_URL on every web service), otherwise the request's own host.
+   */
   const publicOrigin = (req: express.Request): string => {
-    const configured = (process.env.APP_URL || '').replace(/\/$/, '');
+    const configured = (process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || '').replace(/\/$/, '');
     if (/^https?:\/\/[^/]+$/.test(configured)) return configured;
     return `${req.protocol}://${req.get('host')}`;
   };

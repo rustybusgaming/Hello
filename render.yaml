@@ -1,27 +1,34 @@
 # Render Blueprint for the full Flashhub server: games, accounts, saves, Steam.
-# Render: New -> Blueprint -> pick this repository. Values marked `sync: false` are asked for
-# when the Blueprint is created.
+# No custom domain needed. Render: New -> Blueprint -> pick this repository.
 #
-# Before it serves players:
-#   1. Add TWO custom domains to this service (Settings -> Custom Domains), e.g.
-#      flashhub.example.com and games.example.com. Games are framed from the second one so
-#      game code cannot reach the hub's session cookie; the server refuses to start in
-#      production without it (see GAME_ORIGIN below).
-#   2. Set APP_URL to the first domain and GAME_ORIGIN to the second, both with https://.
-#      Sign in through Steam sends players back to APP_URL, so it must be the public address.
-#   3. Optional: STEAM_API_KEY (https://steamcommunity.com/dev/apikey) for Steam libraries,
-#      playtime and achievements.
+# Two services, because games must run on a different web address from the hub (game code
+# must not be able to reach players' sessions) and one Render service has one free address:
+#
+#   flashhub        the hub: library, accounts, saves, Steam    https://flashhub-XXXX.onrender.com
+#   flashhub-games  game files only; anything else goes to the hub
+#
+# Render shows each service's address once it exists, and it may add a few characters to the
+# name if it is taken. When asked for the two values below during setup, use
+# https://<service name>.onrender.com; afterwards, check each service's real address on its
+# page in the dashboard and correct the values under Environment if they differ:
+#
+#   flashhub        GAME_ORIGIN = the flashhub-games address
+#   flashhub-games  HUB_ORIGIN  = the flashhub address
+#
+# Optional: STEAM_API_KEY on flashhub (https://steamcommunity.com/dev/apikey) for Steam
+# libraries, playtime and achievements. Sign in through Steam works without it.
 
 services:
   - type: web
     name: flashhub
     runtime: node
-    # A persistent disk needs a paid instance; on the free plan data/ (accounts, sessions,
-    # saves, play history) is wiped on every deploy and restart.
-    plan: starter
+    # Paid, because accounts, saves and play history live in data/ and only paid services keep
+    # a disk. On `free` the hub works but forgets everything whenever it restarts or redeploys
+    # (and Render may restart free services at any time): remove the `disk` block if you try it.
+    plan: 0.5c-512mb
     region: oregon
-    # Vite and the type definitions are dev dependencies, and NODE_ENV=production would
-    # otherwise make npm skip them during the build
+    # Vite and the type definitions are dev dependencies; NODE_ENV=production would otherwise
+    # make npm skip them during the build
     buildCommand: npm ci --include=dev && npm run build
     startCommand: npm start
     healthCheckPath: /api/config
@@ -31,18 +38,43 @@ services:
         value: '22'
       - key: NODE_ENV
         value: production
-      # Render puts one proxy in front of the service; this lets per-IP rate limiting see the
+      # Render puts one proxy in front of each service; this lets per-IP rate limiting see the
       # real client address instead of the proxy's
       - key: TRUSTED_PROXY_HOPS
         value: '1'
-      - key: APP_URL
-        sync: false
+      # The games service's address (https://...onrender.com)
       - key: GAME_ORIGIN
         sync: false
       - key: STEAM_API_KEY
         sync: false
     disk:
-      # The server keeps its state in ./data (accounts.json, sessions.json, saves.json, ...)
+      # The server keeps its state in ./data (accounts, sessions, saves, play history)
       name: flashhub-data
       mountPath: /opt/render/project/src/data
       sizeGB: 1
+
+  - type: web
+    name: flashhub-games
+    runtime: node
+    # Holds no player data, so free is fine. A free service sleeps after 15 idle minutes and
+    # takes about a minute to wake; the hub knocks when it loads so it is usually awake by the
+    # time someone presses Play, and the player says "Waking the game server…" if it is not.
+    plan: free
+    region: oregon
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /play.html
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: NODE_ENV
+        value: production
+      - key: TRUSTED_PROXY_HOPS
+        value: '1'
+      # Serve games only; send everything else to the hub
+      - key: FLASHHUB_ROLE
+        value: games
+      # The hub's address (https://...onrender.com)
+      - key: HUB_ORIGIN
+        sync: false

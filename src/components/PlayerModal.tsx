@@ -26,9 +26,14 @@ interface PlayerModalProps {
   currentUser?: UserAccount | null;
   /** Separate origin games are framed from; empty falls back to same-origin. */
   gameOrigin?: string;
+  /**
+   * The server configured that origin, so isolation is not optional: a slow game origin is
+   * waited for (it may be waking up), never swapped for the hub's own origin.
+   */
+  isolationRequired?: boolean;
 }
 
-export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: PlayerModalProps) {
+export function PlayerModal({ game, onClose, currentUser, gameOrigin = '', isolationRequired = false }: PlayerModalProps) {
   // The side panel (runtimes and saves) folds away so the game can have the whole window.
   // Flash titles open with it shown, because that is where their save slots live.
   const [panelOpen, setPanelOpen] = useLocalStorage<boolean>('flashhub-player-panel', true);
@@ -62,6 +67,8 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
   // that happens the game frame is simply never reachable, so the player falls back to the
   // hub's own origin rather than showing a black rectangle.
   const [isolationBlocked, setIsolationBlocked] = useState(false);
+  // While a required game origin has not answered: 'waking', then 'failed' after 90 seconds
+  const [originStatus, setOriginStatus] = useState<'ok' | 'waking' | 'failed'>('ok');
   const frameSpokeUp = useRef(false);
 
   /*
@@ -297,6 +304,7 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
       if (!msg || typeof msg !== 'object') return;
 
       frameSpokeUp.current = true;
+      setOriginStatus('ok');
 
       if (msg.type === 'flashhub:storage-request') {
         const send = () => {
@@ -346,7 +354,17 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
     if (!(currentEmbedUrl || game.embedUrl).startsWith('/')) return;
 
     frameSpokeUp.current = false;
+    setOriginStatus('ok');
+    let giveUp: ReturnType<typeof setTimeout> | undefined;
     const timer = setTimeout(() => {
+      if (!frameSpokeUp.current && isolationRequired) {
+        // A configured game origin is never traded for the hub's own: wait for it to wake
+        setOriginStatus('waking');
+        giveUp = setTimeout(() => {
+          if (!frameSpokeUp.current) setOriginStatus('failed');
+        }, 90000);
+        return;
+      }
       if (!frameSpokeUp.current) {
         console.warn(
           `[FlashHub] No response from the isolated game origin (${gameOrigin}); ` +
@@ -359,8 +377,11 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
       }
     }, 5000);
 
-    return () => clearTimeout(timer);
-  }, [game?.id, gameOrigin, isolationBlocked, currentEmbedUrl, iframeKey]);
+    return () => {
+      clearTimeout(timer);
+      if (giveUp) clearTimeout(giveUp);
+    };
+  }, [game?.id, gameOrigin, isolationBlocked, isolationRequired, currentEmbedUrl, iframeKey]);
 
   const handleClose = () => {
     onClose(elapsedSeconds);
@@ -602,6 +623,27 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
                 title={game.title}
               />
             </>
+          )}
+          {/* The game server is separate and may be asleep: say so over the stage while it wakes */}
+          {originStatus !== 'ok' && !show404Panel && (
+            <div role="status" className="absolute inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-ground/90 px-6 text-center">
+              {originStatus === 'waking' ? (
+                <>
+                  <p className="text-[16px] font-semibold">Waking the game server…</p>
+                  <p className="max-w-[44ch] text-[14px] text-muted">
+                    Games run on their own server, kept apart from your account. After a quiet spell it can take up to a minute to start.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-[16px] font-semibold">The game server is not answering</p>
+                  <p className="max-w-[44ch] text-[14px] text-muted">It may still be starting, or it may be down. Try again in a moment.</p>
+                  <button type="button" onClick={() => setIframeKey(k => k + 1)} className="btn-ghost h-9 px-4 text-[13px]">
+                    <RefreshCw className="h-4 w-4" aria-hidden /> Try again
+                  </button>
+                </>
+              )}
+            </div>
           )}
           {saveMessage && (
             <p role="status" className="absolute bottom-3 left-3 z-30 max-w-[320px] truncate bg-shade px-3 py-2 text-[13px] text-ink">

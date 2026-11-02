@@ -85,6 +85,7 @@ export default function App() {
   // the session. Derived locally first so the very first frame already points at the right
   // place, then confirmed by /api/config.
   const [gameOrigin, setGameOrigin] = useState(deriveGameOrigin);
+  const [isolationRequired, setIsolationRequired] = useState(false);
 
   // Favourites, collections and history: the account's when signed in, this browser's when not.
   // Keys are a Flashhub game id (unchanged from earlier builds) or steam:<appId>.
@@ -127,6 +128,12 @@ export default function App() {
       .then(res => (res.ok ? res.json() : null))
       .then(d => {
         if (d?.gameOrigin) setGameOrigin(d.gameOrigin);
+        setIsolationRequired(d?.isolationRequired === true);
+        // A game origin on its own host may be asleep (free hosting plans idle out). Knock now,
+        // so it is awake by the time someone presses Play. The answer itself is not needed.
+        if (d?.isolationRequired && d.gameOrigin) {
+          fetch(`${d.gameOrigin}/play.html`, { mode: 'no-cors', cache: 'no-store' }).catch(() => {});
+        }
       })
       .catch(() => {});
   }, []);
@@ -398,7 +405,13 @@ export default function App() {
       </AnimatePresence>
 
       {selectedGame && (
-        <PlayerModal game={selectedGame} onClose={handleCloseModal} currentUser={currentUser} gameOrigin={gameOrigin} />
+        <PlayerModal
+          game={selectedGame}
+          onClose={handleCloseModal}
+          currentUser={currentUser}
+          gameOrigin={gameOrigin}
+          isolationRequired={isolationRequired}
+        />
       )}
 
       {isUploadModalOpen && (
