@@ -18,6 +18,9 @@ import { LaunchButton } from './LaunchButton';
 import { EmptyBlock, CARD_GRID, railItemClass } from './Section';
 import { GameCard } from './GameCard';
 import { CollectionMenu } from './CollectionMenu';
+import { Screenshots, StoreCredit, platformList, storeMatches, storeNote } from './StoreSections';
+import { useStoreDetails } from '../lib/useStoreDetails';
+import { meaningfulGenres } from '../lib/recommend';
 
 /** Where a Flashhub game's files come from, in words, with a link where one exists. */
 function sourceOf(entry: LibraryEntry): { label: string; href?: string } {
@@ -203,7 +206,11 @@ function FlashhubBody({
   const runtimes = game.mirrors?.length || 1;
 
   // Games that share the most genres with this one; ties keep catalogue order
-  const { entries } = useLibrary();
+  const { entries, removeFromHistory } = useLibrary();
+
+  // A browser port of a Steam game: the store's page for the original, when it really is one
+  const store = useStoreDetails(entry.steamAppId);
+  const original = store?.status === 'done' && store.result.details && storeMatches(entry.title, store.result.details) ? store.result.details : null;
   const similar = useMemo(() => {
     if (!entry.genres.length) return [];
     const wanted = new Set(entry.genres);
@@ -219,7 +226,18 @@ function FlashhubBody({
   return (
     <div className="mt-8 grid gap-[14px] lg:grid-cols-6">
       <section aria-labelledby="stats-heading" className="lg:col-span-6">
-        <h2 id="stats-heading" className="mb-3 text-[16px] font-semibold">Your play</h2>
+        <div className="mb-3 flex items-baseline justify-between gap-4">
+          <h2 id="stats-heading" className="text-[16px] font-semibold">Your play</h2>
+          {record && (
+            <button
+              type="button"
+              onClick={() => removeFromHistory(entry.key)}
+              className="text-[13px] font-semibold text-muted underline decoration-control underline-offset-4 hover:text-ink hover:decoration-ink"
+            >
+              Remove from recently played
+            </button>
+          )}
+        </div>
         <StatStrip
           stats={[
             { label: 'Last played', value: formatWhen(record?.lastPlayedAt) || <Quiet>{record ? 'Before this browser kept times' : 'Not played yet'}</Quiet> },
@@ -269,6 +287,22 @@ function FlashhubBody({
               </div>
             ))}
           </div>
+        </section>
+      )}
+
+      {original && entry.steamAppId && (
+        <section aria-labelledby="original-heading" className="flex flex-col gap-4 bg-paper p-5 sm:flex-row sm:items-start sm:justify-between lg:col-span-6">
+          <div className="min-w-0">
+            <h2 id="original-heading" className="text-[16px] font-semibold">The original on Steam</h2>
+            {original.description && <p className="mt-2 max-w-[68ch] text-[14px] leading-relaxed text-muted">{original.description}</p>}
+            <p className="mt-2 text-[13px] text-faint">
+              {[original.developers.join(', '), original.releaseDate].filter(Boolean).join(' · ')}
+              {original.developers.length || original.releaseDate ? '. ' : ''}From the Steam store. This page plays the browser version.
+            </p>
+          </div>
+          <a href={steamStoreUrl(entry.steamAppId)} target="_blank" rel="noopener noreferrer" className="btn-ghost h-9 flex-none px-4 text-[13px]">
+            Store page
+          </a>
         </section>
       )}
 
@@ -340,6 +374,9 @@ function SteamBody({
   canReadAchievements: boolean;
 }) {
   const s = entry.steam!;
+  const { entries } = useLibrary();
+  const store = useStoreDetails(s.appId);
+  const details = store?.status === 'done' ? store.result.details : null;
   const [achievements, setAchievements] = useState<SteamAchievementSet | null>(null);
   const [achievementNote, setAchievementNote] = useState<string | null>(null);
 
@@ -366,6 +403,22 @@ function SteamBody({
     [achievements]
   );
 
+  // Something like it that starts right here: Flashhub games sharing the store's genres
+  const playHere = useMemo(() => {
+    if (!details) return [];
+    const wanted = new Set(meaningfulGenres(details.genres).map(g => g.toLowerCase()));
+    if (!wanted.size) return [];
+    return entries
+      .filter(e => e.launch === 'flashhub')
+      .map((e, index) => ({ e, index, shared: e.genres.filter(g => wanted.has(g.toLowerCase())).length }))
+      .filter(x => x.shared > 0)
+      .sort((a, b) => b.shared - a.shared || (b.e.plays?.recent ?? 0) - (a.e.plays?.recent ?? 0) || a.index - b.index)
+      .slice(0, 4)
+      .map(x => x.e);
+  }, [details, entries]);
+
+  const note = storeNote(store);
+
   return (
     <div className="mt-8 grid gap-[14px] lg:grid-cols-6">
       <section aria-labelledby="steam-stats" className="lg:col-span-6">
@@ -379,7 +432,55 @@ function SteamBody({
         />
       </section>
 
-      <section aria-labelledby="achievements-heading" className="bg-paper p-5 lg:col-span-4">
+      {/* About and the screenshots share the left column, so the row ends level with Details */}
+      <div className="flex flex-col gap-[14px] self-start lg:col-span-4">
+      <section aria-labelledby="about-heading" className="bg-paper p-5">
+        <h2 id="about-heading" className="text-[16px] font-semibold">About</h2>
+        {details?.description ? (
+          <p className="mt-3 max-w-[68ch] text-[15px] leading-relaxed text-ink">{details.description}</p>
+        ) : (
+          <p className="mt-3 text-[14px] text-muted">{note || 'The Steam store has no description for this game.'}</p>
+        )}
+        <StoreCredit load={store} />
+      </section>
+        {details && <Screenshots details={details} inColumn />}
+      </div>
+
+      <section aria-labelledby="steam-details" className="self-start bg-paper p-5 lg:col-span-2">
+        <h2 id="steam-details" className="text-[16px] font-semibold">Details</h2>
+        <dl className="mt-2">
+          <Fact label="Launches in">Steam client</Fact>
+          {details?.developers.length ? <Fact label="Developer">{details.developers.join(', ')}</Fact> : null}
+          {details?.publishers.length ? <Fact label="Publisher">{details.publishers.join(', ')}</Fact> : null}
+          {details?.releaseDate ? <Fact label={details.comingSoon ? 'Coming' : 'Released'}>{details.releaseDate}</Fact> : null}
+          {details?.genres.length ? <Fact label="Genre">{details.genres.join(', ')}</Fact> : null}
+          {details ? <Fact label="Platforms">{platformList(details.platforms)}</Fact> : null}
+          {details?.controllerSupport ? <Fact label="Controller">{details.controllerSupport === 'full' ? 'Full support' : 'Partial support'}</Fact> : null}
+          {details?.metacritic ? (
+            <Fact label="Metacritic">
+              {details.metacritic.url ? (
+                <a href={details.metacritic.url} target="_blank" rel="noopener noreferrer" className="text-ink underline decoration-control underline-offset-4 hover:decoration-ink">
+                  {details.metacritic.score}
+                </a>
+              ) : (
+                details.metacritic.score
+              )}
+            </Fact>
+          ) : null}
+          <Fact label="Steam app">{s.appId}</Fact>
+          <Fact label="In Flashhub">
+            {alsoInFlashhub.length ? (
+              <a href={gameHref(alsoInFlashhub[0].key)} className="text-ink underline decoration-control underline-offset-4 hover:decoration-ink">
+                {alsoInFlashhub[0].title}
+              </a>
+            ) : (
+              'No browser version'
+            )}
+          </Fact>
+        </dl>
+      </section>
+
+      <section aria-labelledby="achievements-heading" className="self-start bg-paper p-5 lg:col-span-4">
         <div className="flex items-baseline justify-between gap-4">
           <h2 id="achievements-heading" className="text-[16px] font-semibold">Achievements</h2>
           {achievements && achievements.total > 0 && (
@@ -418,21 +519,33 @@ function SteamBody({
         )}
       </section>
 
-      <section aria-labelledby="steam-details" className="bg-paper p-5 lg:col-span-2">
-        <h2 id="steam-details" className="text-[16px] font-semibold">Details</h2>
-        <dl className="mt-2">
-          <Fact label="Launches in">Steam client</Fact>
-          <Fact label="Steam app">{s.appId}</Fact>
-          <Fact label="In Flashhub">
-            {alsoInFlashhub.length ? (
-              <a href={gameHref(alsoInFlashhub[0].key)} className="text-ink underline decoration-control underline-offset-4 hover:decoration-ink">
-                {alsoInFlashhub[0].title}
-              </a>
-            ) : (
-              'No browser version'
-            )}
-          </Fact>
-        </dl>
+      {/* The bridge between the two libraries: Steam taste, games that start right here */}
+      <section aria-labelledby="play-here-heading" className="self-start bg-paper p-5 lg:col-span-2">
+        <h2 id="play-here-heading" className="text-[16px] font-semibold">Play something like it here</h2>
+        {playHere.length ? (
+          <>
+            <p className="mt-1 text-[13px] text-faint">Flashhub games that share its genres, no Steam needed.</p>
+            <ul className="mt-3">
+              {playHere.map(e => (
+                <li key={e.key}>
+                  <a href={gameHref(e.key)} className="flex items-center gap-3 border-b border-hair py-2.5 transition-colors duration-150 last:border-b-0 hover:text-ink">
+                    <span className="h-9 w-12 flex-none overflow-hidden bg-shade">
+                      <GameArt entry={e} />
+                    </span>
+                    <span className="min-w-0">
+                      <span className="block truncate text-[14px] text-ink">{e.title}</span>
+                      <span className="block truncate text-[12px] text-faint">{[e.runtime, e.genres[0]].filter(Boolean).join(' · ')}</span>
+                    </span>
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </>
+        ) : (
+          <p className="mt-3 text-[14px] text-muted">
+            {store?.status === 'loading' ? 'Matching it with the catalogue…' : 'Nothing in the catalogue shares this game’s genres yet.'}
+          </p>
+        )}
       </section>
     </div>
   );

@@ -22,6 +22,8 @@ export interface LibraryContextValue {
   history: PlayHistory;
   /** Library keys by last play, newest first, Flashhub and Steam merged */
   recentKeys: string[];
+  /** Take a Flashhub game out of recently played (Steam's own record is Steam's) */
+  removeFromHistory: (key: string) => Promise<void>;
 
   /** The player's collections (empty when signed out: collections live on the account) */
   collections: GameCollection[];

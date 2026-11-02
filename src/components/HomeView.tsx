@@ -6,6 +6,8 @@ import { onGridKeyDown } from '../lib/navigation';
 import { FeaturedBanner } from './FeaturedBanner';
 import { GameCard, GameCardSkeleton } from './GameCard';
 import { CARD_GRID, EmptyBlock, Section, railItemClass } from './Section';
+import { recommend } from '../lib/recommend';
+import { useStoreDetailsFor } from '../lib/useStoreDetails';
 
 interface HomeViewProps {
   onBrowse: (filter: { runtime?: Runtime; genre?: string }) => void;
@@ -69,7 +71,8 @@ export function HomeView({ onBrowse }: HomeViewProps) {
 
   const discovery = (
     <>
-      {popular.length > 0 && (
+      {/* A row of one or two looks like a mistake: popular needs three games played this month */}
+      {popular.length >= 3 && (
         <Section
           id="popular"
           title="Popular on Flashhub"
@@ -102,11 +105,52 @@ export function HomeView({ onBrowse }: HomeViewProps) {
     </>
   );
 
+  // "Because you played …": seeded by the most recent games from both libraries. A Steam game
+  // needs its store genres to be a seed, so only the two most recent ones are looked up.
+  const seeds = useMemo(() => recent.slice(0, 5), [recent]);
+  const steamSeedIds = useMemo(
+    () => seeds.filter(e => e.launch === 'steam' && e.steamAppId).slice(0, 2).map(e => e.steamAppId!),
+    [seeds]
+  );
+  const seedStore = useStoreDetailsFor(steamSeedIds);
+  const recommendations = useMemo(
+    () =>
+      recommend({
+        seeds,
+        candidates: flashhub,
+        history,
+        genresOf: e => {
+          if (e.launch !== 'steam') return e.genres;
+          const details = e.steamAppId ? seedStore.get(e.steamAppId)?.details : null;
+          return details && details.type === 'game' ? details.genres : [];
+        }
+      }),
+    [seeds, flashhub, history, seedStore]
+  );
+
+  const becauseYouPlayed = recommendations.map(rec => (
+    <Section
+      key={rec.seed.key}
+      id={`because-${rec.seed.key.replace(/[^a-z0-9]/gi, '-')}`}
+      title={`Because you played ${rec.seed.title}`}
+      note={`${rec.seed.launch === 'steam' ? 'On Steam. ' : ''}These share ${rec.sharedGenres.slice(0, 3).join(', ')} with it, and play right here.`}
+    >
+      <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
+        {rec.games.map((entry, i) => (
+          <div key={entry.key} className={railItemClass(i)}>
+            <GameCard entry={entry} />
+          </div>
+        ))}
+      </div>
+    </Section>
+  ));
+
   const picks = useMemo(() => {
     const played = new Set(recentKeys);
-    const unplayed = flashhub.filter(e => !played.has(e.key) && e.key !== lead?.entry.key);
+    const suggested = new Set(recommendations.flatMap(r => r.games.map(g => g.key)));
+    const unplayed = flashhub.filter(e => !played.has(e.key) && !suggested.has(e.key) && e.key !== lead?.entry.key);
     return seededPick(unplayed, dayNumber(), 12);
-  }, [flashhub, recentKeys, lead]);
+  }, [flashhub, recentKeys, lead, recommendations]);
 
   const runtimeCounts = useMemo(() => {
     const counts = new Map<Runtime, number>();
@@ -227,6 +271,7 @@ export function HomeView({ onBrowse }: HomeViewProps) {
           </EmptyBlock>
         )}
       </Section>
+      {becauseYouPlayed}
       {steam.status !== 'ready' && steam.status !== 'loading' && (
         <Section id="steam" title="Your Steam library">
           <EmptyBlock

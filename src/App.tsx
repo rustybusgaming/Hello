@@ -296,6 +296,7 @@ export default function App() {
     toggleFavourite,
     history,
     recentKeys,
+    removeFromHistory: account.removeFromHistory,
     collections: account.collections,
     createCollection: account.createCollection,
     renameCollection: account.renameCollection,

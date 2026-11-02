@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGrid, List, RefreshCw } from 'lucide-react';
-import { LibraryEntry, RUNTIME_ORDER, Runtime, formatWhen } from '../lib/library';
+import { LibraryEntry, RUNTIME_ORDER, Runtime, formatMinutes, formatSeconds, formatWhen } from '../lib/library';
 import { useLibrary } from '../lib/libraryContext';
 import { LibraryTab, hrefFor } from '../lib/router';
 import { onGridKeyDown } from '../lib/navigation';
@@ -46,6 +46,29 @@ const SORT_LABEL: Record<SortOrder, string> = {
 
 // Divisible by 2, 3, 4, 5 and 6, so every page ends on a full row
 const PAGE_SIZE = 60;
+
+/** Recently played, in periods a person thinks in. Untimed entries (older builds) go last. */
+export function groupByWhen(entries: LibraryEntry[], playedAt: (e: LibraryEntry) => string, now = new Date()) {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  const day = 86400000;
+  const t0 = startOfToday.getTime();
+  const buckets: { label: string; test: (t: number) => boolean }[] = [
+    { label: 'Today', test: t => t >= t0 },
+    { label: 'Yesterday', test: t => t >= t0 - day },
+    { label: 'Earlier this week', test: t => t >= t0 - 6 * day },
+    { label: 'Earlier this month', test: t => t >= t0 - 29 * day },
+    { label: 'Older', test: () => true }
+  ];
+  const groups = new Map<string, LibraryEntry[]>();
+  for (const e of entries) {
+    const at = playedAt(e);
+    const label = at ? buckets.find(b => b.test(Date.parse(at)))!.label : 'Before play times were kept';
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label)!.push(e);
+  }
+  return Array.from(groups, ([label, items]) => ({ label, items }));
+}
 
 export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilters }: LibraryViewProps) {
   const { entries, byKey, favourites, recentKeys, history, steam, reloadSteam, linkSteam, currentUser, loading, loadError, reloadCatalogue } =
@@ -121,6 +144,13 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
     observer.observe(sentinel.current);
     return () => observer.disconnect();
   }, [hasMore, results.length]);
+
+  /** Under each recently played card: where it launches and how long it has been played. */
+  const recentLine = (e: LibraryEntry): string => {
+    if (e.launch === 'steam') return `Steam · ${formatMinutes(e.steam?.playtimeMinutes ?? 0)}`;
+    const seconds = history[e.key]?.totalSeconds ?? 0;
+    return [e.runtime, seconds ? formatSeconds(seconds) : null].filter(Boolean).join(' · ');
+  };
 
   const set = (patch: Partial<LibraryFilters>) => onFilters({ ...filters, ...patch });
   const filtered = filters.runtime !== 'all' || filters.genre !== 'all' || !!searchQuery;
@@ -272,6 +302,22 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
                       ? 'Nothing played yet. Games you launch show up here, newest first.'
                       : 'This part of the library is empty.'}
               </EmptyBlock>
+            ) : filters.view === 'grid' && tab === 'recent' && filters.sort === 'catalogue' ? (
+              // Recently played reads like a diary: grouped by when, newest first
+              <div className="flex flex-col gap-10" onKeyDown={onGridKeyDown}>
+                {groupByWhen(results.slice(0, visible), lastPlayed).map(group => (
+                  <section key={group.label} aria-labelledby={`when-${group.label.replace(/\W+/g, "-")}`}>
+                    <h2 id={`when-${group.label.replace(/\W+/g, "-")}`} className="mb-4 text-[16px] font-semibold">
+                      {group.label} <span className="ml-1 text-[13px] font-normal tabular-nums text-faint">{group.items.length}</span>
+                    </h2>
+                    <div className={CARD_GRID}>
+                      {group.items.map(entry => (
+                        <GameCard key={entry.key} entry={entry} meta={recentLine(entry)} />
+                      ))}
+                    </div>
+                  </section>
+                ))}
+              </div>
             ) : filters.view === 'grid' ? (
               <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
                 {results.slice(0, visible).map((entry, i) => (

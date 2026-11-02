@@ -119,7 +119,16 @@ export function usePlayHistory() {
     });
   }, []);
 
-  const recentKeys = useMemo(() => orderByRecency(history, legacyOrder), [history, legacyOrder]);
+  const removeEntry = useCallback((key: string) => {
+    setHistory(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }, []);
 
-  return { history, recentKeys, recordLaunch, recordSession };
+  const recentKeys = useMemo(() => orderByRecency(history, legacyOrder.filter(k => k in history)), [history, legacyOrder]);
+
+  return { history, recentKeys, recordLaunch, recordSession, removeEntry };
 }

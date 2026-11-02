@@ -208,3 +208,31 @@ export interface SteamAchievementOverview {
   recent: (SteamAchievementEntry & { appId: number; gameName: string })[];
   perGame: { appId: number; gameName: string; unlocked: number; total: number; headerUrl: string }[];
 }
+
+// --- Steam store metadata (see server/steamStore.ts) ---
+
+export interface StoreDetails {
+  appId: number;
+  type: string;
+  name: string;
+  description: string;
+  genres: string[];
+  categories: string[];
+  developers: string[];
+  publishers: string[];
+  releaseDate: string | null;
+  comingSoon: boolean;
+  platforms: { windows: boolean; mac: boolean; linux: boolean };
+  controllerSupport: 'full' | 'partial' | null;
+  metacritic: { score: number; url: string | null } | null;
+  isFree: boolean;
+  website: string | null;
+  screenshots: { thumb: string; full: string }[];
+}
+
+export interface StoreResult {
+  state: 'ok' | 'missing' | 'unavailable';
+  details: StoreDetails | null;
+  fetchedAt: string | null;
+  stale: boolean;
+}

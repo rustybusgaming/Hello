@@ -15,8 +15,15 @@ link. Flashhub cannot run Steam games itself, and the interface says so wherever
 - **Library**: tabs by launch target (All, Plays in Flashhub, Steam, Favourites, Recently played),
   runtime / genre / sort filters, a cover grid or a list view, and a plain explanation for every
   Steam state (signed out, not linked, no API key, private game details, Steam down).
-- **Game pages** for both kinds of game: art, the launch action, your play history, runtime and
-  source details, save-slot count, Steam playtime and achievements, and *More like this*.
+- **Game pages** for both kinds of game: art, the launch action, your play history (which you
+  can take a game out of), runtime and source details, save-slot count, Steam playtime and
+  achievements, and *More like this*. Steam games add the store's description, developer,
+  release date, platforms, controller support, Metacritic score and screenshots, plus
+  *Play something like it here*: Flashhub games that share its genres. A browser port of a
+  Steam game shows *The original on Steam* when the store page really is that game.
+- **Recommendations** on Home say why: *Because you played …* names a game you really played
+  (in Flashhub, or on Steam by its store genres) and the genres the suggestions share with it.
+  *Recently played* in the library is grouped by day: today, yesterday, this week, and so on.
 - **Player**: the game fills the window; restart, fullscreen, CRT, diagnostics and new-tab are
   compact icon controls, and runtimes and save slots live in a side panel that folds away.
 - Arrow keys move through card grids by row and column, and a connected gamepad drives the same
@@ -202,6 +209,15 @@ Steam; the library says so and links to Steam's privacy settings instead of show
 Steam responses are cached in memory (5 minutes for player data, 24 hours for game schemas
 and rarity) to stay inside Steam's rate limits.
 
+Store details (descriptions, genres, screenshots) come from the store's public but
+undocumented `appdetails` endpoint, so they are handled as an extra that can fail
+(`server/steamStore.ts`): fetched only when a game's page opens, cached on disk in
+`data/steam-store.json` (a week for found apps, a day for missing ones), one shared request
+per game, a budget of 100 requests per five minutes and five minutes' silence after a 429.
+When the store is quiet the page shows the last copy, dated, or says there is nothing. The
+library, ownership and playtime never depend on it. Set `STEAM_STORE_BASE` to point it at a
+stand-in for testing.
+
 For local testing without a real key, `STEAM_API_BASE` points the client at a stand-in server
 that answers the same endpoints, and `STEAM_OPENID_URL` does the same for Steam sign-in.
 
@@ -220,6 +236,7 @@ Everything in `data/` is runtime state and stays out of git:
 | `play-stats.json` | Plays per game: a sitting of 30 s or more, once per player per game per half hour, by day for 90 days plus an all-time total |
 | `catalogue-dates.json` | When each game first appeared. The catalogue the hub started with is an undated baseline; later games are dated when first seen, uploads by their own date |
 | `steam-libraries.json` | The last owned-games list Steam returned per linked account, shown (marked as such) when Steam is down |
+| `steam-store.json` | Store details per Steam app, as the store last gave them |
 
 None of these figures is estimated: a game nobody has played has 0 plays, and a game from the
 starting catalogue has no date added rather than an invented one.
@@ -253,6 +270,7 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | `STEAM_API_KEY` | No | Steam Web API key; required for library, playtime and achievements |
 | `STEAM_API_BASE` | No | Overrides the Steam API host; used for testing against a stand-in |
 | `STEAM_OPENID_URL` | No | Overrides Steam's OpenID sign-in endpoint; used for testing against a stand-in |
+| `STEAM_STORE_BASE` | No | Overrides the Steam store host for store details; used for testing against a stand-in |
 | `GEMINI_API_KEY` | No | Injected by AI Studio; not used by the current code |
 | `APP_URL` | Behind a proxy | Public URL of the deployment (injected by AI Studio); also the return address and realm for Sign in through Steam |
 

@@ -127,3 +127,17 @@ self-start); "LEVEL 12" in capitals in the Steam panel. Defended: the collection
 (a floating layer), the Steam-outcome toast shadow.
 Rails only render with data behind them: Popular needs counted plays this month, New needs a
 dated arrival in the last 60 days, so a fresh install shows neither rather than an empty shelf.
+
+## Stage 3 (store metadata, recommendations, recently played) — look round
+
+Round 1: the same game twice in the sidebar's Jump back in (browser port and Steam, identical
+names) -> Steam entries carry "Steam"; Steam game page row ragged (short About beside a ten-line
+Details list) -> screenshots moved into the About column; a two-card Popular row -> Popular
+needs three games played this month, like the recommendation rows.
+Round 2: Details stretched 190px past its content to meet the screenshot column (panel-void)
+-> one row of two screenshots in the column plus "All 8 screenshots", Details self-start;
+rows now end within about 40px.
+Final: inspect --app home 0 FAIL / 3 WARN (defended as before), library (recently played)
+0 / 1 (hero-void: a signed-out recently played tab is nearly empty), detail 0 / 1. Lint 0 / 23.
+Store data is credited "From the Steam store" wherever it shows; a catalogue port only shows
+its original's store page when the store says it is a game and the names agree.

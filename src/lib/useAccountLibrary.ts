@@ -135,6 +135,24 @@ export function useAccountLibrary(user: UserAccount | null) {
     [local]
   );
 
+  /** Take a game out of recently played: this browser's copy and, signed in, the account's. */
+  const removeFromHistory = useCallback(
+    async (key: string) => {
+      local.removeEntry(key);
+      if (!account) return;
+      const before = account.history;
+      setAccount(a => {
+        if (!a) return a;
+        const next = { ...a.history };
+        delete next[key];
+        return { ...a, history: next };
+      });
+      const res = await fetch(`/api/play/history/${encodeURIComponent(key)}`, { method: 'DELETE' }).catch(() => null);
+      if (!res || (!res.ok && res.status !== 404)) setAccount(a => (a ? { ...a, history: before } : a));
+    },
+    [account, local]
+  );
+
   // --- Collections (account only) ---
 
   const replaceCollection = (updated: GameCollection) =>
@@ -181,6 +199,7 @@ export function useAccountLibrary(user: UserAccount | null) {
     recentKeys,
     recordLaunch,
     finishSession,
+    removeFromHistory,
     collections,
     createCollection,
     renameCollection,

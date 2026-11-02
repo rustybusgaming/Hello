@@ -226,6 +226,8 @@ function SidebarBody({
                     <GameArt entry={entry!} />
                   </span>
                   <span className="truncate">{entry!.title}</span>
+                  {/* The same game can be here twice, as a browser port and in Steam: say which */}
+                  {entry!.launch === 'steam' && <span className="ml-auto flex-none text-[11px] text-faint">Steam</span>}
                 </a>
               </li>
             ))}
