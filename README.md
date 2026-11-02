@@ -263,7 +263,7 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | Variable | Required | Purpose |
 | --- | --- | --- |
 | `PORT` | No | Server port (default `3000`) |
-| `GAME_ORIGIN` | **In production** | Second origin that game frames load from (a bare hostname is read as `https://`); falls back to `127.0.0.1` on localhost. The server refuses to start in production without it, and a game never silently falls back to the hub's own origin when it is set |
+| `GAME_ORIGIN` | **In production** | Second origin that game frames load from; falls back to `127.0.0.1` on localhost. The server refuses to start in production without it |
 | `ALLOW_SAME_ORIGIN_GAMES` | No | Set to `1` to start in production without `GAME_ORIGIN`, accepting that games run unisolated |
 | `TRUSTED_PROXY_HOPS` | No | Number of reverse proxies in front of the server; unset means `X-Forwarded-For` is ignored |
 | `NODE_ENV` | No | Set to `production` to serve `dist/` instead of the Vite middleware |
@@ -272,33 +272,16 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | `STEAM_OPENID_URL` | No | Overrides Steam's OpenID sign-in endpoint; used for testing against a stand-in |
 | `STEAM_STORE_BASE` | No | Overrides the Steam store host for store details; used for testing against a stand-in |
 | `GEMINI_API_KEY` | No | Injected by AI Studio; not used by the current code |
-| `APP_URL` | Behind a proxy | Public URL of the deployment (injected by AI Studio); also the return address and realm for Sign in through Steam. On Render, `RENDER_EXTERNAL_URL` is used when it is unset |
-| `FLASHHUB_ROLE` | No | `games` runs this server as the game origin only (see *Deploying*) |
-| `HUB_ORIGIN` | With `FLASHHUB_ROLE=games` | The hub's address; the games-only server sends everything that is not a game there |
+| `APP_URL` | Behind a proxy | Public URL of the deployment (injected by AI Studio); also the return address and realm for Sign in through Steam |
 
 ## Deploying
 
-**The full hub** needs a host that runs a server; `render.yaml` is a Render Blueprint for it
-(New, then Blueprint, then this repository). No custom domain is needed. Games must load from a
-different web address than the hub, so their code cannot reach players' sessions, and a Render
-service has one free address, so the Blueprint creates two services from this repository:
-
-- `flashhub`, the hub, with a persistent disk for `data/` (a paid instance; on `free` it works
-  but forgets accounts and saves whenever it restarts). Set `GAME_ORIGIN` to the games
-  service's address.
-- `flashhub-games`, the same code with `FLASHHUB_ROLE=games`: it serves game files only and
-  sends anything else to the hub. Set `HUB_ORIGIN` to the hub's address. It holds no player
-  data, so it runs on `free`; when it has gone to sleep, the player says it is waking the game
-  server and waits (about a minute) rather than running the game unprotected.
-
-Both addresses are `https://<service name>.onrender.com` unless Render adds characters to a
-taken name; check them on each service's page after the first deploy. `STEAM_API_KEY` is
-optional. Games uploaded through the site are stored on the hub's own filesystem, so on Render
-they disappear on redeploy and do not reach the games service; commit them to
-`public/custom_games/` to keep and share them.
-
-With a custom domain, one service can serve both addresses instead: point a second hostname
-at it and set `GAME_ORIGIN` to that.
+**The full hub** runs as one Node process, so it needs a host that runs a server. `render.yaml`
+is a Render Blueprint for it (New, then Blueprint, then this repository). Give the service two
+custom domains, set `APP_URL` to the first and `GAME_ORIGIN` to the second (games are framed
+from the second so their code cannot reach the hub's session), and add `STEAM_API_KEY` for
+Steam libraries. It uses a persistent disk for `data/`; on a free instance that data is lost on
+every deploy.
 
 **An interface preview** publishes to GitHub Pages through `.github/workflows/pages.yml` on
 every push to `main` (enable it once: Settings, Pages, Source: GitHub Actions). Pages serves
