@@ -1,0 +1,98 @@
+name: Pages
+
+# Publishes an interface preview of Flashhub to GitHub Pages.
+#
+# GitHub Pages serves static files only, and Flashhub's games, accounts, saves and Steam run on
+# its Express server, so this is a look at the interface, not the hub itself: the catalogue is
+# a snapshot taken while this workflow runs, covers are drawn in the browser, and Play, sign-in
+# and upload say they need the full server. The full server deploys with render.yaml.
+#
+# One-time setup: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deployment at a time; a newer push replaces a queued one but never cuts off a live deploy
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build the preview
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      # The catalogue is assembled by the server (data files, uploads, Internet Archive), so the
+      # server is built and started here once, just long enough to save what it serves.
+      - name: Snapshot the catalogue
+        env:
+          NODE_ENV: production
+          PORT: '3000'
+          GAME_ORIGIN: http://127.0.0.1:3000
+        run: |
+          npm run build
+          node dist/server.cjs > server.log 2>&1 &
+          for attempt in $(seq 1 60); do
+            if curl -sf http://localhost:3000/api/games -o games.json; then break; fi
+            sleep 2
+          done
+          node -e '
+            const body = JSON.parse(require("fs").readFileSync("games.json", "utf8"));
+            if (body.status !== "ok" || !Array.isArray(body.data) || body.data.length === 0) {
+              console.error("The server did not return a catalogue"); process.exit(1);
+            }
+            // Only what the interface reads; no runtime state
+            const snapshot = { status: "ok", data: body.data, catalogueSince: body.catalogueSince ?? null };
+            require("fs").writeFileSync("catalogue.json", JSON.stringify(snapshot));
+            console.log(`Snapshot: ${body.data.length} games`);
+          ' || { cat server.log; exit 1; }
+
+      - name: Build the front end for Pages
+        env:
+          # Project pages live under /<repository>/
+          VITE_BASE: /${{ github.event.repository.name }}/
+          VITE_STATIC_PREVIEW: '1'
+        run: |
+          npx vite build --outDir pages
+          cp catalogue.json pages/catalogue.json
+          # The static pages link to the site root; on Pages the root is /<repository>/
+          base="/${{ github.event.repository.name }}/"
+          for page in pages/404.html pages/credits.html pages/terms.html pages/privacy.html; do
+            if [ -f "$page" ]; then sed -i -E "s#(href|src)=\"/([^/\"]|\")#\1=\"${base}\2#g" "$page"; fi
+          done
+          # Serve files as they are, without Jekyll processing
+          touch pages/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: pages
+
+  deploy:
+    name: Deploy
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

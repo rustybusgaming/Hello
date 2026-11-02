@@ -274,6 +274,20 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | `GEMINI_API_KEY` | No | Injected by AI Studio; not used by the current code |
 | `APP_URL` | Behind a proxy | Public URL of the deployment (injected by AI Studio); also the return address and realm for Sign in through Steam |
 
+## Deploying
+
+**The full hub** runs as one Node process, so it needs a host that runs a server. `render.yaml`
+is a Render Blueprint for it (New, then Blueprint, then this repository). Give the service two
+custom domains, set `APP_URL` to the first and `GAME_ORIGIN` to the second (games are framed
+from the second so their code cannot reach the hub's session), and add `STEAM_API_KEY` for
+Steam libraries. It uses a persistent disk for `data/`; on a free instance that data is lost on
+every deploy.
+
+**An interface preview** publishes to GitHub Pages through `.github/workflows/pages.yml` on
+every push to `main` (enable it once: Settings, Pages, Source: GitHub Actions). Pages serves
+static files only, so the preview shows the real interface and catalogue, a snapshot taken
+during the workflow, while Play, sign-in, uploads and Steam say they need the full server.
+
 ## Data storage
 
 State lives in flat JSON files under `data/` (`accounts.json`, `sessions.json`,

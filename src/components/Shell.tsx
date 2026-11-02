@@ -20,6 +20,7 @@ import { UserAccount } from '../types';
 import { Route, hrefFor, gameHref } from '../lib/router';
 import { useLibrary } from '../lib/libraryContext';
 import { GameArt } from './GameArt';
+import { BASE_URL, STATIC_PREVIEW } from '../lib/preview';
 
 interface ShellProps {
   route: Route;
@@ -246,9 +247,9 @@ function SidebarBody({
           </button>
         )}
         <nav aria-label="About" className="flex gap-4 px-3 pt-4 text-[12px] text-faint">
-          <a href="/credits.html" className="hover:text-ink">Credits</a>
-          <a href="/terms.html" className="hover:text-ink">Terms</a>
-          <a href="/privacy.html" className="hover:text-ink">Privacy</a>
+          <a href={`${BASE_URL}credits.html`} className="hover:text-ink">Credits</a>
+          <a href={`${BASE_URL}terms.html`} className="hover:text-ink">Terms</a>
+          <a href={`${BASE_URL}privacy.html`} className="hover:text-ink">Privacy</a>
         </nav>
       </div>
     </div>
@@ -379,6 +380,11 @@ export function Shell({ route, searchQuery, onSearch, onRandom, onUpload, onAdmi
           </div>
 
           {phoneSearch && <div className="border-t border-hair px-4 py-2 md:hidden">{searchField}</div>}
+          {STATIC_PREVIEW && (
+            <p className="border-t border-hair bg-paper px-4 py-2 text-[13px] text-muted sm:px-[29px]">
+              Interface preview on GitHub Pages. Games, accounts and Steam run on the full Flashhub server.
+            </p>
+          )}
         </header>
 
         {children}

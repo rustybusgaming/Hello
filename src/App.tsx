@@ -20,6 +20,7 @@ import { useSteamLibrary } from './lib/useSteamLibrary';
 import { LibraryContext, LibraryContextValue } from './lib/libraryContext';
 import { useRoute } from './lib/router';
 import { useGamepadNavigation } from './lib/navigation';
+import { BASE_URL, PREVIEW_MESSAGE, STATIC_PREVIEW } from './lib/preview';
 
 /**
  * Loopback has two names, and they are separate origins to the browser. Framing games from
@@ -132,7 +133,8 @@ export default function App() {
 
   const fetchGames = useCallback(() => {
     setLoadError(false);
-    fetch(`/api/games?t=${Date.now()}`)
+    // The Pages preview reads the catalogue snapshot taken when it was built
+    fetch(STATIC_PREVIEW ? `${BASE_URL}catalogue.json` : `/api/games?t=${Date.now()}`)
       .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
       .then(data => {
         if (data && data.status === 'ok') {
@@ -214,6 +216,7 @@ export default function App() {
   const play = useCallback(
     (entry: LibraryEntry) => {
       if (entry.launch !== 'flashhub' || !entry.game) return;
+      if (STATIC_PREVIEW) return setNotice({ tone: 'error', text: PREVIEW_MESSAGE });
       // Remember where the player was so closing the game puts them back
       scrollMemory.current = window.scrollY;
       setSelectedGame(entry.game);
@@ -306,11 +309,12 @@ export default function App() {
     steam,
     reloadSteam,
     linkSteam: () => {
-      if (currentUser) window.location.href = '/api/auth/steam/start';
+      if (STATIC_PREVIEW) setNotice({ tone: 'error', text: PREVIEW_MESSAGE });
+      else if (currentUser) window.location.href = '/api/auth/steam/start';
       else setIsAccountModalOpen(true);
     },
     currentUser,
-    openAccount: () => setIsAccountModalOpen(true),
+    openAccount: () => (STATIC_PREVIEW ? setNotice({ tone: 'error', text: PREVIEW_MESSAGE }) : setIsAccountModalOpen(true)),
     play
   };
 
@@ -321,7 +325,7 @@ export default function App() {
         searchQuery={searchQuery}
         onSearch={handleSearch}
         onRandom={handleRandomGame}
-        onUpload={() => setIsUploadModalOpen(true)}
+        onUpload={() => (STATIC_PREVIEW ? setNotice({ tone: 'error', text: PREVIEW_MESSAGE }) : setIsUploadModalOpen(true))}
         onAdmin={() => setIsAdminModalOpen(true)}
       >
         <main className="mx-auto w-full max-w-[1480px] px-4 pb-24 pt-6 sm:px-[29px] lg:pt-8" hidden={!!selectedGame}>

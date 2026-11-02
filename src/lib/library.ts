@@ -1,5 +1,6 @@
 import { Game, SteamGameSummary } from '../types';
 import { isFlashGame } from './games';
+import { STATIC_PREVIEW, drawnCoverDataUri } from './preview';
 
 /**
  * The unified library.
@@ -60,7 +61,15 @@ function steamAppIdFromUrl(url: string | undefined): number | null {
 }
 
 function drawnCover(id: string, title: string): string {
+  // The Pages preview has no server to draw covers, so it draws them itself
+  if (STATIC_PREVIEW) return drawnCoverDataUri(id, title);
   return `/api/cover/${encodeURIComponent(id)}?title=${encodeURIComponent(title)}`;
+}
+
+/** Art the server serves (/api/...) does not exist in the Pages preview: use the drawn cover. */
+function cardArt(thumbnail: string | undefined, id: string, title: string): string {
+  if (!thumbnail || (STATIC_PREVIEW && thumbnail.startsWith('/api/'))) return drawnCover(id, title);
+  return thumbnail;
 }
 
 export function runtimeOf(game: Game): Runtime {
@@ -89,7 +98,7 @@ export function fromGame(game: Game): LibraryEntry {
     launch: 'flashhub',
     runtime: runtimeOf(game),
     genres: game.genres.filter(g => !RUNTIME_TAGS.has(g.toLowerCase())),
-    art: game.thumbnail || drawnCover(game.id, game.title),
+    art: cardArt(game.thumbnail, game.id, game.title),
     artFallback: drawnCover(game.id, game.title),
     heroArt: steamAppId ? steamHeroUrl(steamAppId) : null,
     steamAppId,
