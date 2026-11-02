@@ -97,6 +97,16 @@ test('Steam snapshots are kept per account and dropped on unlink', () => {
   assert.strictEqual(store.getSteamSnapshot('765'), null);
 });
 
+test('a player can take one game out of their history', () => {
+  const store = fresh();
+  store.recordSession('u1', 'a', 60);
+  store.recordSession('u1', 'b', 60);
+  assert.ok(store.removeHistoryEntry('u1', 'a'));
+  assert.deepStrictEqual(Object.keys(store.getHistory('u1')), ['b']);
+  assert.ok(!store.removeHistoryEntry('u1', 'a'), 'already gone');
+  assert.ok(!store.removeHistoryEntry('u1', '../x'), 'not a key');
+});
+
 test('forgetting a player removes their library and history only', () => {
   const store = fresh();
   store.setFavourites('u1', ['a']);

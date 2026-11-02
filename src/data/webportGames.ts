@@ -368,7 +368,9 @@ export const GENIZY_WEBPORT_GAMES: WebportGameEntry[] = [
     id: 'webport-happy-sheepies',
     repoKey: 'happy-sheepies',
     title: 'Happy Sheepies',
-    thumbnail: 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps/2764950/header.jpg',
+    // Steam app 2764950 is a DLC for a different game (Scroll Of Taiwu), so its art was wrong
+    // here; the drawn cover stands in until the real game's art is known.
+    thumbnail: '',
     rating: 4.8,
     source: 'webporting',
     embedUrl: '/api/webports/play/happy-sheepies',

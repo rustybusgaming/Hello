@@ -243,6 +243,16 @@ export function createUserDataStore(dir: string) {
     return history;
   }
 
+  /** Take one game out of a player's history (their choice; the hub-wide play count stays). */
+  function removeHistoryEntry(userId: string, key: unknown): boolean {
+    if (!isLibraryKey(key)) return false;
+    const history = getHistory(userId);
+    if (!(key in history)) return false;
+    delete history[key];
+    saveHistory(userId, history);
+    return true;
+  }
+
   // --- Play counts ----------------------------------------------------------------------
 
   const lastCounted = new Map<string, number>();
@@ -359,6 +369,7 @@ export function createUserDataStore(dir: string) {
     getHistory,
     recordSession,
     importHistory,
+    removeHistoryEntry,
     recordPlay,
     getPlayCounts,
     noteCatalogue,

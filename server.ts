@@ -50,6 +50,7 @@ import {
 import { UserAccount, StoredUserAccount, GameSave } from './src/types';
 import { buildSteamLoginUrl, verifySteamAssertion, OPENID_FAILURE_MESSAGE } from './server/steamOpenId';
 import { createUserDataStore } from './server/userData';
+import { createSteamStore } from './server/steamStore';
 import { checkAchievements, ACHIEVEMENTS } from './server/achievements';
 import { isFlashGame } from './src/lib/games';
 
@@ -87,6 +88,8 @@ const upload = multer({
 
 // Play history, favourites, collections, play counts, dates added and Steam snapshots
 const userData = createUserDataStore(path.join(process.cwd(), 'data'));
+// Steam store metadata (descriptions, genres, screenshots), cached on disk; see server/steamStore.ts
+const steamStore = createSteamStore(path.join(process.cwd(), 'data'));
 
 // Ensure custom_games dir exists
 const customGamesDir = path.join(process.cwd(), 'public', 'custom_games');
@@ -991,6 +994,9 @@ async function startServer() {
     const { baselineAt, addedAt } = userData.noteCatalogue(games.map(g => g.id), knownDates);
     const plays = userData.getPlayCounts(30);
     catalogueIds = new Set(games.map(g => g.id));
+    catalogueSteamAppIds = new Set(
+      games.map(g => Number(String(g.thumbnail || '').match(/steam\/apps\/(\d+)\//)?.[1])).filter(n => Number.isInteger(n) && n > 0)
+    );
     return {
       baselineAt,
       games: games.map(g => ({
@@ -1001,6 +1007,8 @@ async function startServer() {
     };
   };
   let catalogueIds = new Set<string>();
+  // Steam app ids the catalogue's own games point at (their art comes from Steam)
+  let catalogueSteamAppIds = new Set<number>();
 
   /*
    * Save slots are a Flash-only feature, so a write is checked against the catalogue rather
@@ -2106,6 +2114,14 @@ async function startServer() {
     res.json({ status: 'ok', data: userData.getHistory(user.id) });
   });
 
+  /** Take one game out of the player's own history. The hub-wide play count is not changed. */
+  app.delete('/api/play/history/:key', (req, res) => {
+    const user = requireUser(req, res);
+    if (!user) return;
+    if (!userData.removeHistoryEntry(user.id, req.params.key)) return res.status(404).json({ error: 'That game is not in your history' });
+    res.json({ status: 'ok', data: userData.getHistory(user.id) });
+  });
+
   /** Fold a browser's local history into the account (larger value wins; never a sum). */
   app.post('/api/play/history/import', (req, res) => {
     const user = requireUser(req, res);
@@ -2163,6 +2179,24 @@ async function startServer() {
     if (!user) return;
     if (!userData.deleteCollection(user.id, req.params.id)) return res.status(404).json({ error: 'Collection not found' });
     res.json({ status: 'ok' });
+  });
+
+  /**
+   * Store details for one Steam app: description, genres, developer, release, screenshots.
+   * Answered from the disk cache when it can be; asked of Steam (carefully, see
+   * server/steamStore.ts) when not. Open to any app the catalogue points at, and to signed-in
+   * players for anything else, so the hub is not a free relay for the store.
+   */
+  app.get('/api/steam/store/:appId', async (req, res) => {
+    const appId = Number(req.params.appId);
+    if (!Number.isInteger(appId) || appId <= 0) return res.status(400).json({ error: 'Invalid Steam app id' });
+    if (catalogueSteamAppIds.size === 0) await buildCatalogWithStats().catch(() => {});
+    if (!catalogueSteamAppIds.has(appId) && !getAuthUser(req)) {
+      return res.status(401).json({ error: 'Sign in to see store details for this game' });
+    }
+    const result = await steamStore.getDetails(appId);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    res.json({ status: 'ok', data: result });
   });
 
   app.get('/api/steam/achievements', async (req, res) => {
