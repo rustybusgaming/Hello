@@ -31,7 +31,9 @@ action, the selected tab and focus. Cover art stays in full colour. Tokens live 
 through `src/lib/libraryContext.ts`. Working notes from the design run are in
 `.taste-skill/notes.md`.
 
-Play history is kept in the browser for now, in the shape the account will store when it syncs.
+Signed out, favourites and play history live in the browser. Signed in, they live on the
+account, together with collections: signing in folds the browser's history into the account
+(the larger of each figure wins, so it never double-counts) and adds its favourites once.
 
 The Express server in `server.ts` serves the API and mounts Vite in middleware mode, so a
 single process runs both the front end and the back end.
@@ -168,6 +170,15 @@ and what it re-downloads:
 
 ## Steam integration
 
+Steam accounts are linked with **Sign in through Steam** (OpenID 2.0). The player signs in on
+Steam's own page, Steam sends back a signed assertion, and the server asks Steam to confirm the
+signature before it stores the SteamID64. A one-time state token bound to the Flashhub account,
+plus a short-lived `SameSite=Lax` cookie, make sure the browser coming back is the one that
+left. A Steam account confirmed on one Flashhub account cannot be confirmed on another. Links
+made with the old SteamID form (before this check existed) keep working, marked unconfirmed,
+and the library asks their owners to confirm them with Steam. Behind a proxy, set `APP_URL` so
+the return address Steam is given matches the public site.
+
 Linking a Steam account pulls in the persona, avatar and profile details. With a Web API key
 the Steam tab also shows the player's library, playtime, and achievements:
 
@@ -192,11 +203,26 @@ Steam responses are cached in memory (5 minutes for player data, 24 hours for ga
 and rarity) to stay inside Steam's rate limits.
 
 For local testing without a real key, `STEAM_API_BASE` points the client at a stand-in server
-that answers the same endpoints.
+that answers the same endpoints, and `STEAM_OPENID_URL` does the same for Steam sign-in.
 
 Run `npm test` to exercise the Steam client against recorded response shapes — id resolution,
 schema/rarity merging, sort order, private profiles and the missing-key path — none of which
 needs a real key.
+
+## What the hub counts
+
+Everything in `data/` is runtime state and stays out of git:
+
+| File | Holds |
+| --- | --- |
+| `user-library.json` | Each account's favourites and collections |
+| `play-history.json` | Each account's sessions, time played and last-played time per game |
+| `play-stats.json` | Plays per game: a sitting of 30 s or more, once per player per game per half hour, by day for 90 days plus an all-time total |
+| `catalogue-dates.json` | When each game first appeared. The catalogue the hub started with is an undated baseline; later games are dated when first seen, uploads by their own date |
+| `steam-libraries.json` | The last owned-games list Steam returned per linked account, shown (marked as such) when Steam is down |
+
+None of these figures is estimated: a game nobody has played has 0 plays, and a game from the
+starting catalogue has no date added rather than an invented one.
 
 ## Keeping the catalogue honest
 
@@ -226,12 +252,13 @@ never copied. Failures are listed with a one-click Hide. Run it occasionally: mi
 | `NODE_ENV` | No | Set to `production` to serve `dist/` instead of the Vite middleware |
 | `STEAM_API_KEY` | No | Steam Web API key; required for library, playtime and achievements |
 | `STEAM_API_BASE` | No | Overrides the Steam API host; used for testing against a stand-in |
+| `STEAM_OPENID_URL` | No | Overrides Steam's OpenID sign-in endpoint; used for testing against a stand-in |
 | `GEMINI_API_KEY` | No | Injected by AI Studio; not used by the current code |
-| `APP_URL` | No | Public URL of the deployment, injected by AI Studio |
+| `APP_URL` | Behind a proxy | Public URL of the deployment (injected by AI Studio); also the return address and realm for Sign in through Steam |
 
 ## Data storage
 
 State lives in flat JSON files under `data/` (`accounts.json`, `sessions.json`,
-`saves.json`, `game_settings.json`). They are created on first run and are gitignored,
+`saves.json`, `game_settings.json`, and the library files listed under *What the hub counts*). They are created on first run and are gitignored,
 because they hold password hashes and live session tokens. Delete a file to reset that
 part of the hub.

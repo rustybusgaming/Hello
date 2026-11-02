@@ -18,13 +18,14 @@ export function useSteamLibrary(user: UserAccount | null) {
   const [state, setState] = useState<SteamLibraryState>({ status: 'signed-out' });
   const steamId = user?.steamId || null;
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (force = false) => {
     if (!user) return setState({ status: 'signed-out' });
     if (!steamId) return setState({ status: 'not-linked' });
 
-    setState({ status: 'loading' });
+    // A refresh keeps the list on screen while Steam answers; a first load shows the skeleton
+    setState(prev => (force && (prev.status === 'ready' || prev.status === 'private') ? prev : { status: 'loading' }));
     try {
-      const res = await fetch('/api/steam/owned');
+      const res = await fetch(force ? '/api/steam/owned?refresh=1' : '/api/steam/owned');
       const body = await res.json().catch(() => null);
       if (res.ok && body?.status === 'ok') {
         const library = body.data as SteamOwnedLibrary;
@@ -47,5 +48,9 @@ export function useSteamLibrary(user: UserAccount | null) {
     load();
   }, [load]);
 
-  return { state, reload: load };
+  const reload = useCallback((force = false) => {
+    load(force);
+  }, [load]);
+
+  return { state, reload };
 }

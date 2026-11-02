@@ -30,7 +30,7 @@ function seededPick<T>(items: T[], seed: number, count: number): T[] {
 }
 
 export function HomeView({ onBrowse }: HomeViewProps) {
-  const { entries, byKey, recentKeys, history, favourites, steam, currentUser, openAccount, loading } = useLibrary();
+  const { entries, byKey, recentKeys, history, favourites, steam, currentUser, linkSteam, loading } = useLibrary();
   const flashhub = useMemo(() => entries.filter(e => e.launch === 'flashhub'), [entries]);
   const recent = useMemo(() => recentKeys.map(k => byKey.get(k)).filter(Boolean) as LibraryEntry[], [recentKeys, byKey]);
   const favouriteEntries = useMemo(() => favourites.map(k => byKey.get(k)).filter(Boolean) as LibraryEntry[], [favourites, byKey]);
@@ -47,6 +47,60 @@ export function HomeView({ onBrowse }: HomeViewProps) {
     const pool = withArt.length ? withArt : flashhub;
     return pool.length ? { entry: pool[dayNumber() % pool.length], continuing: false } : null;
   }, [recent, flashhub, missingArt]);
+
+  // Counted plays this month, by everyone; a game nobody has played this month is not "popular"
+  const popular = useMemo(
+    () =>
+      flashhub
+        .filter(e => (e.plays?.recent ?? 0) > 0)
+        .sort((a, b) => b.plays!.recent - a.plays!.recent || b.plays!.total - a.plays!.total)
+        .slice(0, 6),
+    [flashhub]
+  );
+
+  // Games the hub has dated (it arrived after the starting catalogue), last 60 days, newest first
+  const newest = useMemo(() => {
+    const cutoff = new Date(Date.now() - 60 * 86400000).toISOString();
+    return flashhub
+      .filter(e => e.addedAt && e.addedAt >= cutoff)
+      .sort((a, b) => b.addedAt!.localeCompare(a.addedAt!))
+      .slice(0, 6);
+  }, [flashhub]);
+
+  const discovery = (
+    <>
+      {popular.length > 0 && (
+        <Section
+          id="popular"
+          title="Popular on Flashhub"
+          note="Most played this month, by everyone."
+          action={{ label: 'View all', href: hrefFor({ name: 'library', tab: 'all' }) }}
+        >
+          <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
+            {popular.map((entry, i) => (
+              <div key={entry.key} className={railItemClass(i)}>
+                <GameCard entry={entry} meta={`${entry.plays!.recent.toLocaleString()} ${entry.plays!.recent === 1 ? 'play' : 'plays'} this month`} />
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+      {newest.length > 0 && (
+        <Section id="new" title="New on Flashhub" note="Added in the last two months.">
+          <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
+            {newest.map((entry, i) => (
+              <div key={entry.key} className={railItemClass(i)}>
+                <GameCard
+                  entry={entry}
+                  meta={`Added ${new Date(entry.addedAt!).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}`}
+                />
+              </div>
+            ))}
+          </div>
+        </Section>
+      )}
+    </>
+  );
 
   const picks = useMemo(() => {
     const played = new Set(recentKeys);
@@ -132,13 +186,14 @@ export function HomeView({ onBrowse }: HomeViewProps) {
             : picks.map(entry => <GameCard key={entry.key} entry={entry} />)}
         </div>
       </Section>
+          {discovery}
       {/* First run: games first, then one line on what will collect here */}
       <Section id="yours" title="Your games">
         <EmptyBlock
           action={
             steam.status === 'signed-out' || steam.status === 'not-linked' ? (
-              <button type="button" onClick={openAccount} className="btn-ghost h-9 flex-none px-4 text-[13px]">
-                {currentUser ? 'Link Steam' : 'Sign in to link Steam'}
+              <button type="button" onClick={linkSteam} className="btn-ghost h-9 flex-none px-4 text-[13px]">
+                {currentUser ? 'Sign in through Steam' : 'Sign in to link Steam'}
               </button>
             ) : undefined
           }
@@ -177,8 +232,8 @@ export function HomeView({ onBrowse }: HomeViewProps) {
           <EmptyBlock
             action={
               steam.status === 'signed-out' || steam.status === 'not-linked' ? (
-                <button type="button" onClick={openAccount} className="btn-ghost h-9 flex-none px-4 text-[13px]">
-                  {currentUser ? 'Link Steam' : 'Sign in to link Steam'}
+                <button type="button" onClick={linkSteam} className="btn-ghost h-9 flex-none px-4 text-[13px]">
+                  {currentUser ? 'Sign in through Steam' : 'Sign in to link Steam'}
                 </button>
               ) : (
                 <a href={hrefFor({ name: 'library', tab: 'steam' })} className="btn-ghost h-9 flex-none px-4 text-[13px]">
@@ -194,6 +249,14 @@ export function HomeView({ onBrowse }: HomeViewProps) {
                 : steam.status === 'needs-key'
                   ? 'This server has no Steam Web API key yet, so Steam libraries cannot be read.'
                   : 'Steam did not answer just now.'}
+          </EmptyBlock>
+        </Section>
+      )}
+      {/* A link made before Flashhub could check ownership keeps working, and asks to be confirmed */}
+      {steam.status !== 'signed-out' && !!currentUser?.steamId && !currentUser.steamVerifiedAt && (
+        <Section id="steam-confirm" title="Confirm your Steam account">
+          <EmptyBlock action={<button type="button" onClick={linkSteam} className="btn-ghost h-9 flex-none px-4 text-[13px]">Confirm with Steam</button>}>
+            This Steam account was linked before Flashhub could check who owns it. It keeps working until you confirm it with Steam.
           </EmptyBlock>
         </Section>
       )}
@@ -214,6 +277,7 @@ export function HomeView({ onBrowse }: HomeViewProps) {
           <EmptyBlock>Press the heart on any game to keep it here.</EmptyBlock>
         )}
       </Section>
+          {discovery}
       <Section id="picks" title="A few to try" note="Games you have not played yet. A new set every day.">
         <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
           {loading

@@ -206,7 +206,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                   className="px-2 py-0.5 text-[12px] font-bold border"
                   style={{ color: STEAM_BLUE, borderColor: `${STEAM_BLUE}55`, background: `${STEAM_BLUE}14` }}
                 >
-                  LEVEL {library.level}
+                  Level {library.level}
                 </span>
               )}
               <span className={`chip ${profile.state === 'offline' ? 'chip-archive' : 'chip-web'}`}>

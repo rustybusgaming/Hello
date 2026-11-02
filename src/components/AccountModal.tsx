@@ -101,7 +101,6 @@ export function AccountModal({
   const [profileMessage, setProfileMessage] = useState('');
 
   // Steam linking state
-  const [steamInput, setSteamInput] = useState(currentUser?.steamId || '');
   const [steamLoading, setSteamLoading] = useState(false);
   const [steamError, setSteamError] = useState('');
   const [steamSuccess, setSteamSuccess] = useState('');
@@ -149,7 +148,6 @@ export function AccountModal({
       setEditDisplayName(currentUser.displayName || currentUser.username);
       setEditBio(currentUser.bio || '');
       setEditAvatar(currentUser.avatarUrl);
-      setSteamInput(currentUser.steamId || '');
     }
   }, [currentUser]);
 
@@ -345,45 +343,6 @@ export function AccountModal({
     }
   };
 
-  // Handle Steam Linking
-  const handleLinkSteam = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!steamInput.trim()) return;
-
-    setSteamLoading(true);
-    setSteamError('');
-    setSteamSuccess('');
-
-    try {
-      const lookupRes = await fetch(`/api/steam/lookup?query=${encodeURIComponent(steamInput.trim())}`);
-      const lookupData = await lookupRes.json();
-
-      if (!lookupRes.ok || lookupData.status !== 'ok') {
-        throw new Error(lookupData.error || 'Failed to lookup Steam profile');
-      }
-
-      const steamData = lookupData.data;
-
-      const linkRes = await fetch('/api/auth/link-steam', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(steamData)
-      });
-
-      const linkData = await linkRes.json();
-      if (linkData.status === 'ok') {
-        onUpdateUser(linkData.user);
-        setSteamSuccess(`Successfully linked Steam profile "${steamData.steamPersonaName}"!`);
-      } else {
-        throw new Error(linkData.error || 'Could not link Steam account');
-      }
-    } catch (err: any) {
-      setSteamError(err.message || 'Error connecting to Steam');
-    } finally {
-      setSteamLoading(false);
-    }
-  };
-
   // Handle Unlink Steam
   const handleUnlinkSteam = async () => {
     setSteamLoading(true);
@@ -398,7 +357,6 @@ export function AccountModal({
       const data = await res.json();
       if (data.status === 'ok') {
         onUpdateUser(data.user);
-        setSteamInput('');
         setSteamSuccess('Steam account unlinked.');
       } else {
         throw new Error(data.error || 'Failed to unlink');
@@ -1111,16 +1069,17 @@ export function AccountModal({
                           <span className="text-base font-bold text-ink">
                             {currentUser.steamPersonaName || 'Steam User'}
                           </span>
-                          <span className="px-2 py-0.5 text-[12px] font-bold bg-[#66c0f4]/20 text-[#66c0f4] border border-[#66c0f4]/30">
-                            Steam Level {currentUser.steamLevel || 25}
-                          </span>
+                          {typeof currentUser.steamLevel === 'number' && (
+                            <span className="chip chip-quiet">Steam level {currentUser.steamLevel}</span>
+                          )}
                         </div>
                         <p className="text-xs text-ink/60 tabular-nums mt-0.5">
                           SteamID64: {currentUser.steamId}
                         </p>
-                        <p className="text-xs text-accent-lit mt-1 flex items-center gap-1">
-                          <span className="w-1.5 h-1.5 bg-accent" />
-                          Steam Cloud Saves & Library Synced
+                        <p className="text-xs text-ink/60 mt-1">
+                          {currentUser.steamVerifiedAt
+                            ? `Confirmed by Steam on ${new Date(currentUser.steamVerifiedAt).toLocaleDateString()}`
+                            : 'Not yet confirmed with Steam'}
                         </p>
                       </div>
                     </div>
@@ -1152,9 +1111,9 @@ export function AccountModal({
                     <Gamepad2 className="w-6 h-6" />
                   </div>
                   <div>
-                    <h4 className="text-sm font-bold text-ink">Connect Steam Account</h4>
+                    <h4 className="text-sm font-bold text-ink">Add your Steam library</h4>
                     <p className="text-xs text-ink/60 max-w-md mx-auto mt-1">
-                      Link your Steam profile to sync your Steam persona, badges, avatar, and cloud save states across all webport cartridges.
+                      Sign in through Steam and your Steam games, playtime and achievements join your Flashhub library. They open in the Steam client.
                     </p>
                   </div>
                   <button
@@ -1162,7 +1121,7 @@ export function AccountModal({
                     className="inline-flex items-center gap-2 px-4 py-2 bg-[#1b2838] hover:bg-[#2a475e] text-[#66c0f4] border border-[#2a475e] text-xs font-semibold transition-colors"
                   >
                     <LinkIcon className="w-3.5 h-3.5" />
-                    Link Steam Profile
+                    Link Steam
                   </button>
                 </div>
               )}
@@ -1172,71 +1131,61 @@ export function AccountModal({
           {/* --- TAB: STEAM LINKING --- */}
           {activeTab === 'steam' && currentUser && (
             <div className="space-y-6">
-              <div className="p-4 bg-[#171a21]/60 border border-[#2a475e]/50">
-                <div className="flex items-center gap-2 text-sm font-bold text-ink mb-1">
-                  <Gamepad2 className="w-4 h-4 text-[#66c0f4]" />
-                  Steam Profile Integration
-                </div>
-                <p className="text-xs text-ink/60 leading-relaxed">
-                  Link with your SteamID64 (e.g. <code className="text-[#66c0f4]">76561198000000000</code>) or a vanity
-                  profile URL to pull in your persona, library, playtime and achievements. Library and
-                  achievement data needs a Steam Web API key on the server and a public Steam profile.
+              <div className="space-y-2">
+                <h4 className="text-sm font-bold text-ink">Steam</h4>
+                <p className="text-xs text-ink/60 leading-relaxed max-w-[60ch]">
+                  Flashhub links a Steam account only when Steam confirms it is yours: you sign in on
+                  Steam’s own page and Steam tells Flashhub your account id. Flashhub never sees your
+                  Steam password. Library, playtime and achievements also need a Steam Web API key on
+                  this server and public game details on your Steam profile.
                 </p>
               </div>
 
               {steamSuccess && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs flex items-center gap-2">
-                  <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
+                <div className="p-3 bg-shade text-ink text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 flex-shrink-0 text-accent-lit" />
                   {steamSuccess}
                 </div>
               )}
 
-              {steamError && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs">
-                  {steamError}
+              {steamError && <div className="p-3 bg-shade text-accent-lit text-xs">{steamError}</div>}
+
+              {currentUser?.steamId && !currentUser.steamVerifiedAt && (
+                <div className="p-4 bg-shade text-xs leading-relaxed text-ink">
+                  This Steam account ({currentUser.steamPersonaName || currentUser.steamId}) was linked
+                  before Flashhub could check who owns it. It keeps working, but please confirm it:
+                  sign in through Steam with the same account. If Steam signs you in as a different
+                  account, that one replaces it.
                 </div>
               )}
 
-              <form onSubmit={handleLinkSteam} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-semibold text-ink/80 mb-1.5">
-                    Steam ID64 or Custom Profile URL
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="e.g. 76561198123456789 or https://steamcommunity.com/id/gaben"
-                      value={steamInput}
-                      onChange={e => setSteamInput(e.target.value)}
-                      className="field flex-1 px-3.5 py-2.5 text-xs"
-                    />
-                    <button
-                      type="submit"
-                      disabled={steamLoading || !steamInput.trim()}
-                      className="px-4 py-2.5 bg-[#66c0f4] hover:bg-[#52aae0] text-paper font-bold text-xs transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                    >
-                      {steamLoading ? 'Connecting...' : 'Connect Steam'}
-                    </button>
-                  </div>
-                </div>
-
+              <div className="flex flex-wrap items-center gap-2">
+                <a href="/api/auth/steam/start" className="btn-primary h-10 px-4 text-[13px]">
+                  <LinkIcon className="w-4 h-4" aria-hidden />
+                  {!currentUser?.steamId
+                    ? 'Sign in through Steam'
+                    : currentUser.steamVerifiedAt
+                      ? 'Switch Steam account'
+                      : 'Confirm with Steam'}
+                </a>
                 {currentUser?.steamId && (
-                  <div className="pt-4 border-t border-rule flex items-center justify-between">
-                    <div className="text-xs text-ink/60">
-                      Currently linked to SteamID: <span className="text-ink tabular-nums">{currentUser.steamId}</span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={handleUnlinkSteam}
-                      disabled={steamLoading}
-                      className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit border border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-colors"
-                    >
-                      <Unlink className="w-3.5 h-3.5" />
-                      Unlink Account
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={handleUnlinkSteam}
+                    disabled={steamLoading}
+                    className="btn-ghost h-10 px-4 text-[13px]"
+                  >
+                    <Unlink className="w-4 h-4" aria-hidden />
+                    Unlink
+                  </button>
                 )}
-              </form>
+              </div>
+              {currentUser?.steamId && (
+                <p className="text-xs text-ink/60">
+                  Linked to Steam account <span className="text-ink tabular-nums">{currentUser.steamId}</span>
+                  {currentUser.steamVerifiedAt ? `, confirmed by Steam on ${new Date(currentUser.steamVerifiedAt).toLocaleDateString()}.` : ', not yet confirmed.'}
+                </p>
+              )}
 
               {/* Library, playtime and achievements for the linked account */}
               <SteamPanel steamId={currentUser?.steamId} />

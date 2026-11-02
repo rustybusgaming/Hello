@@ -115,3 +115,15 @@ app screens); padStart in the session clock; "unlock" in catalogue game descript
 Remaining weak spots: wide Steam headers letterboxed in a 4:3 frame beside square art; the
 admin and account dialogs were restyled through tokens rather than redesigned; one catalogue
 entry (Happy Sheepies, app 2764950) points at unrelated DLC art.
+
+## Stage 2 (Steam OpenID, account data, counts) — look round
+
+New screens: collection page, collections menu on game pages, sidebar collections, Steam tab
+freshness line / stale notice / confirm prompt, Popular and New rails on Home, account Steam tab.
+inspect --app (production build, signed out): home 0 FAIL / 3 WARN, library 0 / 1, detail 0 / 1,
+collection 0 / 1 (hero-void: the signed-out sign-in prompt; a rare state). lint --app 0 FAIL / 23.
+Found and fixed: the About panel stretched to the Details list's height (panel-void, now
+self-start); "LEVEL 12" in capitals in the Steam panel. Defended: the collections menu shadow
+(a floating layer), the Steam-outcome toast shadow.
+Rails only render with data behind them: Popular needs counted plays this month, New needs a
+dated arrival in the last 60 days, so a fresh install shows neither rather than an empty shelf.

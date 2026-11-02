@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { UserAccount } from '../types';
+import { GameCollection, UserAccount } from '../types';
 import { LibraryEntry } from './library';
 import { PlayHistory } from './playHistory';
 import { SteamLibraryState } from './useSteamLibrary';
@@ -23,8 +23,20 @@ export interface LibraryContextValue {
   /** Library keys by last play, newest first, Flashhub and Steam merged */
   recentKeys: string[];
 
+  /** The player's collections (empty when signed out: collections live on the account) */
+  collections: GameCollection[];
+  createCollection: (name: string, keys?: string[]) => Promise<GameCollection>;
+  renameCollection: (id: string, name: string) => Promise<void>;
+  setCollectionKeys: (id: string, keys: string[]) => Promise<void>;
+  deleteCollection: (id: string) => Promise<void>;
+  /** When the catalogue's dates start: games older than this have no date added */
+  catalogueSince: string | null;
+
   steam: SteamLibraryState;
-  reloadSteam: () => void;
+  /** Ask Steam again; `force` skips the server's five-minute cache (at most once a minute) */
+  reloadSteam: (force?: boolean) => void;
+  /** Go to Steam to link or confirm the account (signed in), or open sign-in (signed out) */
+  linkSteam: () => void;
 
   currentUser: UserAccount | null;
   openAccount: () => void;

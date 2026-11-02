@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { LayoutGrid, List, RefreshCw } from 'lucide-react';
-import { LibraryEntry, RUNTIME_ORDER, Runtime } from '../lib/library';
+import { LibraryEntry, RUNTIME_ORDER, Runtime, formatWhen } from '../lib/library';
 import { useLibrary } from '../lib/libraryContext';
 import { LibraryTab, hrefFor } from '../lib/router';
 import { onGridKeyDown } from '../lib/navigation';
@@ -8,7 +8,7 @@ import { GameCard, GameCardSkeleton } from './GameCard';
 import { GameRow, GameRowHeader } from './GameRow';
 import { CARD_GRID, EmptyBlock } from './Section';
 
-export type SortOrder = 'catalogue' | 'title' | 'recent' | 'played';
+export type SortOrder = 'catalogue' | 'title' | 'recent' | 'played' | 'popular' | 'added';
 
 export interface LibraryFilters {
   runtime: Runtime | 'all';
@@ -39,14 +39,16 @@ const SORT_LABEL: Record<SortOrder, string> = {
   catalogue: 'Catalogue order',
   title: 'Title, A to Z',
   recent: 'Last played',
-  played: 'Most played'
+  played: 'Most played by you',
+  popular: 'Most played on Flashhub',
+  added: 'Recently added'
 };
 
 // Divisible by 2, 3, 4, 5 and 6, so every page ends on a full row
 const PAGE_SIZE = 60;
 
 export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilters }: LibraryViewProps) {
-  const { entries, byKey, favourites, recentKeys, history, steam, reloadSteam, currentUser, openAccount, loading, loadError, reloadCatalogue } =
+  const { entries, byKey, favourites, recentKeys, history, steam, reloadSteam, linkSteam, currentUser, loading, loadError, reloadCatalogue } =
     useLibrary();
   const [visible, setVisible] = useState(PAGE_SIZE);
   const sentinel = useRef<HTMLDivElement>(null);
@@ -96,6 +98,12 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
     if (sort === 'title') list = list.slice().sort((a, b) => a.title.localeCompare(b.title));
     if (sort === 'recent') list = list.slice().sort((a, b) => lastPlayed(b).localeCompare(lastPlayed(a)));
     if (sort === 'played') list = list.slice().sort((a, b) => playedSeconds(b) - playedSeconds(a));
+    // Hub-wide plays this month, then all time; Steam games have no Flashhub plays and go last
+    if (sort === 'popular') {
+      list = list.slice().sort((a, b) => (b.plays?.recent ?? -1) - (a.plays?.recent ?? -1) || (b.plays?.total ?? -1) - (a.plays?.total ?? -1));
+    }
+    // Dated arrivals newest first; the undated starting catalogue keeps its order after them
+    if (sort === 'added') list = list.slice().sort((a, b) => (b.addedAt || '').localeCompare(a.addedAt || ''));
     return list;
   }, [base, filters, searchQuery, history]);
 
@@ -154,6 +162,8 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
         <SteamState />
       ) : (
         <>
+          {tab === 'steam' && <SteamStatusLine />}
+
           {/* Toolbar: scope on the left, the count and the view on the right */}
           <div className="mt-6 flex flex-wrap items-center gap-2">
             <label className="sr-only" htmlFor="filter-runtime">Runs on</label>
@@ -299,6 +309,37 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
     </div>
   );
 
+  /**
+   * Over the Steam list: when Steam last answered (and a refresh), the outage notice when the
+   * list is the last one Steam gave, and the prompt to confirm a link made before Flashhub
+   * could check ownership.
+   */
+  function SteamStatusLine() {
+    if (steam.status !== 'ready' && steam.status !== 'private') return null;
+    const { fetchedAt, stale } = steam.library;
+    const unconfirmed = !!currentUser?.steamId && !currentUser.steamVerifiedAt;
+    const when = formatWhen(fetchedAt);
+    const time = new Date(fetchedAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+    return (
+      <div className="mt-6 flex flex-col gap-3">
+        {unconfirmed && (
+          <EmptyBlock action={<button type="button" onClick={linkSteam} className="btn-ghost h-9 flex-none px-4 text-[13px]">Confirm with Steam</button>}>
+            This Steam account was linked before Flashhub could check who owns it. Confirm it with Steam; it keeps working until you do.
+          </EmptyBlock>
+        )}
+        {stale && (
+          <EmptyBlock>Steam is not answering, so this is your library as Steam last gave it, {when?.toLowerCase()} at {time}.</EmptyBlock>
+        )}
+        <p className="flex items-center gap-3 text-[13px] text-faint">
+          <span>From Steam, {when?.toLowerCase()} at {time}</span>
+          <button type="button" onClick={() => reloadSteam(true)} className="font-semibold text-muted underline decoration-control underline-offset-4 hover:text-ink">
+            Refresh
+          </button>
+        </p>
+      </div>
+    );
+  }
+
   /** What the Steam tab shows when there is no list to show, and what to do about it. */
   function SteamState() {
     // Whatever Steam says, the tab still shows something real: the games in the catalogue that
@@ -332,12 +373,12 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
       case 'signed-out':
         return box(
           'Sign in and link your Steam account to see your Steam games here. They open in the Steam client.',
-          <button type="button" onClick={openAccount} className="btn-ghost h-9 px-4 text-[13px]">Sign in</button>
+          <button type="button" onClick={linkSteam} className="btn-ghost h-9 px-4 text-[13px]">Sign in</button>
         );
       case 'not-linked':
         return box(
-          'Link your Steam account and its games join this library, each marked to open in Steam.',
-          <button type="button" onClick={openAccount} className="btn-ghost h-9 px-4 text-[13px]">Link Steam</button>
+          'Sign in through Steam and your Steam games join this library, each marked to open in Steam. Steam confirms the account is yours; Flashhub never sees your Steam password.',
+          <button type="button" onClick={linkSteam} className="btn-ghost h-9 px-4 text-[13px]">Sign in through Steam</button>
         );
       case 'needs-key':
         return box(
@@ -352,13 +393,13 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
             <a href="https://steamcommunity.com/my/edit/settings" target="_blank" rel="noopener noreferrer" className="btn-ghost h-9 px-4 text-[13px]">
               Privacy settings
             </a>
-            <button type="button" onClick={reloadSteam} className="btn-ghost h-9 px-4 text-[13px]">Refresh</button>
+            <button type="button" onClick={() => reloadSteam(true)} className="btn-ghost h-9 px-4 text-[13px]">Refresh</button>
           </div>
         );
       case 'error':
         return box(
           `${steam.message}. Your Flashhub games are unaffected.`,
-          <button type="button" onClick={reloadSteam} className="btn-ghost h-9 px-4 text-[13px]">
+          <button type="button" onClick={() => reloadSteam(true)} className="btn-ghost h-9 px-4 text-[13px]">
             <RefreshCw className="h-4 w-4" aria-hidden /> Retry
           </button>
         );

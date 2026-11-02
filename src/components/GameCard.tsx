@@ -10,6 +10,8 @@ interface GameCardProps {
   /** Replaces the default second line, e.g. "Today · 14 min" in a recently-played row */
   meta?: string;
   eager?: boolean;
+  /** A small text action under the card, e.g. "Remove" on a collection page */
+  action?: { label: string; onClick: () => void };
 }
 
 /** The second line every card carries: what it runs on, or for Steam, how much it was played. */
@@ -26,7 +28,7 @@ export function defaultMeta(entry: LibraryEntry): string {
  * favourite toggle sit above that link as their own buttons, so nothing interactive is nested
  * inside anything else.
  */
-export function GameCard({ entry, meta, eager }: GameCardProps) {
+export function GameCard({ entry, meta, eager, action }: GameCardProps) {
   const { isFavourite, toggleFavourite, play } = useLibrary();
   const favourite = isFavourite(entry.key);
   const isSteam = entry.launch === 'steam';
@@ -85,6 +87,15 @@ export function GameCard({ entry, meta, eager }: GameCardProps) {
         {entry.title}
       </a>
       <p className="mt-0.5 truncate text-[12px] leading-4 text-faint">{meta ?? defaultMeta(entry)}</p>
+      {action && (
+        <button
+          type="button"
+          onClick={action.onClick}
+          className="relative z-10 mt-1.5 text-[12px] font-semibold text-muted underline decoration-control underline-offset-4 hover:text-ink hover:decoration-ink"
+        >
+          {action.label}
+        </button>
+      )}
     </article>
   );
 }

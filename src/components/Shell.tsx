@@ -11,6 +11,8 @@ import {
   Stethoscope,
   Shield,
   Menu,
+  Plus,
+  FolderOpen,
   User,
   X
 } from 'lucide-react';
@@ -32,6 +34,7 @@ interface ShellProps {
 function isActive(route: Route, target: Route): boolean {
   if (route.name !== target.name) return false;
   if (route.name === 'library' && target.name === 'library') return route.tab === target.tab;
+  if (route.name === 'collection' && target.name === 'collection') return route.id === target.id;
   return true;
 }
 
@@ -104,7 +107,10 @@ function SidebarBody({
   onAdmin: () => void;
   onNavigate?: () => void;
 }) {
-  const { entries, favourites, recentKeys, byKey, steam, currentUser } = useLibrary();
+  const { entries, favourites, recentKeys, byKey, steam, currentUser, collections, createCollection } = useLibrary();
+  const [naming, setNaming] = useState(false);
+  const [newName, setNewName] = useState('');
+  const [nameError, setNameError] = useState('');
   const flashhubCount = entries.filter(e => e.launch === 'flashhub').length;
   const steamCount = steam.status === 'ready' ? steam.library.games.length : undefined;
   const recent = recentKeys.map(k => byKey.get(k)).filter(Boolean).slice(0, 5);
@@ -132,6 +138,78 @@ function SidebarBody({
           />
         </div>
       </div>
+
+      {/* Collections live on the account, so the group appears once signed in */}
+      {currentUser && (
+        <div className="px-3 pt-6">
+          <div className="flex items-center justify-between pb-2 pl-3 pr-1">
+            <p className="text-[12px] text-faint">Collections</p>
+            <button
+              type="button"
+              onClick={() => {
+                setNaming(n => !n);
+                setNameError('');
+              }}
+              aria-expanded={naming}
+              aria-label="New collection"
+              title="New collection"
+              className="btn-quiet h-7 w-7"
+            >
+              <Plus className="h-4 w-4" />
+            </button>
+          </div>
+          {naming && (
+            <form
+              className="px-3 pb-2"
+              onSubmit={async e => {
+                e.preventDefault();
+                if (!newName.trim()) return;
+                try {
+                  const created = await createCollection(newName);
+                  setNewName('');
+                  setNaming(false);
+                  onNavigate?.();
+                  window.location.hash = `#/collection/${encodeURIComponent(created.id)}`;
+                } catch (err: any) {
+                  setNameError(err?.message || 'That did not save.');
+                }
+              }}
+            >
+              <label htmlFor="sidebar-new-collection" className="sr-only">New collection name</label>
+              <input
+                id="sidebar-new-collection"
+                autoFocus
+                value={newName}
+                maxLength={60}
+                onChange={e => setNewName(e.target.value)}
+                onKeyDown={e => {
+                  if (e.key === 'Escape') setNaming(false);
+                }}
+                placeholder="Name, then Enter"
+                className="field h-9 w-full px-3 text-[13px]"
+              />
+              {nameError && <p role="alert" className="pt-1.5 text-[12px] text-accent-lit">{nameError}</p>}
+            </form>
+          )}
+          {collections.length > 0 ? (
+            <div className="flex flex-col gap-0.5">
+              {collections.map(c => (
+                <NavLink
+                  key={c.id}
+                  route={route}
+                  to={{ name: 'collection', id: c.id }}
+                  icon={FolderOpen}
+                  label={c.name}
+                  count={c.keys.length || undefined}
+                  onNavigate={onNavigate}
+                />
+              ))}
+            </div>
+          ) : (
+            !naming && <p className="px-3 text-[13px] leading-5 text-faint">Group games your way: press + to start one.</p>
+          )}
+        </div>
+      )}
 
       {recent.length > 0 && (
         <div className="px-3 pt-6">

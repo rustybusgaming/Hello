@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from 'react';
  *   #/                     Home
  *   #/library[/<tab>]      Library: all | flashhub | steam | favourites | recent
  *   #/game/<key>           A game's page (key = Flashhub id or steam:<appId>)
+ *   #/collection/<id>      One of the player's collections
  *   #/diagnostics          Catalogue diagnostics
  */
 
@@ -17,6 +18,7 @@ export type Route =
   | { name: 'home' }
   | { name: 'library'; tab: LibraryTab }
   | { name: 'game'; key: string }
+  | { name: 'collection'; id: string }
   | { name: 'diagnostics' };
 
 export function parseHash(hash: string): Route {
@@ -29,6 +31,7 @@ export function parseHash(hash: string): Route {
   if (head === 'game' && rest.length) {
     return { name: 'game', key: decodeURIComponent(rest.join('/')) };
   }
+  if (head === 'collection' && rest[0]) return { name: 'collection', id: decodeURIComponent(rest[0]) };
   if (head === 'diagnostics') return { name: 'diagnostics' };
   return { name: 'home' };
 }
@@ -41,6 +44,8 @@ export function hrefFor(route: Route): string {
       return route.tab === 'all' ? '#/library' : `#/library/${route.tab}`;
     case 'game':
       return `#/game/${encodeURIComponent(route.key)}`;
+    case 'collection':
+      return `#/collection/${encodeURIComponent(route.id)}`;
     case 'diagnostics':
       return '#/diagnostics';
   }

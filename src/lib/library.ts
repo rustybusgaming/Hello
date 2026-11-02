@@ -30,6 +30,10 @@ export interface LibraryEntry {
   heroArt: string | null;
   steamAppId: number | null;
   description?: string;
+  /** When the hub first had it; null for the catalogue it started with, undefined for Steam */
+  addedAt?: string | null;
+  /** Counted plays on this hub (Flashhub games only) */
+  plays?: { total: number; recent: number };
   game?: Game;
   steam?: SteamGameSummary;
 }
@@ -90,6 +94,8 @@ export function fromGame(game: Game): LibraryEntry {
     heroArt: steamAppId ? steamHeroUrl(steamAppId) : null,
     steamAppId,
     description: game.description,
+    addedAt: game.addedAt ?? null,
+    plays: game.plays,
     game
   };
 }

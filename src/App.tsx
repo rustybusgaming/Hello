@@ -4,6 +4,7 @@ import { Shell } from './components/Shell';
 import { HomeView } from './components/HomeView';
 import { LibraryView, LibraryFilters, DEFAULT_FILTERS } from './components/LibraryView';
 import { GameDetailView } from './components/GameDetailView';
+import { CollectionView } from './components/CollectionView';
 import { PlayerModal } from './components/PlayerModal';
 import { UploadModal } from './components/UploadModal';
 import { AdminPanel } from './components/AdminPanel';
@@ -14,7 +15,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './lib/hooks';
 import { formatGameInfo } from './utils/gameTitles';
 import { LibraryEntry, Runtime, fromGame, fromSteam, formatSeconds } from './lib/library';
-import { usePlayHistory } from './lib/playHistory';
+import { useAccountLibrary } from './lib/useAccountLibrary';
 import { useSteamLibrary } from './lib/useSteamLibrary';
 import { LibraryContext, LibraryContextValue } from './lib/libraryContext';
 import { useRoute } from './lib/router';
@@ -39,12 +40,28 @@ interface SessionRecap {
   seconds: number;
 }
 
+/** What came back from Sign in through Steam, read once from the URL Steam returned to. */
+function readSteamOutcome(): { ok: boolean; reason: string } | null {
+  const params = new URLSearchParams(window.location.search);
+  const outcome = params.get('steam');
+  if (!outcome) return null;
+  const reason = params.get('reason') || '';
+  // Clean the address bar so a reload does not repeat the message
+  params.delete('steam');
+  params.delete('reason');
+  const query = params.toString();
+  window.history.replaceState(null, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+  return { ok: outcome === 'verified', reason };
+}
+
 export default function App() {
   const { route, navigate } = useRoute();
 
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
+  const [catalogueSince, setCatalogueSince] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'error'; text: string } | null>(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -68,11 +85,25 @@ export default function App() {
   // place, then confirmed by /api/config.
   const [gameOrigin, setGameOrigin] = useState(deriveGameOrigin);
 
-  // Favourites are keyed by library key: a Flashhub game id (unchanged from earlier builds)
-  // or steam:<appId>
-  const [favourites, setFavourites] = useLocalStorage<string[]>('flashhub-favorites', []);
-  const { history, recentKeys: playedKeys, recordLaunch, recordSession } = usePlayHistory();
+  // Favourites, collections and history: the account's when signed in, this browser's when not.
+  // Keys are a Flashhub game id (unchanged from earlier builds) or steam:<appId>.
+  const account = useAccountLibrary(currentUser);
+  const { favourites, history, recentKeys: playedKeys, recordLaunch, finishSession } = account;
   const { state: steam, reload: reloadSteam } = useSteamLibrary(currentUser);
+
+  // Back from Steam: say what happened, in words
+  useEffect(() => {
+    const outcome = readSteamOutcome();
+    if (!outcome) return;
+    if (outcome.ok) {
+      setNotice({ tone: 'ok', text: 'Steam confirmed your account. Your Steam games are in the library.' });
+      return;
+    }
+    fetch('/api/auth/steam/messages')
+      .then(res => (res.ok ? res.json() : null))
+      .then(d => setNotice({ tone: 'error', text: d?.data?.[outcome.reason] || 'Steam did not link the account. Try again.' }))
+      .catch(() => setNotice({ tone: 'error', text: 'Steam did not link the account. Try again.' }));
+  }, []);
 
   const refreshSession = () => {
     fetch('/api/auth/me')
@@ -116,6 +147,7 @@ export default function App() {
           });
           // Games hidden from the admin panel never reach the library
           setGames(formattedList.filter((g: Game) => !g.hidden));
+          setCatalogueSince(typeof data.catalogueSince === 'string' ? data.catalogueSince : null);
           if (typeof data.isSyncing === 'boolean') setIsSyncing(data.isSyncing);
         }
       })
@@ -177,10 +209,7 @@ export default function App() {
     return [...timed.map(t => t.key), ...untimed].filter(key => byKey.has(key));
   }, [playedKeys, history, steamEntries, byKey]);
 
-  const toggleFavourite = useCallback(
-    (key: string) => setFavourites(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])),
-    [setFavourites]
-  );
+  const toggleFavourite = account.toggleFavourite;
 
   const play = useCallback(
     (entry: LibraryEntry) => {
@@ -199,19 +228,12 @@ export default function App() {
   };
 
   const handleCloseModal = (elapsedSeconds: number) => {
-    if (selectedGame) recordSession(selectedGame.id, elapsedSeconds);
-
-    // Bank the sitting so the profile's playtime covers every game. Rounded up, so a short
-    // session still counts as one minute.
-    if (currentUser && elapsedSeconds >= 30) {
-      fetch('/api/auth/playtime', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ minutes: Math.max(1, Math.round(elapsedSeconds / 60)) })
-      })
-        .then(res => (res.ok ? res.json() : null))
-        .then(d => { if (d?.status === 'ok' && d.user) setCurrentUser(d.user); })
-        .catch(() => { /* the session is still over; the counter can miss one */ });
+    // The sitting goes to this browser's history and to the server, which counts the play
+    // and, when signed in, adds it to the account's history and total playtime
+    if (selectedGame) {
+      finishSession(selectedGame.id, elapsedSeconds).then(result => {
+        if (result.user) setCurrentUser(result.user);
+      });
     }
 
     // The <main> is still hidden at this point, so the restore waits for the frame after
@@ -274,8 +296,18 @@ export default function App() {
     toggleFavourite,
     history,
     recentKeys,
+    collections: account.collections,
+    createCollection: account.createCollection,
+    renameCollection: account.renameCollection,
+    setCollectionKeys: account.setCollectionKeys,
+    deleteCollection: account.deleteCollection,
+    catalogueSince,
     steam,
     reloadSteam,
+    linkSteam: () => {
+      if (currentUser) window.location.href = '/api/auth/steam/start';
+      else setIsAccountModalOpen(true);
+    },
     currentUser,
     openAccount: () => setIsAccountModalOpen(true),
     play
@@ -304,6 +336,8 @@ export default function App() {
             />
           ) : route.name === 'game' ? (
             <GameDetailView entryKey={route.key} />
+          ) : route.name === 'collection' ? (
+            <CollectionView id={route.id} />
           ) : (
             <div>
               <h1 className="mb-6 text-[20px] font-semibold">Diagnostics</h1>
@@ -319,6 +353,21 @@ export default function App() {
           )}
         </main>
       </Shell>
+
+      {/* The outcome of Sign in through Steam, and the account sync failing */}
+      {(notice || account.syncError) && (
+        <div
+          role="status"
+          className="fixed bottom-4 left-4 z-40 flex max-w-md items-start gap-3 border border-rule bg-shade py-3 pl-4 pr-2 shadow-[0_12px_32px_rgba(0,0,0,0.5)] lg:left-[236px]"
+        >
+          <p className="min-w-0 flex-1 text-[13px] leading-5">
+            {notice ? notice.text : 'Your account’s library could not be loaded, so this browser’s copy is showing.'}
+          </p>
+          <button type="button" onClick={() => setNotice(null)} className="btn-quiet h-8 w-8 flex-none" aria-label="Dismiss" hidden={!notice}>
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
       {/* Session recap after a game closes */}
       <AnimatePresence>

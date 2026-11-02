@@ -17,6 +17,7 @@ import { GameArt } from './GameArt';
 import { LaunchButton } from './LaunchButton';
 import { EmptyBlock, CARD_GRID, railItemClass } from './Section';
 import { GameCard } from './GameCard';
+import { CollectionMenu } from './CollectionMenu';
 
 /** Where a Flashhub game's files come from, in words, with a link where one exists. */
 function sourceOf(entry: LibraryEntry): { label: string; href?: string } {
@@ -151,6 +152,7 @@ export function GameDetailView({ entryKey }: { entryKey: string }) {
               <Heart className="h-4 w-4" fill={favourite ? 'currentColor' : 'none'} aria-hidden />
               {favourite ? 'Favourite' : 'Add to favourites'}
             </button>
+            <CollectionMenu entryKey={entry.key} />
           </div>
           {isSteam && (
             <p className="mt-3 text-[13px] text-faint">
@@ -230,7 +232,7 @@ function FlashhubBody({
 
       {/* About (or, with no description, games like this one) beside the facts */}
       {entry.description ? (
-        <section aria-labelledby="about-heading" className="bg-paper p-5 lg:col-span-4">
+        <section aria-labelledby="about-heading" className="self-start bg-paper p-5 lg:col-span-4">
           <h2 id="about-heading" className="text-[16px] font-semibold">About</h2>
           <p className="mt-3 max-w-[68ch] text-[15px] leading-relaxed text-ink">{entry.description}</p>
         </section>
@@ -285,6 +287,13 @@ function FlashhubBody({
   );
 }
 
+/** When a game arrived, or for the starting catalogue, since when the hub has had it. */
+function addedLabel(addedAt: string | null | undefined, since: string | null): string {
+  const date = (iso: string) => new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' });
+  if (addedAt) return date(addedAt);
+  return since ? `Before ${date(since)}` : 'Before records began';
+}
+
 function DetailsList({
   entry,
   source,
@@ -296,6 +305,7 @@ function DetailsList({
   runtimes: number;
   canSave: boolean;
 }) {
+  const { catalogueSince } = useLibrary();
   return (
     <dl className="mt-2">
       <Fact label="Launches in">Flashhub player</Fact>
@@ -311,6 +321,10 @@ function DetailsList({
         )}
       </Fact>
       <Fact label="Ways to run it">{runtimes === 1 ? 'One' : `${runtimes}, switchable in the player`}</Fact>
+      <Fact label="Plays on Flashhub">
+        {entry.plays ? `${entry.plays.recent.toLocaleString()} this month · ${entry.plays.total.toLocaleString()} in all` : <Dash />}
+      </Fact>
+      <Fact label="Added">{addedLabel(entry.addedAt, catalogueSince)}</Fact>
       <Fact label="Save slots">{canSave ? 'Yes, in the player' : 'No; the game keeps its own progress'}</Fact>
     </dl>
   );
