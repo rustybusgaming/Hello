@@ -35,6 +35,9 @@ export function HomeView({ onBrowse }: HomeViewProps) {
   const recent = useMemo(() => recentKeys.map(k => byKey.get(k)).filter(Boolean) as LibraryEntry[], [recentKeys, byKey]);
   const favouriteEntries = useMemo(() => favourites.map(k => byKey.get(k)).filter(Boolean) as LibraryEntry[], [favourites, byKey]);
 
+  // A player with nothing played or kept yet sees games before empty shelves
+  const firstRun = recent.length === 0 && favouriteEntries.length === 0;
+
   // The lead: the last game played; for a new player, today's pick from the games with full
   // art. Steam's wide art is missing for a few apps, so a pick whose art 404s is skipped.
   const [missingArt, setMissingArt] = useState<Set<string>>(() => new Set());
@@ -120,6 +123,33 @@ export function HomeView({ onBrowse }: HomeViewProps) {
         />
       ) : null}
 
+      {firstRun ? (
+        <>
+      <Section id="picks" title="A few to try" note="Games you have not played yet. A new set every day.">
+        <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
+          {loading
+            ? Array.from({ length: 12 }, (_, i) => <GameCardSkeleton key={i} />)
+            : picks.map(entry => <GameCard key={entry.key} entry={entry} />)}
+        </div>
+      </Section>
+      {/* First run: games first, then one line on what will collect here */}
+      <Section id="yours" title="Your games">
+        <EmptyBlock
+          action={
+            steam.status === 'signed-out' || steam.status === 'not-linked' ? (
+              <button type="button" onClick={openAccount} className="btn-ghost h-9 flex-none px-4 text-[13px]">
+                {currentUser ? 'Link Steam' : 'Sign in to link Steam'}
+              </button>
+            ) : undefined
+          }
+        >
+          Games you play and favourite collect here
+          {steam.status === 'signed-out' || steam.status === 'not-linked' ? ', beside your Steam library once it is linked.' : '.'}
+        </EmptyBlock>
+      </Section>
+        </>
+      ) : (
+        <>
       <Section
         id="recent"
         title="Jump back in"
@@ -142,7 +172,6 @@ export function HomeView({ onBrowse }: HomeViewProps) {
           </EmptyBlock>
         )}
       </Section>
-
       {steam.status !== 'ready' && steam.status !== 'loading' && (
         <Section id="steam" title="Your Steam library">
           <EmptyBlock
@@ -168,7 +197,6 @@ export function HomeView({ onBrowse }: HomeViewProps) {
           </EmptyBlock>
         </Section>
       )}
-
       <Section
         id="favourites"
         title="Favourites"
@@ -186,7 +214,6 @@ export function HomeView({ onBrowse }: HomeViewProps) {
           <EmptyBlock>Press the heart on any game to keep it here.</EmptyBlock>
         )}
       </Section>
-
       <Section id="picks" title="A few to try" note="Games you have not played yet. A new set every day.">
         <div className={CARD_GRID} onKeyDown={onGridKeyDown}>
           {loading
@@ -194,6 +221,8 @@ export function HomeView({ onBrowse }: HomeViewProps) {
             : picks.map(entry => <GameCard key={entry.key} entry={entry} />)}
         </div>
       </Section>
+        </>
+      )}
 
       <Section id="browse" title="Browse the library">
         <div className="grid gap-[14px] md:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">

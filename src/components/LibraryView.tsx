@@ -301,9 +301,25 @@ export function LibraryView({ tab, searchQuery, onClearSearch, filters, onFilter
 
   /** What the Steam tab shows when there is no list to show, and what to do about it. */
   function SteamState() {
+    // Whatever Steam says, the tab still shows something real: the games in the catalogue that
+    // began on Steam and already play here in the browser
+    const fromSteamInFlashhub = tabEntries.flashhub.filter(e => e.steamAppId);
     const box = (text: React.ReactNode, action?: React.ReactNode) => (
       <div className="mt-6">
         <EmptyBlock action={action}>{text}</EmptyBlock>
+        {fromSteamInFlashhub.length > 0 && (
+          <section aria-labelledby="steam-ports" className="pt-10">
+            <h2 id="steam-ports" className="text-[16px] font-semibold">Steam games that play here</h2>
+            <p className="mt-1 text-[13px] text-faint">
+              {fromSteamInFlashhub.length} games in the catalogue are browser versions of Steam games. They play in Flashhub, no Steam needed.
+            </p>
+            <div className={`${CARD_GRID} mt-4`} onKeyDown={onGridKeyDown}>
+              {fromSteamInFlashhub.map(entry => (
+                <GameCard key={entry.key} entry={entry} />
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     );
     switch (steam.status) {

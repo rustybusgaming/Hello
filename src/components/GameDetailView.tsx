@@ -64,6 +64,8 @@ function StatStrip({ stats }: { stats: { label: string; value: React.ReactNode }
 }
 
 const Dash = () => <span className="text-faint">—</span>;
+/** A missing value in a stat cell: words at the label's size, never a dash at figure size */
+const Quiet = ({ children }: { children: React.ReactNode }) => <span className="text-[14px] text-faint">{children}</span>;
 
 export function GameDetailView({ entryKey }: { entryKey: string }) {
   const { byKey, entries, ownedSteam, steam, loading, isFavourite, toggleFavourite, history, currentUser } = useLibrary();
@@ -116,7 +118,8 @@ export function GameDetailView({ entryKey }: { entryKey: string }) {
 
       {/* The page header is the game itself */}
       <header className="flex flex-col gap-5 sm:flex-row sm:items-end">
-        <div className="art-frame aspect-[4/3] w-full flex-none sm:w-[208px]">
+        {/* On a phone the banner already shows the game; the cover returns from sm up */}
+        <div className={`art-frame aspect-[4/3] w-full flex-none sm:block sm:w-[208px] ${hasHero ? 'hidden' : ''}`}>
           <GameArt entry={entry} eager />
         </div>
         <div className="min-w-0 flex-1">
@@ -217,10 +220,10 @@ function FlashhubBody({
         <h2 id="stats-heading" className="mb-3 text-[16px] font-semibold">Your play</h2>
         <StatStrip
           stats={[
-            { label: 'Last played', value: formatWhen(record?.lastPlayedAt) || <Dash /> },
-            { label: 'Time played', value: record ? formatSeconds(record.totalSeconds) : '0 s' },
+            { label: 'Last played', value: formatWhen(record?.lastPlayedAt) || <Quiet>{record ? 'Before this browser kept times' : 'Not played yet'}</Quiet> },
+            { label: 'Time played', value: formatSeconds(record?.totalSeconds ?? 0) },
             { label: 'Sessions', value: (record?.sessions ?? 0).toLocaleString() },
-            { label: 'Save slots', value: canSave ? (slots === null ? <Dash /> : slots.toLocaleString()) : <span className="text-[14px] text-faint">Flash games only</span> }
+            { label: 'Save slots', value: canSave ? (slots === null ? <Quiet>Checking…</Quiet> : slots.toLocaleString()) : <Quiet>Flash games only</Quiet> }
           ]}
         />
       </section>
@@ -236,7 +239,12 @@ function FlashhubBody({
           <h2 id="similar-heading" className="mb-3 text-[16px] font-semibold">More like this</h2>
           {similar.length ? (
             <div className="grid grid-cols-2 gap-[14px] sm:grid-cols-3">
-              {similar.slice(0, 3).map(e => <GameCard key={e.key} entry={e} />)}
+              {similar.slice(0, 3).map((e, i) => (
+                // Two on a phone, three from sm up: never a lone card on its own row
+                <div key={e.key} className={i === 2 ? 'hidden sm:block' : ''}>
+                  <GameCard entry={e} />
+                </div>
+              ))}
             </div>
           ) : (
             <EmptyBlock>No other games share this one's genres yet.</EmptyBlock>
@@ -352,7 +360,7 @@ function SteamBody({
           stats={[
             { label: 'Time played', value: formatMinutes(s.playtimeMinutes) },
             { label: 'Last two weeks', value: formatMinutes(s.playtimeRecentMinutes) },
-            { label: 'Last played', value: formatWhen(s.lastPlayedAt) || <span className="text-[14px] text-faint">Never</span> }
+            { label: 'Last played', value: formatWhen(s.lastPlayedAt) || <Quiet>Never launched</Quiet> }
           ]}
         />
       </section>

@@ -69,3 +69,49 @@ Cover grid: auto-fill minmax(172px, 1fr) with 14px gap -> 6 columns of 181.8px:
 6 x 181.83 + 5 x 14 = 1161. Same 14px gap everywhere, so rows land on the content edges.
 Rails (Jump back in, Favourites): the same 6 columns, capped at 6 items.
 Art: one 4:3 frame; square art covers it, wide Steam headers sit whole on the raised tone.
+
+## Before (recorded 2026-11-02, production build, `inspect.mjs --app`)
+
+5 FAIL, 2 WARN: micro-labels (6 tracked mono labels), gradient (120 hatch placeholders),
+palette-terracotta (the brand red, kept by decision), tiny text (126 blocks under 11px), no h1.
+Contrast WARN: white on #ec3013 at 3.8:1. Lint: 20 FAIL, 124 WARN (mono x57, eyebrow x21).
+Seen: light Modernist sheet, greyscale covers, stat band of four totals, mono "Shelf 03" kicker,
+4.5-5.0 ratings on every card (hard-coded, not data).
+
+## Critique (app-screen questions, app-screens.md 2.7)
+
+ROUND 1 (first build, 1440/768/390)
+1. Question answered by the biggest block? Library yes (grid). Home no for a new player: banner,
+   then three empty sentences; no game below the banner on the first screen.
+2. Shared edges? Library grid stopped at 4 columns at 1440 (breakpoint order bug); game page
+   details list spanned 1161px with 600px gaps between label and value.
+3. Colour on data/action only? Yes; red on Play, the selected tab, focus, the achievements bar.
+4. Numbers add up? Steam playtime and local session time shown once each; counts from rows.
+5. Zeros and missing values? A 24px dash for "Last played" on an unplayed game (reads as loading).
+6. Legends: n/a.
+7. Phone: game page showed the same art twice (banner, then a full-width cover); More like this
+   left one card alone on a row.
+Fixed: theme breakpoints (6 columns at 1440); first-run order (picks under the banner, one
+"Your games" line); details beside More like this; words not dashes at figure size; cover hidden
+under the banner on phones; two cards on phones.
+
+ROUND 2
+- Steam tab, not linked: one sentence over 600px of nothing (hero-void). Fixed: the 20 catalogue
+  games that began on Steam and play here, under it.
+- Cached wide art lost its letterbox (load fired before a reset effect). Fixed: measured per URL.
+- List view: a red Play on every row read as a stripe. Fixed: quiet buttons in rows.
+- Admin monitor still light, badges in capitals; diagnostics opened on a red field with an
+  eyebrow. Fixed: ground tone, sentence case, a plain panel.
+
+ROUND 3 (final, production build)
+inspect --app --allow palette-terracotta: home 0 FAIL / 3 WARN, library 0 / 1, detail 0 / 1,
+steam 0 / 1, diagnostics 0 / 1. lint --app: 0 FAIL, 21 WARN.
+Defended WARNs: icon-chips = the favourite and quick-launch buttons on cards (controls shown on
+hover/focus, not decoration); colour-sprawl on Home = cover art, which the brief makes the focus;
+below-fold on Home = banner plus the first row of picks are on the first screen, the rest are
+secondary; hero-void on Diagnostics = a one-panel utility page. Lint: shadows only on floating
+layers (toast, slide-over panel, dialogs); small labels in the account/admin dialogs (allowed on
+app screens); padStart in the session clock; "unlock" in catalogue game descriptions.
+Remaining weak spots: wide Steam headers letterboxed in a 4:3 frame beside square art; the
+admin and account dialogs were restyled through tokens rather than redesigned; one catalogue
+entry (Happy Sheepies, app 2764950) points at unrelated DLC art.

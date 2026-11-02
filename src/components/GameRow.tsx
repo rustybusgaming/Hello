@@ -51,7 +51,7 @@ export function GameRow({ entry }: { entry: LibraryEntry }) {
       <span className="hidden text-right text-[13px] tabular-nums text-muted md:block">{lastPlayed || <span className="text-faint">—</span>}</span>
       <span className="hidden text-right text-[13px] tabular-nums text-muted md:block">{played || <span className="text-faint">—</span>}</span>
 
-      <div className="relative z-10 flex items-center gap-1">
+      <div className="relative z-10 flex items-center justify-end gap-1 md:w-[176px]">
         <button
           type="button"
           onClick={() => toggleFavourite(entry.key)}
@@ -61,7 +61,8 @@ export function GameRow({ entry }: { entry: LibraryEntry }) {
         >
           <Heart className="h-4 w-4" fill={favourite ? 'currentColor' : 'none'} aria-hidden />
         </button>
-        <LaunchButton entry={entry} className="hidden sm:inline-flex" />
+        {/* Repeated on every row, so it is the quiet button: red down a whole list is a stripe */}
+        <LaunchButton entry={entry} variant="quiet" className="hidden sm:inline-flex" />
       </div>
     </li>
   );
@@ -77,7 +78,7 @@ export function GameRowHeader() {
       <span>Genre</span>
       <span className="text-right">Last played</span>
       <span className="text-right">Played</span>
-      <span className="w-[132px]" />
+      <span className="w-[176px]" />
     </div>
   );
 }

@@ -547,7 +547,7 @@ export function AccountModal({
             {currentUser && (
               <button
                 onClick={handleLogout}
-                className="px-2.5 py-1.5 bg-shade hover:bg-accent/10 hover:text-accent-lit text-ink/60 border border-rule hover:border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
+                className="px-2.5 py-1.5 bg-shade hover:bg-accent/10 hover:text-accent-lit text-ink/60 border border-rule hover:border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-colors"
                 title="Sign out of this session"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -556,7 +556,7 @@ export function AccountModal({
             )}
             <button
               onClick={onClose}
-              className="w-8 h-8 btn-ghost hover:text-ink flex items-center justify-center transition-all"
+              className="w-8 h-8 btn-ghost hover:text-ink flex items-center justify-center transition-colors"
             >
               <X className="w-4 h-4" />
             </button>
@@ -569,7 +569,7 @@ export function AccountModal({
             <>
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'profile'
                     ? 'border-rule text-ink font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -580,7 +580,7 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('steam')}
-                className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-colors whitespace-nowrap ${
                   activeTab === 'steam'
                     ? 'border-[#66c0f4] text-[#66c0f4] font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -591,7 +591,7 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('saves')}
-                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'saves'
                     ? 'border-accent text-accent-lit font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -602,7 +602,7 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('security')}
-                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'security'
                     ? 'border-accent text-accent-lit font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -613,7 +613,7 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('switch')}
-                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-colors flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'switch'
                     ? 'border-rule text-ink font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -627,7 +627,7 @@ export function AccountModal({
             <>
               <button
                 onClick={() => setActiveTab('signin')}
-                className={`pb-2.5 px-4 border-b transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-4 border-b transition-colors flex items-center gap-1.5 ${
                   activeTab === 'signin'
                     ? 'border-rule text-ink font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -638,7 +638,7 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('register')}
-                className={`pb-2.5 px-4 border-b transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-4 border-b transition-colors flex items-center gap-1.5 ${
                   activeTab === 'register'
                     ? 'border-accent text-accent-lit font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -677,7 +677,7 @@ export function AccountModal({
                   <input
                     type="text"
                     required
-                    placeholder="e.g. admin or player@example.com"
+                    placeholder="Your username or email"
                     value={loginIdentifier}
                     onChange={e => setLoginIdentifier(e.target.value)}
                     className="field w-full px-3.5 py-2.5 text-xs"
@@ -710,7 +710,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={loginLoading}
-                  className="w-full py-2.5 px-4 btn-primary font-bold text-xs transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-2.5 px-4 btn-primary font-bold text-xs transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   {loginLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <LogIn className="w-4 h-4" />}
                   {loginLoading ? 'Authenticating...' : 'Sign In'}
@@ -780,7 +780,7 @@ export function AccountModal({
                   <input
                     type="email"
                     required
-                    placeholder="player@example.com"
+                    placeholder="Your email address"
                     value={regEmail}
                     onChange={e => setRegEmail(e.target.value)}
                     className="field w-full px-3 py-2 text-xs"
@@ -837,7 +837,7 @@ export function AccountModal({
                         key={i}
                         type="button"
                         onClick={() => setRegAvatar(preset.url)}
-                        className={`relative flex-shrink-0 w-10 h-10 overflow-hidden border transition-all ${
+                        className={`relative flex-shrink-0 w-10 h-10 overflow-hidden border transition-colors ${
                           regAvatar === preset.url ? 'border-accent scale-105  ring-accent/20' : 'border-rule hover:border-rule'
                         }`}
                         title={preset.name}
@@ -926,7 +926,7 @@ export function AccountModal({
 
                   <button
                     onClick={() => setIsEditingProfile(true)}
-                    className="px-3.5 py-2 bg-shade hover:bg-shade text-xs font-semibold text-ink flex items-center gap-1.5 transition-all self-stretch sm:self-auto justify-center"
+                    className="px-3.5 py-2 bg-shade hover:bg-shade text-xs font-semibold text-ink flex items-center gap-1.5 transition-colors self-stretch sm:self-auto justify-center"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     Edit Profile
@@ -973,7 +973,7 @@ export function AccountModal({
                           key={i}
                           type="button"
                           onClick={() => setEditAvatar(preset.url)}
-                          className={`relative flex-shrink-0 w-10 h-10  overflow-hidden border transition-all ${
+                          className={`relative flex-shrink-0 w-10 h-10  overflow-hidden border transition-colors ${
                             editAvatar === preset.url ? 'border-rule  ring-hair' : 'border-rule hover:border-rule'
                           }`}
                         >
@@ -1131,7 +1131,7 @@ export function AccountModal({
                           href={currentUser.steamProfileUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-2 bg-[#2a475e]/60 hover:bg-[#2a475e] text-xs font-medium text-ink transition-all"
+                          className="flex items-center gap-1.5 px-3 py-2 bg-[#2a475e]/60 hover:bg-[#2a475e] text-xs font-medium text-ink transition-colors"
                         >
                           <ExternalLink className="w-3.5 h-3.5" />
                           Steam Profile
@@ -1139,7 +1139,7 @@ export function AccountModal({
                       )}
                       <button
                         onClick={() => setActiveTab('steam')}
-                        className="px-3 py-2 bg-ink/10 hover:bg-ink/12 text-xs font-medium text-ink transition-all"
+                        className="px-3 py-2 bg-ink/10 hover:bg-ink/12 text-xs font-medium text-ink transition-colors"
                       >
                         Manage
                       </button>
@@ -1159,7 +1159,7 @@ export function AccountModal({
                   </div>
                   <button
                     onClick={() => setActiveTab('steam')}
-                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1b2838] hover:bg-[#2a475e] text-[#66c0f4] border border-[#2a475e] text-xs font-semibold transition-all"
+                    className="inline-flex items-center gap-2 px-4 py-2 bg-[#1b2838] hover:bg-[#2a475e] text-[#66c0f4] border border-[#2a475e] text-xs font-semibold transition-colors"
                   >
                     <LinkIcon className="w-3.5 h-3.5" />
                     Link Steam Profile
@@ -1213,7 +1213,7 @@ export function AccountModal({
                     <button
                       type="submit"
                       disabled={steamLoading || !steamInput.trim()}
-                      className="px-4 py-2.5 bg-[#66c0f4] hover:bg-[#52aae0] text-paper font-bold text-xs transition-all disabled:opacity-50 flex items-center gap-1.5"
+                      className="px-4 py-2.5 bg-[#66c0f4] hover:bg-[#52aae0] text-paper font-bold text-xs transition-colors disabled:opacity-50 flex items-center gap-1.5"
                     >
                       {steamLoading ? 'Connecting...' : 'Connect Steam'}
                     </button>
@@ -1229,7 +1229,7 @@ export function AccountModal({
                       type="button"
                       onClick={handleUnlinkSteam}
                       disabled={steamLoading}
-                      className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit border border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit border border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-colors"
                     >
                       <Unlink className="w-3.5 h-3.5" />
                       Unlink Account
@@ -1255,7 +1255,7 @@ export function AccountModal({
                 <a
                   href="/api/saves/export-all"
                   download="flashhub-cloud-saves.json"
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-ink/10 hover:bg-ink/12 text-xs text-ink transition-all font-medium"
+                  className="flex items-center gap-1.5 px-3 py-1.5 bg-ink/10 hover:bg-ink/12 text-xs text-ink transition-colors font-medium"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Export All (.JSON)
@@ -1315,14 +1315,14 @@ export function AccountModal({
                             a.click();
                           }}
                           title="Download raw save file"
-                          className="p-2 bg-shade hover:bg-shade text-ink/80 hover:text-ink transition-all"
+                          className="p-2 bg-shade hover:bg-shade text-ink/80 hover:text-ink transition-colors"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteSave(save.id)}
                           title="Delete save slot"
-                          className="p-2 bg-accent/10 hover:bg-accent/20 text-accent-lit transition-all"
+                          className="p-2 bg-accent/10 hover:bg-accent/20 text-accent-lit transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1404,7 +1404,7 @@ export function AccountModal({
                 <button
                   type="submit"
                   disabled={passwordLoading}
-                  className="px-4 py-2 btn-primary font-bold text-xs transition-all disabled:opacity-50"
+                  className="px-4 py-2 btn-primary font-bold text-xs transition-colors disabled:opacity-50"
                 >
                   {passwordLoading ? 'Updating Password...' : 'Update Password'}
                 </button>
@@ -1437,7 +1437,7 @@ export function AccountModal({
                   <button
                     type="submit"
                     disabled={deleteLoading || !deletePassword}
-                    className="px-4 py-2 bg-accent hover:bg-accent text-ink font-bold text-xs transition-all disabled:opacity-50"
+                    className="px-4 py-2 bg-accent hover:bg-accent text-ink font-bold text-xs transition-colors disabled:opacity-50"
                   >
                     {deleteLoading ? 'Deleting...' : 'Delete Account'}
                   </button>
@@ -1461,7 +1461,7 @@ export function AccountModal({
                   {allAccounts.map(acc => (
                     <div
                       key={acc.id}
-                      className={`p-3  border text-left flex items-center justify-between gap-3 transition-all ${
+                      className={`p-3  border text-left flex items-center justify-between gap-3 transition-colors ${
                         currentUser?.id === acc.id
                           ? 'bg-ink/10 border-rule text-ink'
                           : 'bg-shade/50 border-rule text-ink/80'
@@ -1502,14 +1502,14 @@ export function AccountModal({
               <div className="pt-4 border-t border-rule flex items-center justify-between">
                 <button
                   onClick={() => setActiveTab('register')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 btn-primary font-bold text-xs transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 btn-primary font-bold text-xs transition-colors"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Create New Account
                 </button>
                 <button
                   onClick={() => setActiveTab('signin')}
-                  className="inline-flex items-center gap-1.5 px-4 py-2 btn-ghost font-medium text-xs transition-all"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 btn-ghost font-medium text-xs transition-colors"
                 >
                   <LogIn className="w-3.5 h-3.5" />
                   Sign In with Password

@@ -37,7 +37,7 @@ export interface LibraryEntry {
 const STEAM_ASSETS = 'https://shared.fastly.steamstatic.com/store_item_assets/steam/apps';
 
 /** Tags in the catalogue that describe the runtime rather than the kind of game. */
-const RUNTIME_TAGS = new Set(['flash', 'html5', '3d', 'webport', 'web port', 'emulator', 'webgl', 'unity']);
+const RUNTIME_TAGS = new Set(['flash', 'flash game', 'html5', 'html5 game', '3d', 'webport', 'web port', 'emulator', 'webgl', 'unity']);
 
 export const RUNTIME_ORDER: Runtime[] = ['Flash', 'HTML5', 'WebGL', 'Web port', 'Emulator', 'Steam'];
 
@@ -137,6 +137,7 @@ export function formatMinutes(minutes: number): string {
 }
 
 export function formatSeconds(seconds: number): string {
+  if (seconds === 0) return '0 min';
   if (seconds < 60) return `${seconds} s`;
   return formatMinutes(seconds / 60);
 }

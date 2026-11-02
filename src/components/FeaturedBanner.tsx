@@ -63,7 +63,7 @@ export function FeaturedBanner({ entry, line, headingLevel = 'h2', onHeroError }
         <div
           aria-hidden
           className="absolute inset-0"
-          style={{ background: 'linear-gradient(90deg, rgba(14,13,13,0.92) 0%, rgba(14,13,13,0.78) 34%, rgba(14,13,13,0) 68%)' }}
+          style={{ background: 'linear-gradient(90deg, rgba(14,13,13,0.92) 0%, rgba(14,13,13,0.78) 34%, rgba(14,13,13,0) 68%)' }} // taste-skill-ignore: the neutral scrim over a photo
         />
         <div className="relative flex h-full max-w-[560px] flex-col justify-end p-6 sm:p-8">
           <Heading className="text-[26px] font-semibold leading-[1.1] tracking-[-0.02em] sm:text-[32px]">{entry.title}</Heading>

@@ -262,7 +262,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
               animate={{ width: `${completion}%` }}
               transition={{ duration: 0.6 }}
               className="h-full"
-              style={{ background: `linear-gradient(90deg, ${STEAM_BLUE}, #ff8a00)` }}
+              style={{ background: 'var(--color-accent)' }}
             />
           </div>
         </div>
@@ -335,7 +335,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                   <div className="text-right flex-shrink-0">
                     <div className="tabular-nums text-[11px] text-ink/80">{formatHours(game.playtimeMinutes)}</div>
                     {perGame && (
-                      <div className="tabular-nums text-[12px] text-ink/60">{perGame.unlocked}/{perGame.total} 🏆</div>
+                      <div className="tabular-nums text-[12px] text-ink/60">{perGame.unlocked} of {perGame.total} <Trophy className="inline h-3 w-3 align-[-1px]" aria-label="achievements" /></div>
                     )}
                   </div>
                 </button>
@@ -372,7 +372,7 @@ export function SteamPanel({ steamId }: SteamPanelProps) {
                     <button
                       key={f}
                       onClick={() => setFilter(f)}
-                      className={`px-2.5 py-1  text-[11px] font-semibold capitalize transition-all ${
+                      className={`px-2.5 py-1  text-[11px] font-semibold capitalize transition-colors ${
                         filter === f ? 'bg-accent text-ink' : 'btn-ghost'
                       }`}
                     >

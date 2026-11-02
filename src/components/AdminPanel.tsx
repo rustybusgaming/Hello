@@ -403,7 +403,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-ink tracking-tight">Admin & Sync Operations Center</h3>
                 <span className="px-2 py-0.5 text-[12px] tabular-nums font-bold bg-accent/15 text-accent-lit border border-accent/30">
-                  ROOT ACCESS
+                  Admin
                 </span>
               </div>
               <p className="text-xs text-ink/60">
@@ -414,7 +414,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
           <button
             onClick={onClose}
-            className="w-8 h-8 btn-ghost hover:text-ink flex items-center justify-center transition-all"
+            className="w-8 h-8 btn-ghost hover:text-ink flex items-center justify-center transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -461,7 +461,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         <div className="flex border-b border-rule bg-shade/20 px-4 pt-2 gap-2 text-xs font-medium">
           <button
             onClick={() => setActiveTab('sync')}
-            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-colors ${
               activeTab === 'sync'
                 ? 'border-accent text-accent-lit font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
@@ -472,7 +472,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </button>
           <button
             onClick={() => setActiveTab('accounts')}
-            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-colors ${
               activeTab === 'accounts'
                 ? 'border-rule text-ink font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
@@ -483,7 +483,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </button>
           <button
             onClick={() => setActiveTab('games')}
-            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-colors ${
               activeTab === 'games'
                 ? 'border-rule text-ink font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
@@ -494,7 +494,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </button>
           <button
             onClick={() => setActiveTab('saves')}
-            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-colors ${
               activeTab === 'saves'
                 ? 'border-accent text-accent-lit font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
@@ -518,7 +518,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       Repository Integrations
                     </h4>
                     <span className="px-2 py-0.5 text-[12px] bg-accent/10 text-accent-lit border border-accent/25">
-                      ONLINE
+                      Online
                     </span>
                   </div>
 
@@ -545,14 +545,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     <button
                       onClick={handleTriggerSync}
                       disabled={isSyncing}
-                      className="px-3.5 py-2 btn-primary text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                      className="px-3.5 py-2 btn-primary text-xs font-bold transition-colors flex items-center gap-1.5 disabled:opacity-50"
                     >
                       <RefreshCw className={`w-3.5 h-3.5 ${isSyncing ? 'animate-spin' : ''}`} />
                       {isSyncing ? 'Synchronizing...' : 'Trigger Sync'}
                     </button>
                     <button
                       onClick={handleClearCache}
-                      className="px-3.5 py-2 btn-ghost text-xs font-medium transition-all"
+                      className="px-3.5 py-2 btn-ghost text-xs font-medium transition-colors"
                     >
                       Purge Cache
                     </button>
@@ -560,16 +560,16 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                 </div>
 
                 {/* Live Console Logs */}
-                {/* The monitor stays on ink: it is a readout, not a surface you compose on. */}
-                <div className="p-4 bg-ink border border-rule flex flex-col">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-hair-lit text-[11px] tabular-nums text-paper/60">
+                {/* The monitor sits on the page ground: a readout, one step below the panels around it */}
+                <div className="p-4 bg-ground border border-rule flex flex-col">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-hair text-[12px] tabular-nums text-faint">
                     <span className="flex items-center gap-1.5">
                       <Terminal className="w-3.5 h-3.5 text-accent-lit" />
                       Sync &amp; Stream Monitor
                     </span>
                     <span className="text-accent-lit text-[12px]">Listening</span>
                   </div>
-                  <div className="flex-1 tabular-nums text-[11px] text-paper/70 space-y-1 overflow-y-auto max-h-36">
+                  <div className="flex-1 tabular-nums text-[12px] text-muted space-y-1 overflow-y-auto max-h-36">
                     {syncLogs.map((log, i) => (
                       <div key={i} className="leading-tight">{log}</div>
                     ))}
@@ -629,7 +629,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                     </select>
                     <button
                       type="submit"
-                      className="flex-1 px-3 py-2 btn-primary font-bold text-xs transition-all"
+                      className="flex-1 px-3 py-2 btn-primary font-bold text-xs transition-colors"
                     >
                       Create
                     </button>
@@ -702,7 +702,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                             <button
                               onClick={() => handleDeleteAccount(acc.id, acc.username)}
                               disabled={acc.id === currentUser?.id}
-                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit disabled:opacity-30 transition-all"
+                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit disabled:opacity-30 transition-colors"
                               title="Delete Account"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -893,7 +893,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                       <button
                         onClick={() => handleToggleGame(game.id, !!game.hidden)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5  text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-3 py-1.5  text-xs font-medium transition-colors ${
                           game.hidden
                             ? 'bg-shade text-ink/60 hover:bg-shade hover:text-ink'
                             : 'bg-accent/10 text-accent-lit border border-accent/25 hover:bg-accent/20'
@@ -920,7 +920,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 <button
                   onClick={handleExportSaves}
-                  className="flex items-center gap-1.5 px-3.5 py-2 btn-primary text-xs font-bold transition-all"
+                  className="flex items-center gap-1.5 px-3.5 py-2 btn-primary text-xs font-bold transition-colors"
                 >
                   <Download className="w-3.5 h-3.5" />
                   Backup Entire Save DB
@@ -974,7 +974,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                                   }
                                 }
                               }}
-                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit transition-all"
+                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit transition-colors"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

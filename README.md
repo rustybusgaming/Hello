@@ -4,19 +4,34 @@ A modernist Flash archive: HTML5/WASM webports, Ruffle-powered Flash classics fr
 Internet Archive, player accounts with cloud saves, Steam profile linking, and an admin
 console for catalogue and sync operations.
 
-The interface implements the **Modernist** design system from the `Flash Archive Mockups`
-Claude Design project — flat, architectural, set entirely in Archivo: ink on a light ground
-with a single red accent (#ec3013), a visible modular grid, zero corner radius and strong
-2px rules. Nothing floats and nothing is decorated; alignment and the strength of the
-dividers do the organising, button labels sit flush left, and cover art prints in pure
-black and white through `.duotone`.
+Flashhub is laid out as a game launcher: one library that holds the hub's own playable games
+beside a player's Steam library, where every game says where it launches. **Play** starts it in
+Flashhub's player; **Open in Steam** hands it to the Steam client through a `steam://run/<appId>`
+link. Flashhub cannot run Steam games itself, and the interface says so wherever it matters.
 
-The tokens live in `src/index.css`, and components compose the shared `.panel` / `.sheet` /
-`.btn-primary` / `.btn-ghost` / `.field` / `.rail-pill` / `.chip` / `.stat` classes rather
-than one-off colours. Two screens were built from specific mockup options: the home page is
-option **1b** (modular cover grid) under the stat band, search masthead and FILTER rail from
-option **1a**, and the player is option **1e** (ink surround with a 300px sidecar rail) —
-the one place the system inverts, so the game is the only lit thing on screen.
+- **Home**: the last game played (or today's featured pick, using Steam's wide library art where
+  a game has a Steam app id), *Jump back in* (Flashhub sessions and Steam playtime merged by real
+  last-played time), favourites, a daily set of unplayed games, and browsing by runtime and genre.
+- **Library**: tabs by launch target (All, Plays in Flashhub, Steam, Favourites, Recently played),
+  runtime / genre / sort filters, a cover grid or a list view, and a plain explanation for every
+  Steam state (signed out, not linked, no API key, private game details, Steam down).
+- **Game pages** for both kinds of game: art, the launch action, your play history, runtime and
+  source details, save-slot count, Steam playtime and achievements, and *More like this*.
+- **Player**: the game fills the window; restart, fullscreen, CRT, diagnostics and new-tab are
+  compact icon controls, and runtimes and save slots live in a side panel that folds away.
+- Arrow keys move through card grids by row and column, and a connected gamepad drives the same
+  paths (d-pad or stick to move, A to open, B to go back).
+
+The visual system is tasteskill's "True-black flat" app style with the brand kept: a warm
+near-black ground taken from the brand's own ink, surfaces lifted by tone rather than borders,
+off-white text, Archivo throughout, square edges, and the red `#ec3013` reserved for the primary
+action, the selected tab and focus. Cover art stays in full colour. Tokens live in
+`src/index.css`; the library model (`src/lib/library.ts`), local play history
+(`src/lib/playHistory.ts`) and the Steam library state (`src/lib/useSteamLibrary.ts`) are shared
+through `src/lib/libraryContext.ts`. Working notes from the design run are in
+`.taste-skill/notes.md`.
+
+Play history is kept in the browser for now, in the shape the account will store when it syncs.
 
 The Express server in `server.ts` serves the API and mounts Vite in middleware mode, so a
 single process runs both the front end and the back end.
@@ -168,8 +183,16 @@ has to be public. Without a key, linking still works and the UI explains what is
 rather than showing an empty library. Global achievement rarity is still public and is fetched
 without a key.
 
+With a key, the player's whole owned-games list (`GET /api/steam/owned`, the official
+`GetOwnedGames` call) joins the unified library as entries that open in Steam, with Steam's own
+playtime and last-played time. A profile whose game details are private comes back empty from
+Steam; the library says so and links to Steam's privacy settings instead of showing nothing.
+
 Steam responses are cached in memory (5 minutes for player data, 24 hours for game schemas
 and rarity) to stay inside Steam's rate limits.
+
+For local testing without a real key, `STEAM_API_BASE` points the client at a stand-in server
+that answers the same endpoints.
 
 Run `npm test` to exercise the Steam client against recorded response shapes — id resolution,
 schema/rarity merging, sort order, private profiles and the missing-key path — none of which

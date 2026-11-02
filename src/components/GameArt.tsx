@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { LibraryEntry } from '../lib/library';
 
 interface GameArtProps {
@@ -12,15 +12,16 @@ interface GameArtProps {
  * 460x215 headers, whose logos run to the edges) is shown whole on a black mat, like a
  * widescreen game on the player's stage, rather than cropped through its title. A failed image
  * falls back to the drawn cover.
+ *
+ * Both facts are remembered against the URL they were measured on, not reset in an effect: a
+ * cached image can finish loading before an effect runs, and the reset would then undo it.
  */
 export function GameArt({ entry, className = '', eager = false }: GameArtProps) {
-  const [src, setSrc] = useState(entry.art);
-  const [wide, setWide] = useState(false);
+  const [failedSrc, setFailedSrc] = useState<string | null>(null);
+  const [wideSrc, setWideSrc] = useState<string | null>(null);
 
-  useEffect(() => {
-    setSrc(entry.art);
-    setWide(false);
-  }, [entry.art]);
+  const src = failedSrc === entry.art ? entry.artFallback : entry.art;
+  const wide = wideSrc === src;
 
   return (
     <img
@@ -31,10 +32,10 @@ export function GameArt({ entry, className = '', eager = false }: GameArtProps) 
       draggable={false}
       onLoad={e => {
         const img = e.currentTarget;
-        if (img.naturalHeight) setWide(img.naturalWidth / img.naturalHeight > 1.6);
+        if (img.naturalHeight) setWideSrc(img.naturalWidth / img.naturalHeight > 1.6 ? src : null);
       }}
       onError={() => {
-        if (src !== entry.artFallback) setSrc(entry.artFallback);
+        if (src !== entry.artFallback) setFailedSrc(entry.art);
       }}
       className={`h-full w-full ${wide ? 'bg-black object-contain' : 'object-cover'} ${className}`}
     />
