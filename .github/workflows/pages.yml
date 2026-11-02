@@ -5,7 +5,7 @@ name: Pages
 # GitHub Pages serves static files only, and Flashhub's games, accounts, saves and Steam run on
 # its Express server, so this is a look at the interface, not the hub itself: the catalogue is
 # a snapshot taken while this workflow runs, covers are drawn in the browser, and Play, sign-in
-# and upload say they need the full server. The full server deploys with render.yaml.
+# and upload say they need the full server.
 #
 # One-time setup: Settings -> Pages -> Build and deployment -> Source: GitHub Actions.
 
