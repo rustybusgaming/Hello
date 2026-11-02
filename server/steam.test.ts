@@ -246,6 +246,26 @@ test('sorts the library by playtime and totals it', async () => {
   assert.strictEqual(summary.profile?.state, 'online');
 });
 
+test('keeps Steam\'s last-played time, and none for a game never launched', async () => {
+  process.env.STEAM_API_KEY = 'test-key';
+  const steam = await import('./steam');
+  steam.clearSteamCache();
+  mockFetch({
+    'GetOwnedGames': {
+      response: {
+        games: [
+          { appid: 3, name: 'Played', playtime_forever: 90, rtime_last_played: 1767225600 },
+          { appid: 4, name: 'Untouched', playtime_forever: 0, rtime_last_played: 0 }
+        ]
+      }
+    }
+  });
+
+  const games = await steam.getOwnedGames('76561198000000013');
+  assert.strictEqual(games.find(g => g.appId === 3)?.lastPlayedAt, '2026-01-01T00:00:00.000Z');
+  assert.strictEqual(games.find(g => g.appId === 4)?.lastPlayedAt, null);
+});
+
 test('caches repeat lookups instead of hammering Steam', async () => {
   process.env.STEAM_API_KEY = 'test-key';
   const steam = await import('./steam');

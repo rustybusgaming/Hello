@@ -37,6 +37,8 @@ import {
   isSteamConfigured,
   resolveSteamId,
   getLibrarySummary,
+  getProfile,
+  getOwnedGames,
   getAchievements,
   getAchievementOverview,
   clearSteamCache,
@@ -237,19 +239,6 @@ async function runSync() {
     isSyncing = false;
   }
 }
-
-// Keep a few webports and steam games for variety
-const MOCK_GAMES = [
-  {
-    id: '220',
-    title: 'Half-Life 2',
-    thumbnail: 'https://cdn.akamai.steamstatic.com/steam/apps/220/header.jpg',
-    rating: 5.0,
-    source: 'steam' as const,
-    embedUrl: 'https://store.steampowered.com/widget/220/',
-    genres: ['Action', 'Shooter']
-  }
-];
 
 // itemId -> best .swf filename inside that Archive.org item (null = item has no playable SWF)
 const archiveSwfCache = new Map<string, string | null>();
@@ -600,8 +589,10 @@ async function startServer() {
     '.wav': 'audio/wav',
   };
 
-  // API Route: Play any genizy/web-port game with dynamic CDN patching
-  app.get('/api/webports/play/*', async (req, res) => {
+  // API Route: Play any genizy/web-port game with dynamic CDN patching.
+  // Catch-all paths are regex routes: Express 5 rejects a bare `*`, and a regex capture
+  // still arrives as req.params[0], which is what these handlers read.
+  app.get(/^\/api\/webports\/play\/(.+)$/, async (req, res) => {
     const gameId = (req.params as any)[0] as string;
 
     if (!gameId || gameId.split('/').some(segment => segment === '..')) {
@@ -651,7 +642,7 @@ async function startServer() {
   });
 
   // API Route: Proxy assets for genizy/web-port games on demand (no 10GB download needed, no 403 errors)
-  app.get('/api/webport-proxy/*', async (req, res) => {
+  app.get(/^\/api\/webport-proxy\/(.+)$/, async (req, res) => {
     // The game id may itself contain a slash, so split on the first path segment that
     // belongs to the asset: everything before it identifies the port.
     const fullPath = (req.params as any)[0] as string;
@@ -783,15 +774,15 @@ async function startServer() {
     for (let i = 0; i < seed.length; i++) {
       hash = (hash * 31 + seed.charCodeAt(i)) >>> 0;
     }
+    // One flat, low-chroma field per game: enough to tell covers apart in a grid without
+    // turning the library into a row of candy. No gradients, no pattern.
     const hue = hash % 360;
-    const hue2 = (hue + 42 + (hash % 60)) % 360;
-    const angle = hash % 2 === 0 ? 135 : 45;
 
     const words = rawTitle.split(/\s+/).filter(Boolean);
     const lines: string[] = [];
     let current = '';
     for (const word of words) {
-      if ((current + ' ' + word).trim().length > 15 && current) {
+      if ((current + ' ' + word).trim().length > 16 && current) {
         lines.push(current);
         current = word;
       } else {
@@ -801,25 +792,17 @@ async function startServer() {
     }
     if (current && lines.length < 3) lines.push(current);
 
-    const fontSize = lines.length > 2 ? 30 : 38;
-    const startY = 150 - (lines.length - 1) * (fontSize * 0.55);
+    // The title sits flush left at the foot of the cover, the way the hub sets type
+    const fontSize = lines.length > 2 ? 32 : 38;
+    const leading = fontSize * 1.04;
+    const firstBaseline = 300 - 28 - (lines.length - 1) * leading;
     const textNodes = lines
-      .map((line, i) => `<text x="200" y="${(startY + i * fontSize * 1.05).toFixed(1)}" fill="#fff" font-family="system-ui, -apple-system, Segoe UI, sans-serif" font-size="${fontSize}" font-weight="800" text-anchor="middle" letter-spacing="-1">${escapeHtml(line)}</text>`)
+      .map((line, i) => `<text x="26" y="${(firstBaseline + i * leading).toFixed(1)}" fill="#f3f2f2" font-family="Archivo, Helvetica Neue, Arial, system-ui, sans-serif" font-size="${fontSize}" font-weight="800" letter-spacing="-0.8">${escapeHtml(line)}</text>`)
       .join('');
 
     const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="${angle === 135 ? 1 : 0}" y2="1">
-          <stop offset="0%" stop-color="hsl(${hue}, 72%, 46%)"/>
-          <stop offset="100%" stop-color="hsl(${hue2}, 68%, 22%)"/>
-        </linearGradient>
-        <pattern id="dots" width="18" height="18" patternUnits="userSpaceOnUse">
-          <circle cx="2" cy="2" r="1.4" fill="rgba(255,255,255,0.16)"/>
-        </pattern>
-      </defs>
-      <rect width="400" height="300" fill="url(#g)"/>
-      <rect width="400" height="300" fill="url(#dots)"/>
-      <rect width="400" height="300" fill="rgba(9,9,11,0.28)"/>
+      <rect width="400" height="300" fill="hsl(${hue}, 18%, 17%)"/>
+      <rect x="26" y="26" width="28" height="6" fill="#ec3013"/>
       ${textNodes}
     </svg>`;
 
@@ -841,7 +824,7 @@ async function startServer() {
     `https://raw.githubusercontent.com/${QUASAR_REPO_PATH}/${QUASAR_REF}/${QUASAR_ROOT}/${assetPath}`
   ];
 
-  app.get('/api/quasar/*', async (req, res) => {
+  app.get(/^\/api\/quasar\/(.+)$/, async (req, res) => {
     const assetPath = (req.params as any)[0] as string;
 
     if (!assetPath || assetPath.split('/').some(segment => segment === '..')) {
@@ -965,8 +948,7 @@ async function startServer() {
       ...GENIZY_WEBPORT_GAMES,
       ...localGames,
       ...QUASAR_GAMES,
-      ...archiveGames,
-      ...MOCK_GAMES
+      ...archiveGames
     ];
 
     // Deduplicate games by ID
@@ -1603,36 +1585,13 @@ async function startServer() {
       // Upstream rate limit, timeout or reset
     }
 
-    // High quality instant retro SVG cartridge banner
+    // No cover from Archive.org: fall back to the same drawn cover every other game uses.
+    // Not cached under the item id, so a later request can still pick up the real image.
     const readableTitle = id
+      .replace(/_\d{6,}$/, '')
       .replace(/[-_]+/g, ' ')
-      .replace(/\b\w/g, c => c.toUpperCase())
-      .slice(0, 24);
-
-    const svgFallback = `<svg xmlns="http://www.w3.org/2000/svg" width="400" height="240" viewBox="0 0 400 240">
-      <defs>
-        <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stop-color="#18181b"/>
-          <stop offset="100%" stop-color="#09090b"/>
-        </linearGradient>
-        <linearGradient id="accent" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stop-color="#f59e0b"/>
-          <stop offset="100%" stop-color="#ef4444"/>
-        </linearGradient>
-      </defs>
-      <rect width="100%" height="100%" fill="url(#bg)"/>
-      <rect x="12" y="12" width="376" height="216" rx="10" fill="none" stroke="#27272a" stroke-width="1.5"/>
-      <circle cx="200" cy="95" r="36" fill="#27272a" opacity="0.6"/>
-      <polygon points="190,80 218,95 190,110" fill="url(#accent)"/>
-      <text x="200" y="165" fill="#f4f4f5" font-family="system-ui, -apple-system, sans-serif" font-size="16" font-weight="700" text-anchor="middle" letter-spacing="0.5">${escapeHtml(readableTitle)}</text>
-      <text x="200" y="190" fill="#71717a" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="600" text-anchor="middle" letter-spacing="1">FLASH ARCADE CLASSIC</text>
-    </svg>`;
-
-    const buf = Buffer.from(svgFallback, 'utf-8');
-    cacheImage(id, buf, 'image/svg+xml');
-    res.setHeader('Content-Type', 'image/svg+xml');
-    res.setHeader('Cache-Control', 'public, max-age=86400');
-    return res.send(buf);
+      .replace(/\b\w/g, c => c.toUpperCase());
+    return res.redirect(302, `/api/cover/${encodeURIComponent(id)}?title=${encodeURIComponent(readableTitle)}`);
   });
 
   // List all accounts (public directory)
@@ -1863,6 +1822,38 @@ async function startServer() {
     }
   });
 
+  /**
+   * The player's whole owned-games list, for the unified library. Official Web API only
+   * (GetOwnedGames, cached for five minutes in server/steam.ts); store metadata never gates it.
+   * A private "Game details" setting makes Steam answer with an empty list, so the profile's
+   * visibility travels with the games and the client can say why the list is empty.
+   */
+  app.get('/api/steam/owned', async (req, res) => {
+    const steamId = steamIdForRequest(req, res);
+    if (!steamId) return;
+
+    try {
+      if (!isSteamConfigured()) {
+        throw new SteamUnavailable('No Steam Web API key is configured on this server', true);
+      }
+      const [profile, games] = await Promise.all([
+        getProfile(steamId).catch(() => null),
+        getOwnedGames(steamId)
+      ]);
+      res.json({
+        status: 'ok',
+        data: {
+          steamId,
+          personaName: profile?.personaName ?? null,
+          visibility: profile?.visibility ?? 'unknown',
+          games
+        }
+      });
+    } catch (err) {
+      sendSteamError(res, err);
+    }
+  });
+
   app.get('/api/steam/achievements', async (req, res) => {
     const steamId = steamIdForRequest(req, res);
     if (!steamId) return;
@@ -2080,8 +2071,7 @@ async function startServer() {
         GENIZY_WEBPORT_GAMES.length +
         cachedArchiveGames.length +
         localGames.length +
-        (settings.customGames || []).length +
-        MOCK_GAMES.length;
+        (settings.customGames || []).length;
 
       res.json({
         status: 'ok',
@@ -2420,10 +2410,10 @@ async function startServer() {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('/api/*', (_req, res) => {
+    app.get(/^\/api\//, (_req, res) => {
       res.status(404).json({ error: 'Unknown API endpoint' });
     });
-    app.get('*', (_req, res) => {
+    app.get(/.*/, (_req, res) => {
       res.sendFile(path.join(distPath, 'index.html'));
     });
   }

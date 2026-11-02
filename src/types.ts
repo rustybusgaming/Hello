@@ -119,8 +119,18 @@ export interface SteamGameSummary {
   name: string;
   playtimeMinutes: number;
   playtimeRecentMinutes: number;
+  /** Steam's own last-launch time; null when the game was never run. */
+  lastPlayedAt: string | null;
   iconUrl: string | null;
   headerUrl: string;
+}
+
+/** The whole owned-games list, as /api/steam/owned returns it. */
+export interface SteamOwnedLibrary {
+  steamId: string;
+  personaName: string | null;
+  visibility: 'public' | 'private' | 'unknown';
+  games: SteamGameSummary[];
 }
 
 export interface SteamAchievementEntry {
