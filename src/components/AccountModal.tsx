@@ -527,12 +527,12 @@ export function AccountModal({
                   {currentUser?.displayName || currentUser?.username || 'Guest Player'}
                 </h3>
                 {currentUser?.role === 'admin' && (
-                  <span className="px-2 py-0.5 text-[10px] font-semibold bg-accent/15 border border-accent/30 text-accent">
+                  <span className="px-2 py-0.5 text-[12px] font-semibold bg-accent/15 border border-accent/30 text-accent-lit">
                     Admin
                   </span>
                 )}
                 {currentUser && (
-                  <span className="text-xs text-ink/60 font-mono">
+                  <span className="text-xs text-ink/60 tabular-nums">
                     @{currentUser.username}
                   </span>
                 )}
@@ -547,7 +547,7 @@ export function AccountModal({
             {currentUser && (
               <button
                 onClick={handleLogout}
-                className="px-2.5 py-1.5 bg-shade hover:bg-accent/10 hover:text-accent text-ink/60 border border-rule hover:border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
+                className="px-2.5 py-1.5 bg-shade hover:bg-accent/10 hover:text-accent-lit text-ink/60 border border-rule hover:border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
                 title="Sign out of this session"
               >
                 <LogOut className="w-3.5 h-3.5" />
@@ -569,9 +569,9 @@ export function AccountModal({
             <>
               <button
                 onClick={() => setActiveTab('profile')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'profile'
-                    ? 'border-ink text-ink font-semibold'
+                    ? 'border-rule text-ink font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
@@ -580,7 +580,7 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('steam')}
-                className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all whitespace-nowrap ${
                   activeTab === 'steam'
                     ? 'border-[#66c0f4] text-[#66c0f4] font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
@@ -591,31 +591,31 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('saves')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'saves'
-                    ? 'border-accent text-accent font-semibold'
+                    ? 'border-accent text-accent-lit font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
-                <Save className="w-3.5 h-3.5 text-accent" />
+                <Save className="w-3.5 h-3.5 text-accent-lit" />
                 Game Saves ({userSaves.length || currentUser.savesCount || 0})
               </button>
               <button
                 onClick={() => setActiveTab('security')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'security'
-                    ? 'border-accent text-accent font-semibold'
+                    ? 'border-accent text-accent-lit font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
-                <KeyRound className="w-3.5 h-3.5 text-accent" />
+                <KeyRound className="w-3.5 h-3.5 text-accent-lit" />
                 Security & Password
               </button>
               <button
                 onClick={() => setActiveTab('switch')}
-                className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 whitespace-nowrap ${
+                className={`pb-2.5 px-3 border-b transition-all flex items-center gap-1.5 whitespace-nowrap ${
                   activeTab === 'switch'
-                    ? 'border-ink text-ink font-semibold'
+                    ? 'border-rule text-ink font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
@@ -627,9 +627,9 @@ export function AccountModal({
             <>
               <button
                 onClick={() => setActiveTab('signin')}
-                className={`pb-2.5 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-4 border-b transition-all flex items-center gap-1.5 ${
                   activeTab === 'signin'
-                    ? 'border-ink text-ink font-semibold'
+                    ? 'border-rule text-ink font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
@@ -638,9 +638,9 @@ export function AccountModal({
               </button>
               <button
                 onClick={() => setActiveTab('register')}
-                className={`pb-2.5 px-4 border-b-2 transition-all flex items-center gap-1.5 ${
+                className={`pb-2.5 px-4 border-b transition-all flex items-center gap-1.5 ${
                   activeTab === 'register'
-                    ? 'border-accent text-accent font-semibold'
+                    ? 'border-accent text-accent-lit font-semibold'
                     : 'border-transparent text-ink/60 hover:text-ink'
                 }`}
               >
@@ -663,7 +663,7 @@ export function AccountModal({
               </div>
 
               {loginError && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {loginError}
                 </div>
@@ -722,7 +722,7 @@ export function AccountModal({
                   onClick={() => setActiveTab('register')}
                   className="text-xs text-ink/60 hover:text-ink transition-colors"
                 >
-                  Don't have an account? <span className="text-accent font-medium underline">Create one now</span>
+                  Don't have an account? <span className="text-accent-lit font-medium underline">Create one now</span>
                 </button>
               </div>
             </div>
@@ -737,7 +737,7 @@ export function AccountModal({
               </div>
 
               {regError && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {regError}
                 </div>
@@ -747,7 +747,7 @@ export function AccountModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-ink/80 mb-1">
-                      Username <span className="text-accent">*</span>
+                      Username <span className="text-accent-lit">*</span>
                     </label>
                     <input
                       type="text"
@@ -775,7 +775,7 @@ export function AccountModal({
 
                 <div>
                   <label className="block text-xs font-semibold text-ink/80 mb-1">
-                    Email Address <span className="text-accent">*</span>
+                    Email Address <span className="text-accent-lit">*</span>
                   </label>
                   <input
                     type="email"
@@ -790,7 +790,7 @@ export function AccountModal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className="block text-xs font-semibold text-ink/80 mb-1">
-                      Password (min 8 chars) <span className="text-accent">*</span>
+                      Password (min 8 chars) <span className="text-accent-lit">*</span>
                     </label>
                     <div className="relative">
                       <input
@@ -813,7 +813,7 @@ export function AccountModal({
 
                   <div>
                     <label className="block text-xs font-semibold text-ink/80 mb-1">
-                      Confirm Password <span className="text-accent">*</span>
+                      Confirm Password <span className="text-accent-lit">*</span>
                     </label>
                     <input
                       type={showRegPassword ? 'text' : 'password'}
@@ -837,7 +837,7 @@ export function AccountModal({
                         key={i}
                         type="button"
                         onClick={() => setRegAvatar(preset.url)}
-                        className={`relative flex-shrink-0 w-10 h-10 overflow-hidden border-2 transition-all ${
+                        className={`relative flex-shrink-0 w-10 h-10 overflow-hidden border transition-all ${
                           regAvatar === preset.url ? 'border-accent scale-105  ring-accent/20' : 'border-rule hover:border-rule'
                         }`}
                         title={preset.name}
@@ -845,7 +845,7 @@ export function AccountModal({
                         <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-shade" />
                         {regAvatar === preset.url && (
                           <div className="absolute inset-0 bg-accent/20 flex items-center justify-center">
-                            <Check className="w-4 h-4 text-accent" />
+                            <Check className="w-4 h-4 text-accent-lit" />
                           </div>
                         )}
                       </button>
@@ -891,7 +891,7 @@ export function AccountModal({
           {activeTab === 'profile' && currentUser && (
             <div className="space-y-6">
               {profileMessage && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {profileMessage}
                 </div>
@@ -911,22 +911,22 @@ export function AccountModal({
                         <h3 className="text-base font-bold text-ink">
                           {currentUser.displayName || currentUser.username}
                         </h3>
-                        <span className="text-xs text-ink/60 font-mono">@{currentUser.username}</span>
+                        <span className="text-xs text-ink/60 tabular-nums">@{currentUser.username}</span>
                       </div>
                       <p className="text-xs text-ink/80 mt-1 max-w-md leading-relaxed">
                         {currentUser.bio || 'No bio set.'}
                       </p>
-                      <div className="flex items-center gap-3 text-[11px] text-ink/55 font-mono mt-2">
+                      <div className="flex items-center gap-3 text-[11px] text-ink/55 tabular-nums mt-2">
                         <span>Joined: {new Date(currentUser.createdAt).toLocaleDateString()}</span>
                         <span>•</span>
-                        <span>Role: <strong className="text-ink/80 uppercase">{currentUser.role}</strong></span>
+                        <span>Role: <strong className="text-ink/80">{currentUser.role}</strong></span>
                       </div>
                     </div>
                   </div>
 
                   <button
                     onClick={() => setIsEditingProfile(true)}
-                    className="px-3.5 py-2 bg-shade hover:bg-neutral-300 text-xs font-semibold text-ink flex items-center gap-1.5 transition-all self-stretch sm:self-auto justify-center"
+                    className="px-3.5 py-2 bg-shade hover:bg-shade text-xs font-semibold text-ink flex items-center gap-1.5 transition-all self-stretch sm:self-auto justify-center"
                   >
                     <Edit3 className="w-3.5 h-3.5" />
                     Edit Profile
@@ -935,7 +935,7 @@ export function AccountModal({
               ) : (
                 <form onSubmit={handleSaveProfile} className="p-5 border border-rule bg-shade space-y-4">
                   <div className="flex items-center justify-between border-b border-rule pb-3">
-                    <h4 className="text-xs font-bold text-ink uppercase tracking-wider">Edit Profile Details</h4>
+                    <h4 className="text-xs font-bold text-ink">Edit Profile Details</h4>
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
@@ -973,8 +973,8 @@ export function AccountModal({
                           key={i}
                           type="button"
                           onClick={() => setEditAvatar(preset.url)}
-                          className={`relative flex-shrink-0 w-10 h-10  overflow-hidden border-2 transition-all ${
-                            editAvatar === preset.url ? 'border-ink  ring-hair' : 'border-rule hover:border-rule'
+                          className={`relative flex-shrink-0 w-10 h-10  overflow-hidden border transition-all ${
+                            editAvatar === preset.url ? 'border-rule  ring-hair' : 'border-rule hover:border-rule'
                           }`}
                         >
                           <img src={preset.url} alt={preset.name} className="w-full h-full object-cover bg-shade" />
@@ -986,7 +986,7 @@ export function AccountModal({
                       placeholder="Or paste custom image URL"
                       value={editAvatar}
                       onChange={e => setEditAvatar(e.target.value)}
-                      className="field w-full px-3 py-1.5 mt-2 text-[11px] font-mono"
+                      className="field w-full px-3 py-1.5 mt-2 text-[11px] tabular-nums"
                     />
                   </div>
 
@@ -994,7 +994,7 @@ export function AccountModal({
                     <button
                       type="button"
                       onClick={() => setIsEditingProfile(false)}
-                      className="px-3 py-1.5 bg-shade hover:bg-neutral-300 text-xs text-ink/80"
+                      className="px-3 py-1.5 bg-shade hover:bg-shade text-xs text-ink/80"
                     >
                       Cancel
                     </button>
@@ -1050,10 +1050,10 @@ export function AccountModal({
               <div className="pt-2">
                 <div className="flex items-center justify-between gap-3 mb-3">
                   <div className="flex items-center gap-2">
-                    <Flame className="w-4 h-4 text-accent" />
-                    <h4 className="text-sm font-bold text-ink uppercase tracking-wider">Achievements</h4>
+                    <Flame className="w-4 h-4 text-accent-lit" />
+                    <h4 className="text-sm font-bold text-ink">Achievements</h4>
                   </div>
-                  <span className="font-mono text-[11px] text-ink/55">
+                  <span className="tabular-nums text-[11px] text-ink/55">
                     {earnedIds.size} / {achievementCatalog.length || earnedIds.size} unlocked
                   </span>
                 </div>
@@ -1082,8 +1082,8 @@ export function AccountModal({
                           </div>
                           <div className="min-w-0">
                             <div className="text-xs font-bold text-ink">{ach.name}</div>
-                            <div className="text-[10px] text-ink/60 leading-relaxed">{ach.description}</div>
-                            <div className="text-[10px] font-mono text-ink/45 mt-1">
+                            <div className="text-[12px] text-ink/60 leading-relaxed">{ach.description}</div>
+                            <div className="text-[12px] tabular-nums text-ink/60 mt-1">
                               {earned
                                 ? `Unlocked ${new Date(earned.earnedAt).toLocaleDateString()}`
                                 : 'Locked'}
@@ -1111,14 +1111,14 @@ export function AccountModal({
                           <span className="text-base font-bold text-ink">
                             {currentUser.steamPersonaName || 'Steam User'}
                           </span>
-                          <span className="px-2 py-0.5 text-[10px] font-bold bg-[#66c0f4]/20 text-[#66c0f4] border border-[#66c0f4]/30">
+                          <span className="px-2 py-0.5 text-[12px] font-bold bg-[#66c0f4]/20 text-[#66c0f4] border border-[#66c0f4]/30">
                             Steam Level {currentUser.steamLevel || 25}
                           </span>
                         </div>
-                        <p className="text-xs text-ink/60 font-mono mt-0.5">
+                        <p className="text-xs text-ink/60 tabular-nums mt-0.5">
                           SteamID64: {currentUser.steamId}
                         </p>
-                        <p className="text-xs text-accent mt-1 flex items-center gap-1">
+                        <p className="text-xs text-accent-lit mt-1 flex items-center gap-1">
                           <span className="w-1.5 h-1.5 bg-accent" />
                           Steam Cloud Saves & Library Synced
                         </p>
@@ -1185,14 +1185,14 @@ export function AccountModal({
               </div>
 
               {steamSuccess && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {steamSuccess}
                 </div>
               )}
 
               {steamError && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs">
                   {steamError}
                 </div>
               )}
@@ -1223,13 +1223,13 @@ export function AccountModal({
                 {currentUser?.steamId && (
                   <div className="pt-4 border-t border-rule flex items-center justify-between">
                     <div className="text-xs text-ink/60">
-                      Currently linked to SteamID: <span className="text-ink font-mono">{currentUser.steamId}</span>
+                      Currently linked to SteamID: <span className="text-ink tabular-nums">{currentUser.steamId}</span>
                     </div>
                     <button
                       type="button"
                       onClick={handleUnlinkSteam}
                       disabled={steamLoading}
-                      className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent border border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
+                      className="px-3 py-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit border border-accent/25 text-xs font-medium flex items-center gap-1.5 transition-all"
                     >
                       <Unlink className="w-3.5 h-3.5" />
                       Unlink Account
@@ -1266,7 +1266,7 @@ export function AccountModal({
                 <div className="py-12 text-center text-xs text-ink/55">Loading your save states...</div>
               ) : userSaves.length === 0 ? (
                 <div className="py-12 text-center border border-dashed border-rule space-y-2">
-                  <Save className="w-8 h-8 text-ink/45 mx-auto" />
+                  <Save className="w-8 h-8 text-ink/60 mx-auto" />
                   <p className="text-xs text-ink/60 font-medium">No cloud saves stored yet.</p>
                   <p className="text-[11px] text-ink/55 max-w-xs mx-auto">
                     Launch any game port or flash classic and click "Save State" in the bottom control bar to create your first cloud save slot!
@@ -1280,13 +1280,13 @@ export function AccountModal({
                       className="p-3.5 bg-shade/60 border border-rule flex items-center justify-between gap-4"
                     >
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 bg-accent/10 border border-accent/25 flex items-center justify-center text-accent">
+                        <div className="w-9 h-9 bg-accent/10 border border-accent/25 flex items-center justify-center text-accent-lit">
                           <Save className="w-4 h-4" />
                         </div>
                         <div>
                           <div className="flex items-center gap-2">
                             <span className="text-xs font-bold text-ink">{save.gameTitle}</span>
-                            <span className="px-2 py-0.5 text-[10px] font-mono bg-shade text-ink/80">
+                            <span className="px-2 py-0.5 text-[12px] tabular-nums bg-shade text-ink/80">
                               {save.slotName}
                             </span>
                           </div>
@@ -1296,7 +1296,7 @@ export function AccountModal({
                               {new Date(save.timestamp).toLocaleString()}
                             </span>
                             {save.highScore !== undefined && (
-                              <span className="text-accent font-semibold">
+                              <span className="text-accent-lit font-semibold">
                                 Score: {save.highScore.toLocaleString()}
                               </span>
                             )}
@@ -1315,14 +1315,14 @@ export function AccountModal({
                             a.click();
                           }}
                           title="Download raw save file"
-                          className="p-2 bg-shade hover:bg-neutral-300 text-ink/80 hover:text-ink transition-all"
+                          className="p-2 bg-shade hover:bg-shade text-ink/80 hover:text-ink transition-all"
                         >
                           <Download className="w-3.5 h-3.5" />
                         </button>
                         <button
                           onClick={() => handleDeleteSave(save.id)}
                           title="Delete save slot"
-                          className="p-2 bg-accent/10 hover:bg-accent/20 text-accent transition-all"
+                          className="p-2 bg-accent/10 hover:bg-accent/20 text-accent-lit transition-all"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1343,14 +1343,14 @@ export function AccountModal({
               </div>
 
               {passwordMessage && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
                   {passwordMessage}
                 </div>
               )}
 
               {passwordError && (
-                <div className="p-3 bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
+                <div className="p-3 bg-accent/10 border border-accent/30 text-accent-lit text-xs flex items-center gap-2">
                   <AlertTriangle className="w-4 h-4 flex-shrink-0" />
                   {passwordError}
                 </div>
@@ -1358,8 +1358,8 @@ export function AccountModal({
 
               {/* Change Password Form */}
               <form onSubmit={handleChangePassword} className="p-5 bg-shade/60 border border-rule space-y-4">
-                <h5 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-2">
-                  <KeyRound className="w-3.5 h-3.5 text-accent" />
+                <h5 className="text-xs font-bold text-ink flex items-center gap-2">
+                  <KeyRound className="w-3.5 h-3.5 text-accent-lit" />
                   Change Password
                 </h5>
 
@@ -1412,7 +1412,7 @@ export function AccountModal({
 
               {/* Danger Zone: Delete Account */}
               <div className="p-5 bg-accent/10 border border-accent/30 space-y-3">
-                <h5 className="text-xs font-bold text-accent uppercase tracking-wider flex items-center gap-2">
+                <h5 className="text-xs font-bold text-accent-lit flex items-center gap-2">
                   <AlertTriangle className="w-3.5 h-3.5" />
                   Danger Zone: Delete Account
                 </h5>
@@ -1421,7 +1421,7 @@ export function AccountModal({
                 </p>
 
                 {deleteError && (
-                  <div className="p-2.5 bg-accent/10 border border-accent/30 text-accent text-xs">
+                  <div className="p-2.5 bg-accent/10 border border-accent/30 text-accent-lit text-xs">
                     {deleteError}
                   </div>
                 )}
@@ -1456,14 +1456,14 @@ export function AccountModal({
 
               {/* Available accounts directory */}
               <div className="space-y-2">
-                <span className="text-xs font-semibold text-ink/60 uppercase tracking-wider block">Registered Players</span>
+                <span className="text-xs font-semibold text-ink/60 block">Registered Players</span>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   {allAccounts.map(acc => (
                     <div
                       key={acc.id}
                       className={`p-3  border text-left flex items-center justify-between gap-3 transition-all ${
                         currentUser?.id === acc.id
-                          ? 'bg-ink/10 border-ink text-ink'
+                          ? 'bg-ink/10 border-rule text-ink'
                           : 'bg-shade/50 border-rule text-ink/80'
                       }`}
                     >
@@ -1475,12 +1475,12 @@ export function AccountModal({
                         />
                         <div>
                           <div className="text-xs font-bold leading-none">{acc.displayName || acc.username}</div>
-                          <div className="text-[10px] text-ink/60 mt-1 font-mono">@{acc.username} • {acc.role}</div>
+                          <div className="text-[12px] text-ink/60 mt-1 tabular-nums">@{acc.username} • {acc.role}</div>
                         </div>
                       </div>
 
                       {currentUser?.id === acc.id ? (
-                        <span className="text-[10px] font-bold text-accent px-2 py-0.5 bg-accent/10 border border-accent/25">
+                        <span className="text-[12px] font-bold text-accent-lit px-2 py-0.5 bg-accent/10 border border-accent/25">
                           Active
                         </span>
                       ) : (

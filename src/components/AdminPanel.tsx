@@ -396,13 +396,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         {/* Header */}
         <div className="p-4 sm:p-5 border-b border-rule bg-shade/60 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-accent/10 border border-accent/30 flex items-center justify-center text-accent">
+            <div className="w-10 h-10 bg-accent/10 border border-accent/30 flex items-center justify-center text-accent-lit">
               <Shield className="w-5 h-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-ink tracking-tight">Admin & Sync Operations Center</h3>
-                <span className="px-2 py-0.5 text-[10px] font-mono font-bold bg-accent/15 text-accent border border-accent/30">
+                <span className="px-2 py-0.5 text-[12px] tabular-nums font-bold bg-accent/15 text-accent-lit border border-accent/30">
                   ROOT ACCESS
                 </span>
               </div>
@@ -422,7 +422,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
         {/* Admin session notice */}
         {!isAdmin && (
-          <div className="px-5 py-3 bg-accent/10 border-b border-accent/25 text-accent text-xs flex items-center gap-2">
+          <div className="px-5 py-3 bg-accent/10 border-b border-accent/25 text-accent-lit text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 flex-shrink-0" />
             <span>
               Signed-in admin session required. Sign in from the account menu with an admin account to
@@ -434,26 +434,26 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         {/* Live Metrics Ribbon */}
         <div className="grid grid-cols-2 sm:grid-cols-5 border-b border-rule bg-shade/30 divide-x divide-hair text-xs">
           <div className="p-3">
-            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Total Games</span>
+            <span className="text-[12px] tabular-nums text-ink/60 block">Total Games</span>
             <div className="text-sm font-bold text-ink mt-0.5">{games.length} Active</div>
           </div>
           <div className="p-3">
-            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Player Accounts</span>
+            <span className="text-[12px] tabular-nums text-ink/60 block">Player Accounts</span>
             <div className="text-sm font-bold text-ink mt-0.5">{accounts.length} Registered</div>
           </div>
           <div className="p-3">
-            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Steam Linked</span>
+            <span className="text-[12px] tabular-nums text-ink/60 block">Steam Linked</span>
             <div className="text-sm font-bold text-[#66c0f4] mt-0.5">
               {accounts.filter(a => !!a.steamId).length} Users
             </div>
           </div>
           <div className="p-3">
-            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Memory Footprint</span>
-            <div className="text-sm font-bold text-accent mt-0.5">{stats?.memoryUsageMb || 64} MB</div>
+            <span className="text-[12px] tabular-nums text-ink/60 block">Memory Footprint</span>
+            <div className="text-sm font-bold text-accent-lit mt-0.5">{stats?.memoryUsageMb || 64} MB</div>
           </div>
           <div className="p-3 col-span-2 sm:col-span-1">
-            <span className="text-[10px] font-mono text-ink/60 uppercase tracking-wider block">Proxy Engine</span>
-            <div className="text-sm font-bold text-accent mt-0.5">Ready (CDN Stream)</div>
+            <span className="text-[12px] tabular-nums text-ink/60 block">Proxy Engine</span>
+            <div className="text-sm font-bold text-accent-lit mt-0.5">Ready (CDN Stream)</div>
           </div>
         </div>
 
@@ -461,9 +461,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
         <div className="flex border-b border-rule bg-shade/20 px-4 pt-2 gap-2 text-xs font-medium">
           <button
             onClick={() => setActiveTab('sync')}
-            className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
               activeTab === 'sync'
-                ? 'border-accent text-accent font-semibold'
+                ? 'border-accent text-accent-lit font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
@@ -472,9 +472,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </button>
           <button
             onClick={() => setActiveTab('accounts')}
-            className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
               activeTab === 'accounts'
-                ? 'border-ink text-ink font-semibold'
+                ? 'border-rule text-ink font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
@@ -483,9 +483,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </button>
           <button
             onClick={() => setActiveTab('games')}
-            className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
               activeTab === 'games'
-                ? 'border-ink text-ink font-semibold'
+                ? 'border-rule text-ink font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
@@ -494,9 +494,9 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
           </button>
           <button
             onClick={() => setActiveTab('saves')}
-            className={`pb-2.5 px-3 border-b-2 flex items-center gap-1.5 transition-all ${
+            className={`pb-2.5 px-3 border-b flex items-center gap-1.5 transition-all ${
               activeTab === 'saves'
-                ? 'border-accent text-accent font-semibold'
+                ? 'border-accent text-accent-lit font-semibold'
                 : 'border-transparent text-ink/60 hover:text-ink'
             }`}
           >
@@ -517,7 +517,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       <Server className="w-4 h-4 text-ink" />
                       Repository Integrations
                     </h4>
-                    <span className="px-2 py-0.5 text-[10px] bg-accent/10 text-accent border border-accent/25">
+                    <span className="px-2 py-0.5 text-[12px] bg-accent/10 text-accent-lit border border-accent/25">
                       ONLINE
                     </span>
                   </div>
@@ -525,19 +525,19 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                   <div className="space-y-2 text-xs text-ink/60">
                     <div className="flex justify-between border-b border-rule/60 pb-1.5">
                       <span>genizy/web-port ({GENIZY_WEBPORT_GAMES.length} Unity/Godot ports):</span>
-                      <span className="text-ink font-mono">Stream Proxy Active</span>
+                      <span className="text-ink tabular-nums">Stream Proxy Active</span>
                     </div>
                     <div className="flex justify-between border-b border-rule/60 pb-1.5">
                       <span>quasar mirror ({QUASAR_FLASH_GAMES.length} Flash / {QUASAR_HTML5_GAMES.length} HTML5 / {QUASAR_WEBGL_GAMES.length} WebGL / {QUASAR_EMULATOR_GAMES.length} Emu):</span>
-                      <span className="text-ink font-mono">CDN Stream</span>
+                      <span className="text-ink tabular-nums">CDN Stream</span>
                     </div>
                     <div className="flex justify-between border-b border-rule/60 pb-1.5">
                       <span>Archive.org ({CURATED_FLASH_COLLECTIONS.length} verified + live search):</span>
-                      <span className="text-ink font-mono">Direct .swf</span>
+                      <span className="text-ink tabular-nums">Direct .swf</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Flash playback:</span>
-                      <span className="text-accent font-bold font-mono">Ruffle WASM (no embeds)</span>
+                      <span className="text-accent-lit font-bold tabular-nums">Ruffle WASM (no embeds)</span>
                     </div>
                   </div>
 
@@ -561,15 +561,15 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 {/* Live Console Logs */}
                 {/* The monitor stays on ink: it is a readout, not a surface you compose on. */}
-                <div className="p-4 bg-ink border-2 border-ink flex flex-col">
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-hair-lit text-[11px] font-mono text-paper/60">
+                <div className="p-4 bg-ink border border-rule flex flex-col">
+                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-hair-lit text-[11px] tabular-nums text-paper/60">
                     <span className="flex items-center gap-1.5">
                       <Terminal className="w-3.5 h-3.5 text-accent-lit" />
                       Sync &amp; Stream Monitor
                     </span>
-                    <span className="text-accent-lit text-[10px]">LISTENING</span>
+                    <span className="text-accent-lit text-[12px]">Listening</span>
                   </div>
-                  <div className="flex-1 font-mono text-[11px] text-paper/70 space-y-1 overflow-y-auto max-h-36">
+                  <div className="flex-1 tabular-nums text-[11px] text-paper/70 space-y-1 overflow-y-auto max-h-36">
                     {syncLogs.map((log, i) => (
                       <div key={i} className="leading-tight">{log}</div>
                     ))}
@@ -584,13 +584,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             <div className="space-y-6">
               {/* Add user form */}
               <div className="p-4 bg-shade/60 border border-rule space-y-3">
-                <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
-                  <Plus className="w-3.5 h-3.5 text-accent" />
+                <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
+                  <Plus className="w-3.5 h-3.5 text-accent-lit" />
                   Add User Account
                 </h4>
 
                 {accountActionMessage && (
-                  <div className="p-2.5 bg-accent/10 border border-accent/25 text-accent text-xs flex items-center gap-2">
+                  <div className="p-2.5 bg-accent/10 border border-accent/25 text-accent-lit text-xs flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4" />
                     {accountActionMessage}
                   </div>
@@ -639,10 +639,10 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
               {/* Accounts list */}
               <div className="space-y-2">
-                <span className="text-xs font-semibold text-ink/60 uppercase tracking-wider block">Registered Accounts</span>
+                <span className="text-xs font-semibold text-ink/60 block">Registered Accounts</span>
                 <div className="border border-rule overflow-hidden bg-shade/30">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-shade/80 border-b border-rule text-ink/60 font-mono text-[11px]">
+                    <thead className="bg-shade/80 border-b border-rule text-ink/60 tabular-nums text-[11px]">
                       <tr>
                         <th className="p-3">Player</th>
                         <th className="p-3">Role</th>
@@ -663,16 +663,16 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                               />
                               <div>
                                 <span className="font-bold text-ink block">{acc.username}</span>
-                                <span className="text-[10px] text-ink/55">{acc.email}</span>
+                                <span className="text-[12px] text-ink/55">{acc.email}</span>
                               </div>
                             </div>
                           </td>
                           <td className="p-3">
                             <button
                               onClick={() => handleToggleRole(acc)}
-                              className={`px-2 py-0.5  text-[10px] font-bold ${
+                              className={`px-2 py-0.5  text-[12px] font-bold ${
                                 acc.role === 'admin'
-                                  ? 'bg-accent/15 text-accent border border-accent/30'
+                                  ? 'bg-accent/15 text-accent-lit border border-accent/30'
                                   : 'bg-shade text-ink/80 border border-rule'
                               }`}
                             >
@@ -696,13 +696,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                             )}
                           </td>
                           <td className="p-3">
-                            <span className="font-mono text-ink/80">{acc.savesCount || 0} saves</span>
+                            <span className="tabular-nums text-ink/80">{acc.savesCount || 0} saves</span>
                           </td>
                           <td className="p-3 text-right">
                             <button
                               onClick={() => handleDeleteAccount(acc.id, acc.username)}
                               disabled={acc.id === currentUser?.id}
-                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent disabled:opacity-30 transition-all"
+                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit disabled:opacity-30 transition-all"
                               title="Delete Account"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -722,13 +722,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
             <div className="space-y-6">
               {/* Add custom game URL */}
               <div className="p-4 bg-shade/60 border border-rule space-y-3">
-                <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
+                <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
                   <Plus className="w-3.5 h-3.5 text-ink" />
                   Add Custom Game Port to Hub
                 </h4>
 
                 {addGameSuccess && (
-                  <div className="p-2.5 bg-accent/10 border border-accent/25 text-accent text-xs">
+                  <div className="p-2.5 bg-accent/10 border border-accent/25 text-accent-lit text-xs">
                     {addGameSuccess}
                   </div>
                 )}
@@ -777,8 +777,8 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               <div className="panel p-4 space-y-3">
                 <div className="flex items-start justify-between gap-4">
                   <div>
-                    <h4 className="text-xs font-bold text-ink uppercase tracking-wider flex items-center gap-1.5">
-                      <Activity className="w-3.5 h-3.5 text-accent" />
+                    <h4 className="text-xs font-bold text-ink flex items-center gap-1.5">
+                      <Activity className="w-3.5 h-3.5 text-accent-lit" />
                       Catalogue Health
                     </h4>
                     <p className="text-[11px] text-ink/55 mt-1">
@@ -803,7 +803,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                         style={{ width: `${health.total ? Math.round((health.checked / health.total) * 100) : 0}%` }}
                       />
                     </div>
-                    <span className="font-mono text-[10px] text-ink/55">
+                    <span className="tabular-nums text-[12px] text-ink/55">
                       {health.checked} / {health.total} targets
                     </span>
                   </div>
@@ -811,12 +811,12 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
 
                 {!healthRunning && health && (
                   <div className="flex items-center gap-4 text-[11px]">
-                    <span className={health.failures.length === 0 ? 'text-accent font-semibold' : 'text-accent font-semibold'}>
+                    <span className={health.failures.length === 0 ? 'text-accent-lit font-semibold' : 'text-accent-lit font-semibold'}>
                       {health.failures.length === 0
                         ? 'All targets responded'
                         : `${health.failures.length} dead target${health.failures.length === 1 ? '' : 's'}`}
                     </span>
-                    <span className="text-ink/45 font-mono">
+                    <span className="text-ink/60 tabular-nums">
                       {health.checked} checked · {health.finishedAt ? new Date(health.finishedAt).toLocaleString() : 'incomplete'}
                     </span>
                   </div>
@@ -828,14 +828,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       <div key={`${f.id}-${f.kind}-${i}`} className="p-2 flex items-center justify-between gap-3 text-[11px]">
                         <div className="min-w-0">
                           <span className="font-semibold text-ink">{f.title}</span>
-                          <span className="ml-2 font-mono text-[10px] text-ink/45">{f.kind}</span>
-                          <span className="block font-mono text-[10px] text-ink/45 truncate">{f.target}</span>
+                          <span className="ml-2 tabular-nums text-[12px] text-ink/60">{f.kind}</span>
+                          <span className="block tabular-nums text-[12px] text-ink/60 truncate">{f.target}</span>
                         </div>
                         <div className="flex items-center gap-2 flex-shrink-0">
                           <span className="chip chip-custom">{f.status}</span>
                           <button
                             onClick={() => handleToggleGame(f.id, false)}
-                            className="btn-ghost px-2 py-1 text-[10px]"
+                            className="btn-ghost px-2 py-1 text-[12px]"
                             title="Hide this game from the catalogue"
                           >
                             Hide
@@ -847,14 +847,14 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                 )}
 
                 {!health && !healthRunning && (
-                  <p className="text-[11px] text-ink/45">No scan has been run yet.</p>
+                  <p className="text-[11px] text-ink/60">No scan has been run yet.</p>
                 )}
               </div>
 
               {/* Game list with hide/unhide toggle */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between gap-4">
-                  <span className="text-xs font-semibold text-ink/60 uppercase tracking-wider">Catalog Items</span>
+                  <span className="text-xs font-semibold text-ink/60">Catalog Items</span>
                   <div className="relative w-64">
                     <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-ink/55" />
                     <input
@@ -881,11 +881,11 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                             <span className={`text-xs font-bold ${game.hidden ? 'text-ink/55 line-through' : 'text-ink'}`}>
                               {game.title}
                             </span>
-                            <span className="px-1.5 py-0.5 text-[9px] font-mono uppercase bg-shade text-ink/60">
+                            <span className="px-1.5 py-0.5 text-[12px] tabular-nums bg-shade text-ink/60">
                               {game.source}
                             </span>
                           </div>
-                          <span className="text-[10px] text-ink/55 font-mono truncate max-w-xs block">
+                          <span className="text-[12px] text-ink/55 tabular-nums truncate max-w-xs block">
                             {game.embedUrl}
                           </span>
                         </div>
@@ -895,8 +895,8 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                         onClick={() => handleToggleGame(game.id, !!game.hidden)}
                         className={`flex items-center gap-1.5 px-3 py-1.5  text-xs font-medium transition-all ${
                           game.hidden
-                            ? 'bg-shade text-ink/60 hover:bg-neutral-300 hover:text-ink'
-                            : 'bg-accent/10 text-accent border border-accent/25 hover:bg-accent/20'
+                            ? 'bg-shade text-ink/60 hover:bg-shade hover:text-ink'
+                            : 'bg-accent/10 text-accent-lit border border-accent/25 hover:bg-accent/20'
                         }`}
                       >
                         {game.hidden ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
@@ -936,7 +936,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
               ) : (
                 <div className="border border-rule overflow-hidden bg-shade/30">
                   <table className="w-full text-left text-xs">
-                    <thead className="bg-shade/80 border-b border-rule text-ink/60 font-mono text-[11px]">
+                    <thead className="bg-shade/80 border-b border-rule text-ink/60 tabular-nums text-[11px]">
                       <tr>
                         <th className="p-3">Game</th>
                         <th className="p-3">User ID</th>
@@ -949,13 +949,13 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                       {allSaves.map(save => (
                         <tr key={save.id} className="hover:bg-shade/50 transition-colors">
                           <td className="p-3 font-bold text-ink">{save.gameTitle}</td>
-                          <td className="p-3 font-mono text-ink/60">{save.userId}</td>
+                          <td className="p-3 tabular-nums text-ink/60">{save.userId}</td>
                           <td className="p-3">
-                            <span className="px-2 py-0.5 text-[10px] bg-shade text-ink/80 font-mono">
+                            <span className="px-2 py-0.5 text-[12px] bg-shade text-ink/80 tabular-nums">
                               {save.slotName}
                             </span>
                           </td>
-                          <td className="p-3 text-ink/55 font-mono text-[11px]">
+                          <td className="p-3 text-ink/55 tabular-nums text-[11px]">
                             {new Date(save.timestamp).toLocaleString()}
                           </td>
                           <td className="p-3 text-right">
@@ -974,7 +974,7 @@ export function AdminPanel({ games, onClose, onRefreshGames, currentUser }: Admi
                                   }
                                 }
                               }}
-                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent transition-all"
+                              className="p-1.5 bg-accent/10 hover:bg-accent/20 text-accent-lit transition-all"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>

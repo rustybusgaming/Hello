@@ -1,20 +1,24 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { Game, UserAccount } from './types';
-import { TopBar } from './components/TopBar';
-import { GenreTabs } from './components/GenreTabs';
-import { GameCard } from './components/GameCard';
+import { Shell } from './components/Shell';
+import { HomeView } from './components/HomeView';
+import { LibraryView, LibraryFilters, DEFAULT_FILTERS } from './components/LibraryView';
+import { GameDetailView } from './components/GameDetailView';
 import { PlayerModal } from './components/PlayerModal';
 import { UploadModal } from './components/UploadModal';
 import { AdminPanel } from './components/AdminPanel';
 import { AccountModal } from './components/AccountModal';
 import { NotFoundPanel } from './components/NotFoundPanel';
-import { Loader2, Clock, Heart, Timer, X } from 'lucide-react';
+import { Timer, X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useLocalStorage } from './lib/hooks';
 import { formatGameInfo } from './utils/gameTitles';
-
-// 1b: equal-width cells, no gaps — the hairline borders on each cell draw the grid.
-const GRID = 'grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 border-t border-l border-hair';
+import { LibraryEntry, Runtime, fromGame, fromSteam, formatSeconds } from './lib/library';
+import { usePlayHistory } from './lib/playHistory';
+import { useSteamLibrary } from './lib/useSteamLibrary';
+import { LibraryContext, LibraryContextValue } from './lib/libraryContext';
+import { useRoute } from './lib/router';
+import { useGamepadNavigation } from './lib/navigation';
 
 /**
  * Loopback has two names, and they are separate origins to the browser. Framing games from
@@ -30,100 +34,56 @@ function deriveGameOrigin(): string {
   return '';
 }
 
-/**
- * The shelf header from 1b: a mono kicker, then the shelf's statement set flush left and
- * solid. The count sits opposite it on the same baseline.
- */
-function ShelfHeader({
-  kicker,
-  title,
-  count
-}: {
-  kicker: string;
-  title: string;
-  count: number;
-}) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2 sm:gap-6 px-1 pb-5 pt-9">
-      <div className="min-w-0">
-        <div className="eyebrow mb-2.5">{kicker}</div>
-        <h2 className="font-display text-[28px] sm:text-[34px] font-extrabold leading-[1.05] tracking-[-0.025em] max-w-[22ch] text-pretty">
-          {title}
-        </h2>
-      </div>
-      <span className="flex-shrink-0 font-mono text-[11px] text-ink/55 sm:pb-1.5">
-        {count.toLocaleString()} title{count === 1 ? '' : 's'}
-      </span>
-    </div>
-  );
-}
-
-/** One cell of the stat band under the masthead (1a). */
-function Stat({ label, value, accent = false }: { label: string; value: number; accent?: boolean }) {
-  return (
-    <div className="stat border-r-2 border-rule [&:nth-child(2n)]:border-r-0 lg:[&:nth-child(2n)]:border-r-2 lg:last:border-r-0">
-      <div className="eyebrow mb-1.5">{label}</div>
-      <div className={`stat-value ${accent ? 'text-accent' : ''}`}>{value.toLocaleString()}</div>
-    </div>
-  );
-}
-
 interface SessionRecap {
   title: string;
   seconds: number;
-  durationText: string;
 }
 
 export default function App() {
+  const { route, navigate } = useRoute();
+
   const [games, setGames] = useState<Game[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
-  
+
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeGenre, setActiveGenre] = useState('All');
+  const [filters, setFilters] = useLocalStorage<LibraryFilters>('flashhub-library-view', DEFAULT_FILTERS);
   const [selectedGame, setSelectedGame] = useState<Game | null>(null);
   const [sessionRecap, setSessionRecap] = useState<SessionRecap | null>(null);
   const recapTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // The grid renders in pages. Mounting all ~300 cards at once costs thousands of DOM nodes
-  // and starts every thumbnail download up front, which is bandwidth a running game needs.
-  const PAGE_SIZE = 60;
-  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
-  const loadMoreRef = useRef<HTMLDivElement>(null);
   const scrollMemory = useRef(0);
   const pendingScrollRestore = useRef(false);
-  
-  // Modals & Panels
+
+  // Modals & panels
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAdminModalOpen, setIsAdminModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
-  const [show404View, setShow404View] = useState(false);
 
-  // User Authentication State. The session itself lives in an httpOnly cookie the browser
-  // sends automatically, so nothing here is readable by page or frame scripts.
+  // The session itself lives in an httpOnly cookie the browser sends automatically, so nothing
+  // here is readable by page or frame scripts.
   const [currentUser, setCurrentUser] = useState<UserAccount | null>(null);
-  // Origin that game frames load from; kept separate from the hub so game code cannot
-  // reach the session. Derived locally first so the very first frame already points at the
-  // right place — waiting on /api/config would make an early click load same-origin and
-  // then reload the game when the answer arrived.
+  // Origin that game frames load from; kept separate from the hub so game code cannot reach
+  // the session. Derived locally first so the very first frame already points at the right
+  // place, then confirmed by /api/config.
   const [gameOrigin, setGameOrigin] = useState(deriveGameOrigin);
-  const [, setAuthChecked] = useState(false);
 
-  const [favorites, setFavorites] = useLocalStorage<string[]>('flashhub-favorites', []);
-  const [recentlyPlayed, setRecentlyPlayed] = useLocalStorage<string[]>('flashhub-recently-played', []);
+  // Favourites are keyed by library key: a Flashhub game id (unchanged from earlier builds)
+  // or steam:<appId>
+  const [favourites, setFavourites] = useLocalStorage<string[]>('flashhub-favorites', []);
+  const { history, recentKeys: playedKeys, recordLaunch, recordSession } = usePlayHistory();
+  const { state: steam, reload: reloadSteam } = useSteamLibrary(currentUser);
 
-  // Ask the server who we are; the session cookie rides along automatically
   const refreshSession = () => {
     fetch('/api/auth/me')
       .then(res => (res.ok ? res.json() : null))
       .then(d => setCurrentUser(d && d.status === 'ok' && d.user ? d.user : null))
-      .catch(() => setCurrentUser(null))
-      .finally(() => setAuthChecked(true));
+      .catch(() => setCurrentUser(null));
   };
 
   useEffect(() => {
-    // Older builds kept the session token and profile in localStorage, where any
-    // same-origin script could read them. Clear those leftovers on first load.
+    // Older builds kept the session token and profile in localStorage, where any same-origin
+    // script could read them. Clear those leftovers on first load.
     try {
       window.localStorage.removeItem('flashhub-auth-token');
       window.localStorage.removeItem('flashhub-active-user');
@@ -131,8 +91,6 @@ export default function App() {
 
     refreshSession();
 
-    // The server has the final say (a deployment may set GAME_ORIGIN), but an older or
-    // unreachable endpoint just leaves the derived value in place.
     fetch('/api/config')
       .then(res => (res.ok ? res.json() : null))
       .then(d => {
@@ -141,52 +99,47 @@ export default function App() {
       .catch(() => {});
   }, []);
 
-  const handleUpdateUser = (user: UserAccount | null) => {
-    setCurrentUser(user);
-    setAuthChecked(true);
-  };
-
-  const fetchGames = () => {
+  const fetchGames = useCallback(() => {
+    setLoadError(false);
     fetch(`/api/games?t=${Date.now()}`)
-      .then((res) => res.ok ? res.json() : null)
-      .then((data) => {
+      .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
+      .then(data => {
         if (data && data.status === 'ok') {
           const formattedList = (data.data || []).map((g: Game) => {
             const info = formatGameInfo(g.id, g.title, g.genres);
             return {
               ...g,
               title: info.title,
-              genres: (info.genres && info.genres.length > 0) ? info.genres : g.genres,
-              description: g.description || info.description,
-              rating: g.rating || info.rating || 4.8
+              genres: info.genres && info.genres.length > 0 ? info.genres : g.genres,
+              description: g.description || info.description
             };
           });
-
-          // Games hidden from the admin panel never reach the catalog view
+          // Games hidden from the admin panel never reach the library
           setGames(formattedList.filter((g: Game) => !g.hidden));
-          if (typeof data.isSyncing === 'boolean') {
-            setIsSyncing(data.isSyncing);
-          }
+          if (typeof data.isSyncing === 'boolean') setIsSyncing(data.isSyncing);
         }
       })
-      .catch((err) => console.error('Failed to fetch games:', err))
+      .catch(err => {
+        console.error('Failed to fetch games:', err);
+        setLoadError(true);
+      })
       .finally(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     fetchGames();
     return () => {
       if (recapTimeout.current) clearTimeout(recapTimeout.current);
     };
-  }, []);
+  }, [fetchGames]);
 
-  // Poll sync status if currently syncing
+  // Poll sync status while a sync runs, then reload the catalogue
   useEffect(() => {
     if (!isSyncing) return;
     const interval = setInterval(() => {
       fetch('/api/sync-status')
-        .then((res) => res.ok ? res.json() : null)
-        .then((data) => {
+        .then(res => (res.ok ? res.json() : null))
+        .then(data => {
           if (data && !data.isSyncing) {
             setIsSyncing(false);
             fetchGames();
@@ -194,84 +147,62 @@ export default function App() {
         })
         .catch(() => {});
     }, 3000);
-
     return () => clearInterval(interval);
-  }, [isSyncing]);
+  }, [isSyncing, fetchGames]);
 
-  const allGenres = useMemo(() => {
-    // A tag needs a few games behind it to earn a slot in the rail; one-off tags from
-    // Archive.org metadata would otherwise bury the genres people actually browse by.
-    const counts = new Map<string, number>();
-    games.forEach((game) => game.genres.forEach((g) => counts.set(g, (counts.get(g) || 0) + 1)));
+  // --- The unified library -----------------------------------------------------------
 
-    const ranked = Array.from(counts.entries())
-      .filter(([, count]) => count >= 3)
-      .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
-      .slice(0, 22)
-      .map(([genre]) => genre);
+  const flashhubEntries = useMemo(() => games.map(fromGame), [games]);
+  const steamEntries = useMemo(
+    () => (steam.status === 'ready' ? steam.library.games.map(fromSteam) : []),
+    [steam]
+  );
+  const entries = useMemo(() => [...flashhubEntries, ...steamEntries], [flashhubEntries, steamEntries]);
+  const byKey = useMemo(() => new Map(entries.map(e => [e.key, e])), [entries]);
+  const ownedSteam = useMemo(() => new Map(steamEntries.map(e => [e.steamAppId!, e])), [steamEntries]);
 
-    return ['All', ...ranked];
-  }, [games]);
-
-  const filteredGames = useMemo(() => {
-    return games.filter((game) => {
-      const q = searchQuery.toLowerCase();
-      const matchesSearch =
-        game.title.toLowerCase().includes(q) ||
-        (game.description && game.description.toLowerCase().includes(q)) ||
-        game.genres.some(g => g.toLowerCase().includes(q));
-
-      const matchesGenre = activeGenre === 'All' || game.genres.includes(activeGenre);
-      return matchesSearch && matchesGenre;
+  // One recency order for both worlds: Flashhub sessions timed here, Steam games by Steam's
+  // own last-played clock. Untimed entries carried over from older builds go last.
+  const recentKeys = useMemo(() => {
+    const timed: { key: string; at: string }[] = [];
+    playedKeys.forEach(key => {
+      const at = history[key]?.lastPlayedAt;
+      if (at) timed.push({ key, at });
     });
-  }, [games, searchQuery, activeGenre]);
+    steamEntries.forEach(e => {
+      if (e.steam?.lastPlayedAt) timed.push({ key: e.key, at: e.steam.lastPlayedAt });
+    });
+    timed.sort((a, b) => b.at.localeCompare(a.at));
+    const untimed = playedKeys.filter(key => !history[key]?.lastPlayedAt);
+    return [...timed.map(t => t.key), ...untimed].filter(key => byKey.has(key));
+  }, [playedKeys, history, steamEntries, byKey]);
 
-  useEffect(() => {
-    setVisibleCount(PAGE_SIZE);
-  }, [searchQuery, activeGenre]);
+  const toggleFavourite = useCallback(
+    (key: string) => setFavourites(prev => (prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key])),
+    [setFavourites]
+  );
 
-  const recentlyPlayedGames = useMemo(() => {
-    return recentlyPlayed.map(id => games.find(g => g.id === id)).filter(Boolean) as Game[];
-  }, [recentlyPlayed, games]);
-
-  const favoriteGames = useMemo(() => {
-    return favorites.map(id => games.find(g => g.id === id)).filter(Boolean) as Game[];
-  }, [favorites, games]);
+  const play = useCallback(
+    (entry: LibraryEntry) => {
+      if (entry.launch !== 'flashhub' || !entry.game) return;
+      // Remember where the player was so closing the game puts them back
+      scrollMemory.current = window.scrollY;
+      setSelectedGame(entry.game);
+      recordLaunch(entry.key);
+    },
+    [recordLaunch]
+  );
 
   const handleRandomGame = () => {
-    if (games.length === 0) return;
-    setShow404View(false);
-    const pool = filteredGames.length > 0 ? filteredGames : games;
-    const randomIndex = Math.floor(Math.random() * pool.length);
-    handleGameClick(pool[randomIndex]);
-  };
-
-  const handleGameClick = (game: Game) => {
-    // Remember where the player was so closing the game puts them back
-    scrollMemory.current = window.scrollY;
-    setSelectedGame(game);
-    setShow404View(false);
-    setRecentlyPlayed(prev => {
-      const updated = [game.id, ...prev.filter(id => id !== game.id)].slice(0, 8);
-      return updated;
-    });
-  };
-
-  const formatSessionTime = (seconds: number) => {
-    if (seconds < 60) {
-      return `${seconds} second${seconds === 1 ? '' : 's'}`;
-    }
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    if (secs === 0) {
-      return `${mins} min${mins === 1 ? '' : 's'}`;
-    }
-    return `${mins}m ${secs}s`;
+    if (flashhubEntries.length === 0) return;
+    play(flashhubEntries[Math.floor(Math.random() * flashhubEntries.length)]);
   };
 
   const handleCloseModal = (elapsedSeconds: number) => {
-    // Bank the sitting so the profile's playtime covers every game, not just the Flash
-    // titles that have save slots. Rounded up, so a short session still counts as one.
+    if (selectedGame) recordSession(selectedGame.id, elapsedSeconds);
+
+    // Bank the sitting so the profile's playtime covers every game. Rounded up, so a short
+    // session still counts as one minute.
     if (currentUser && elapsedSeconds >= 30) {
       fetch('/api/auth/playtime', {
         method: 'POST',
@@ -283,20 +214,12 @@ export default function App() {
         .catch(() => { /* the session is still over; the counter can miss one */ });
     }
 
-    // Restore the scroll position the grid had before it was hidden. The <main> is still
-    // `hidden` at this point, so the document has no height to scroll to yet — the restore
-    // has to wait for the frame *after* React has painted the grid back in.
+    // The <main> is still hidden at this point, so the restore waits for the frame after
+    // React has painted the screen back in.
     pendingScrollRestore.current = true;
     if (selectedGame && elapsedSeconds > 0) {
-      const durationText = formatSessionTime(elapsedSeconds);
-      const recap: SessionRecap = {
-        title: selectedGame.title,
-        seconds: elapsedSeconds,
-        durationText,
-      };
+      const recap: SessionRecap = { title: selectedGame.title, seconds: elapsedSeconds };
       setSessionRecap(recap);
-
-      // Auto-dismiss after 6.5 seconds
       if (recapTimeout.current) clearTimeout(recapTimeout.current);
       recapTimeout.current = setTimeout(() => {
         setSessionRecap(prev => (prev?.title === recap.title && prev?.seconds === recap.seconds ? null : prev));
@@ -305,16 +228,6 @@ export default function App() {
     setSelectedGame(null);
   };
 
-  const handleToggleFavorite = (e: React.MouseEvent, gameId: string) => {
-    e.stopPropagation();
-    setFavorites(prev => 
-      prev.includes(gameId) 
-        ? prev.filter(id => id !== gameId)
-        : [...prev, gameId]
-    );
-  };
-
-  // Runs once the grid is back in the layout, so the document is tall enough to scroll
   useEffect(() => {
     if (selectedGame || !pendingScrollRestore.current) return;
     pendingScrollRestore.current = false;
@@ -322,298 +235,135 @@ export default function App() {
     requestAnimationFrame(() => window.scrollTo(0, target));
   }, [selectedGame]);
 
-  const pagedGames = useMemo(() => filteredGames.slice(0, visibleCount), [filteredGames, visibleCount]);
-  const hasMore = visibleCount < filteredGames.length;
-
-  // Reveal the next page as the sentinel comes into view
+  // A new screen starts at the top; game pages handle their own scroll
   useEffect(() => {
-    if (!hasMore || selectedGame) return;
-    const target = loadMoreRef.current;
-    if (!target) return;
+    if (route.name !== 'game') window.scrollTo(0, 0);
+  }, [route.name, route.name === 'library' ? route.tab : '']);
 
-    const observer = new IntersectionObserver(
-      entries => {
-        if (entries.some(e => e.isIntersecting)) {
-          setVisibleCount(count => Math.min(count + PAGE_SIZE, filteredGames.length));
-        }
-      },
-      { rootMargin: '600px' }
-    );
-    observer.observe(target);
-    return () => observer.disconnect();
-  }, [hasMore, filteredGames.length, selectedGame]);
+  const handleSearch = useCallback(
+    (q: string) => {
+      setSearchQuery(q);
+      if (q && route.name !== 'library') navigate({ name: 'library', tab: 'all' });
+    },
+    [route.name, navigate]
+  );
 
-  const isDefaultView = searchQuery === '' && activeGenre === 'All' && !show404View;
+  const handleBrowse = (filter: { runtime?: Runtime; genre?: string }) => {
+    setSearchQuery('');
+    setFilters({
+      ...DEFAULT_FILTERS,
+      view: filters.view,
+      runtime: filter.runtime && filter.runtime !== 'Steam' ? filter.runtime : 'all',
+      genre: filter.genre || 'all'
+    });
+    navigate({ name: 'library', tab: filter.runtime === 'Steam' ? 'steam' : 'all' });
+  };
 
-  // The figures the stat band reports
-  const catalogStats = useMemo(() => {
-    const flash = games.filter((g) => g.genres.some((x) => x.toLowerCase() === 'flash')).length;
-    const genres = new Set<string>();
-    games.forEach((g) => g.genres.forEach((x) => genres.add(x)));
-    return { total: games.length, flash, ports: games.length - flash, genres: genres.size };
-  }, [games]);
+  const anyModalOpen = !!selectedGame || isUploadModalOpen || isAdminModalOpen || isAccountModalOpen;
+  useGamepadNavigation(!anyModalOpen);
+
+  const context: LibraryContextValue = {
+    entries,
+    byKey,
+    ownedSteam,
+    loading,
+    loadError,
+    reloadCatalogue: fetchGames,
+    favourites,
+    isFavourite: key => favourites.includes(key),
+    toggleFavourite,
+    history,
+    recentKeys,
+    steam,
+    reloadSteam,
+    currentUser,
+    openAccount: () => setIsAccountModalOpen(true),
+    play
+  };
 
   return (
-    <div className="min-h-screen text-ink flex flex-col">
-      <TopBar 
-        searchQuery={searchQuery} 
-        setSearchQuery={(q) => {
-          setSearchQuery(q);
-          if (show404View) setShow404View(false);
-        }} 
-        onRandomGame={handleRandomGame} 
-        onUploadClick={() => setIsUploadModalOpen(true)}
-        currentUser={currentUser}
-        onOpenAccount={() => setIsAccountModalOpen(true)}
-        onOpenAdmin={() => setIsAdminModalOpen(true)}
-        onTrigger404={() => setShow404View(prev => !prev)}
-        totalTitles={games.length}
-      />
-      
-      {!show404View && (
-        <GenreTabs
-          genres={allGenres}
-          activeGenre={activeGenre}
-          onSelectGenre={setActiveGenre}
-          resultCount={filteredGames.length}
-        />
-      )}
-
-      <main
-        className="flex-1 w-full max-w-[1480px] mx-auto px-4 sm:px-7 pb-20"
-        hidden={!!selectedGame}
+    <LibraryContext.Provider value={context}>
+      <Shell
+        route={route}
+        searchQuery={searchQuery}
+        onSearch={handleSearch}
+        onRandom={handleRandomGame}
+        onUpload={() => setIsUploadModalOpen(true)}
+        onAdmin={() => setIsAdminModalOpen(true)}
       >
-        {selectedGame ? null : loading ? (
-          <div className="flex flex-col items-start justify-center py-40">
-            <Loader2 className="w-5 h-5 animate-spin text-accent mb-4" />
-            <p className="eyebrow">Reading the catalogue…</p>
-          </div>
-        ) : show404View ? (
-          <div className="py-6">
-            <NotFoundPanel
-              errorTitle="404 - Cartridge Not Found"
-              errorMessage="The requested cartridge, cloud save, or custom game port could not be resolved from the repository catalogue."
-              targetId={searchQuery || 'cartridge://null'}
-              onGoHome={() => {
-                setShow404View(false);
-                setSearchQuery('');
-                setActiveGenre('All');
-              }}
-              onRandomGame={handleRandomGame}
-              onRetry={fetchGames}
+        <main className="mx-auto w-full max-w-[1480px] px-4 pb-24 pt-6 sm:px-[29px] lg:pt-8" hidden={!!selectedGame}>
+          {selectedGame ? null : route.name === 'home' ? (
+            <HomeView onBrowse={handleBrowse} />
+          ) : route.name === 'library' ? (
+            <LibraryView
+              tab={route.tab}
+              searchQuery={searchQuery}
+              onClearSearch={() => setSearchQuery('')}
+              filters={filters}
+              onFilters={setFilters}
             />
-          </div>
-        ) : filteredGames.length > 0 ? (
-          <div className="flex flex-col">
-            {isDefaultView && (
-              /* 1a's stat band: four equal cells, divided by 2px rules, sitting directly
-                 under the masthead with no card around them. */
-              <section className="grid grid-cols-2 lg:grid-cols-4 border-b-2 border-rule [&>*:nth-child(-n+2)]:border-b-2 [&>*:nth-child(-n+2)]:border-rule lg:[&>*]:border-b-0">
-                <Stat label="Titles" value={catalogStats.total} />
-                <Stat label="Ruffle-playable" value={catalogStats.flash} />
-                <Stat label="Webports" value={catalogStats.ports} />
-                <Stat label="Genres" value={catalogStats.genres} accent />
-              </section>
-            )}
-
-            {isDefaultView && recentlyPlayedGames.length > 0 && (
-              <section>
-                <ShelfHeader
-                  kicker="Shelf 01 — recently played"
-                  title="Where you left off."
-                  count={recentlyPlayedGames.length}
-                />
-                <div className={GRID}>
-                  {recentlyPlayedGames.map((game, i) => (
-                    <GameCard
-                      key={game.id}
-                      game={game}
-                      index={i}
-                      isFavorite={favorites.includes(game.id)}
-                      onToggleFavorite={handleToggleFavorite}
-                      onClick={handleGameClick}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            {isDefaultView && favoriteGames.length > 0 && (
-              <section>
-                <ShelfHeader
-                  kicker="Shelf 02 — your shelf"
-                  title="Titles you kept."
-                  count={favoriteGames.length}
-                />
-                <div className={GRID}>
-                  {favoriteGames.map((game, i) => (
-                    <GameCard
-                      key={game.id}
-                      game={game}
-                      index={i}
-                      isFavorite={favorites.includes(game.id)}
-                      onToggleFavorite={handleToggleFavorite}
-                      onClick={handleGameClick}
-                    />
-                  ))}
-                </div>
-              </section>
-            )}
-
-            <section>
-              <ShelfHeader
-                kicker={
-                  searchQuery
-                    ? 'Search results'
-                    : activeGenre === 'All'
-                      ? 'Shelf 03 — most played, all years'
-                      : `Shelf 03 — ${activeGenre.toLowerCase()}`
-                }
-                title={
-                  searchQuery
-                    ? `Titles matching "${searchQuery}".`
-                    : activeGenre === 'All'
-                      ? `${filteredGames.length.toLocaleString()} games that outlived their plugin.`
-                      : `Everything filed under ${activeGenre.toLowerCase()}.`
-                }
-                count={filteredGames.length}
+          ) : route.name === 'game' ? (
+            <GameDetailView entryKey={route.key} />
+          ) : (
+            <div>
+              <h1 className="mb-6 text-[20px] font-semibold">Diagnostics</h1>
+              <NotFoundPanel
+                errorTitle="Catalogue diagnostics"
+                errorMessage="Check whether a game, cloud save or custom upload resolves from the catalogue, retry the catalogue, or jump into a random game."
+                targetId={searchQuery || 'catalogue'}
+                onGoHome={() => navigate({ name: 'home' })}
+                onRandomGame={handleRandomGame}
+                onRetry={fetchGames}
               />
-              <div className={GRID}>
-                {pagedGames.map((game, i) => (
-                  <GameCard
-                    key={game.id}
-                    game={game}
-                    index={i}
-                    isFavorite={favorites.includes(game.id)}
-                    onToggleFavorite={handleToggleFavorite}
-                    onClick={handleGameClick}
-                  />
-                ))}
-              </div>
+            </div>
+          )}
+        </main>
+      </Shell>
 
-              {hasMore && (
-                <div
-                  ref={loadMoreRef}
-                  className="flex items-center justify-between gap-4 border-t-2 border-rule px-1 py-4"
-                >
-                  <span className="text-[11px] text-ink/55">
-                    Showing {visibleCount.toLocaleString()} of {filteredGames.length.toLocaleString()}
-                  </span>
-                  <button
-                    onClick={() => setVisibleCount(c => Math.min(c + PAGE_SIZE, filteredGames.length))}
-                    className="btn-ghost px-4 h-9 text-[12px]"
-                  >
-                    Load next {Math.min(PAGE_SIZE, filteredGames.length - visibleCount)}
-                  </button>
-                </div>
-              )}
-            </section>
-          </div>
-        ) : (
-          <div className="py-6">
-            <NotFoundPanel
-              errorTitle={`No matches for "${searchQuery}"`}
-              errorMessage={`We couldn't find any games matching "${searchQuery}" in the ${activeGenre} catalog.`}
-              targetId={searchQuery}
-              onGoHome={() => {
-                setSearchQuery('');
-                setActiveGenre('All');
-              }}
-              onRandomGame={handleRandomGame}
-              onRetry={fetchGames}
-            />
-          </div>
-        )}
-      </main>
-
-      {/* The site's one footer: attribution and the two policy pages, ruled off like everything
-          else. Hidden while a game is open so it cannot appear under the player. */}
-      {!selectedGame && (
-        <footer className="border-t-2 border-rule bg-paper mt-auto">
-          <div className="max-w-[1480px] mx-auto px-4 sm:px-7 py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-6">
-            <span className="font-display text-[13px] font-extrabold tracking-[-0.02em]">FLASHHUB</span>
-            <p className="text-[12px] text-ink/55 max-w-lg leading-relaxed">
-              A preservation front end. Every game belongs to its original authors — see the
-              credits for who preserved and ported them.
-            </p>
-            <nav className="sm:ml-auto flex items-center gap-5 text-[12px] font-semibold">
-              <a href="/credits.html" className="text-ink hover:text-accent transition-colors">Credits</a>
-              <a href="/terms.html" className="text-ink hover:text-accent transition-colors">Terms</a>
-              <a href="/privacy.html" className="text-ink hover:text-accent transition-colors">Privacy</a>
-            </nav>
-          </div>
-        </footer>
-      )}
-
-      {/* Floating Session Duration Toast / Display when player modal is closed */}
+      {/* Session recap after a game closes */}
       <AnimatePresence>
         {sessionRecap && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.14 }}
-            className="fixed bottom-0 right-0 z-40 flex items-stretch max-w-md bg-paper border-t-2 border-l-2 border-ink"
+            transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            role="status"
+            className="fixed bottom-4 right-4 z-40 flex max-w-sm items-center gap-3 border border-rule bg-shade py-3 pl-4 pr-2 shadow-[0_12px_32px_rgba(0,0,0,0.5)]"
           >
-            <div className="w-9 flex items-center justify-center bg-accent text-paper flex-shrink-0">
-              <Timer className="w-4 h-4" />
-            </div>
-            <div className="flex-1 min-w-0 px-4 py-3">
-              <p className="eyebrow">Session complete</p>
-              <p className="text-[13px] truncate mt-1">
-                <span className="font-semibold">{sessionRecap.title}</span>
-                <span className="text-ink/55"> · </span>
-                <span className="font-mono">{sessionRecap.durationText}</span>
-              </p>
-            </div>
-            <button
-              onClick={() => setSessionRecap(null)}
-              className="w-9 flex items-center justify-center text-ink/55 hover:bg-shade hover:text-ink transition-colors flex-shrink-0"
-              title="Dismiss"
-            >
-              <X className="w-3.5 h-3.5" />
+            <Timer className="h-4 w-4 flex-none text-accent-lit" aria-hidden />
+            <p className="min-w-0 truncate text-[13px]">
+              <span className="font-semibold">{sessionRecap.title}</span>
+              <span className="text-muted"> · {formatSeconds(sessionRecap.seconds)} played</span>
+            </p>
+            <button type="button" onClick={() => setSessionRecap(null)} className="btn-quiet h-8 w-8 flex-none" aria-label="Dismiss">
+              <X className="h-4 w-4" />
             </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Player Modal */}
       {selectedGame && (
-        <PlayerModal 
-          game={selectedGame} 
-          onClose={handleCloseModal} 
-          currentUser={currentUser}
-          gameOrigin={gameOrigin}
-        />
+        <PlayerModal game={selectedGame} onClose={handleCloseModal} currentUser={currentUser} gameOrigin={gameOrigin} />
       )}
 
-      {/* Upload Modal */}
       {isUploadModalOpen && (
-        <UploadModal 
-          onClose={() => setIsUploadModalOpen(false)}
-          onUploadComplete={fetchGames}
-          isAuthenticated={!!currentUser}
-        />
+        <UploadModal onClose={() => setIsUploadModalOpen(false)} onUploadComplete={fetchGames} isAuthenticated={!!currentUser} />
       )}
 
-      {/* Admin Panel Modal */}
       {isAdminModalOpen && (
-        <AdminPanel
-          games={games}
-          onClose={() => setIsAdminModalOpen(false)}
-          onRefreshGames={fetchGames}
-          currentUser={currentUser}
-        />
+        <AdminPanel games={games} onClose={() => setIsAdminModalOpen(false)} onRefreshGames={fetchGames} currentUser={currentUser} />
       )}
 
-      {/* User Account & Steam Linking Modal */}
       {isAccountModalOpen && (
         <AccountModal
           currentUser={currentUser}
           onClose={() => setIsAccountModalOpen(false)}
-          onUpdateUser={handleUpdateUser}
+          onUpdateUser={user => {
+            setCurrentUser(user);
+          }}
         />
       )}
-    </div>
+    </LibraryContext.Provider>
   );
 }

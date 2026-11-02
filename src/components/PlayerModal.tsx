@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Game, UserAccount, GameSave, GameMirror } from '../types';
 import {
+  ArrowLeft,
   ExternalLink,
-  MonitorPlay,
+  PanelRight,
   Tv,
   Save,
   Download,
@@ -10,12 +11,14 @@ import {
   Plus,
   RefreshCw,
   Maximize2,
-  Minimize2
+  Minimize2,
+  X
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { NotFoundPanel } from './NotFoundPanel';
-import { useEscapeKey, useFullscreen } from '../lib/hooks';
+import { useEscapeKey, useFullscreen, useLocalStorage } from '../lib/hooks';
 import { isFlashGame } from '../lib/games';
+import { runtimeOf } from '../lib/library';
 
 interface PlayerModalProps {
   game: Game | null;
@@ -26,7 +29,9 @@ interface PlayerModalProps {
 }
 
 export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: PlayerModalProps) {
-  const [isTheaterMode, setIsTheaterMode] = useState(false);
+  // The side panel (runtimes and saves) folds away so the game can have the whole window.
+  // Flash titles open with it shown, because that is where their save slots live.
+  const [panelOpen, setPanelOpen] = useLocalStorage<boolean>('flashhub-player-panel', true);
   const [isCrtMode, setIsCrtMode] = useState(false);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [show404Panel, setShow404Panel] = useState(false);
@@ -480,371 +485,275 @@ export function PlayerModal({ game, onClose, currentUser, gameOrigin = '' }: Pla
     useIsolatedOrigin && url.startsWith('/') ? gameOrigin + url : url;
   const frameSrc = toFrameUrl(currentEmbedUrl || game.embedUrl);
 
-  return (
-    <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.14 }}
-        className={`fixed inset-0 z-50 flex items-center justify-center ${
-          isTheaterMode ? 'bg-ink p-0' : 'bg-ink/70 p-0 sm:p-6'
-        }`}
-        onClick={handleClose}
-      >
-        {/*
-          1e — ink surround. The player is the one place the system inverts: the game is the
-          only lit thing on the page, so everything around it goes to ink and the metadata
-          moves into a fixed sidecar rail rather than sitting under the frame.
-        */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.14 }}
-          className={`bg-ink text-paper overflow-hidden flex flex-col ${
-            isTheaterMode ? 'w-full h-full' : 'w-full max-w-6xl h-full sm:h-[min(88dvh,940px)] border-2 border-ink'
-          }`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {/* Masthead */}
-          <div className="flex items-center gap-3 sm:gap-5 px-4 sm:px-6 py-3 border-b-2 border-rule-lit flex-shrink-0">
-            <span className="font-display text-[16px] font-extrabold leading-none tracking-[-0.02em] hidden sm:block">
-              FLASHHUB
-            </span>
-            <span className="font-display text-[12px] font-semibold truncate">{game.title}</span>
-            <span className="hidden md:block font-mono text-[11px] text-paper/50 uppercase truncate">
-              {game.source} · {game.genres.filter(g => g.toLowerCase() !== 'flash')[0] || 'Arcade'}
-            </span>
+  const runtime = runtimeOf(game);
+  const iconButton = 'btn-quiet h-9 w-9 flex-none';
 
-            <div className="ml-auto flex items-center gap-3 sm:gap-4 flex-shrink-0">
-              <span className="font-mono text-[11px] text-paper/50 tabular-nums">
-                {formatTimer(elapsedSeconds)}
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.18 }}
+      className="fixed inset-0 z-50 flex flex-col bg-ground text-ink"
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Playing ${game.title}`}
+    >
+      {/* One compact bar: back, the game's name, the session, and the controls as icons */}
+      <header className="flex h-14 flex-none items-center gap-2 border-b border-hair px-2 sm:gap-3 sm:px-4">
+        <button type="button" onClick={handleClose} className="btn-quiet h-9 flex-none gap-2 px-2.5 text-[13px]" aria-label="Back to the library">
+          <ArrowLeft className="h-4 w-4" aria-hidden />
+          <span className="hidden sm:inline">Library</span>
+        </button>
+
+        <div className="min-w-0 flex-1 border-l border-hair pl-3">
+          <p className="truncate text-[14px] font-semibold leading-5">{game.title}</p>
+          <p className="truncate text-[12px] leading-4 text-faint">
+            {runtime}
+            {canSave && stateStatus !== 'idle' && (
+              <span title={currentUser ? "This game's progress is stored on your account" : 'Progress is stored in this browser. Sign in to carry it across devices.'}>
+                {' · '}
+                {stateStatus === 'restored' && 'Progress restored'}
+                {stateStatus === 'saving' && 'Saving…'}
+                {stateStatus === 'saved' && 'Progress saved'}
               </span>
-              {canSave && stateStatus !== 'idle' && (
-                <span
-                  className="hidden lg:block font-mono text-[11px] text-paper/50 uppercase"
-                  title={
-                    currentUser
-                      ? "This game's progress is stored on your account"
-                      : 'Progress is stored in this browser. Sign in to carry it across devices.'
-                  }
-                >
-                  {stateStatus === 'restored' && 'Progress restored'}
-                  {stateStatus === 'saving' && 'Saving…'}
-                  {stateStatus === 'saved' && 'Progress saved'}
-                </span>
-              )}
-              <button
-                onClick={handleClose}
-                className="font-display text-[11px] font-extrabold tracking-[0.06em] text-accent-lit hover:text-paper transition-colors"
-              >
-                EXIT TO CATALOGUE
+            )}
+          </p>
+        </div>
+
+        <span className="hidden flex-none text-[13px] tabular-nums text-muted sm:block" aria-label="Session time">
+          {formatTimer(elapsedSeconds)}
+        </span>
+
+        <div className="flex flex-none items-center">
+          {canSave && (
+            <button
+              type="button"
+              onClick={handleCreateSave}
+              disabled={isSaving}
+              className="btn-primary mr-1 h-9 px-3 text-[13px]"
+              title="Write a save slot for this game"
+            >
+              <Save className="h-4 w-4" aria-hidden />
+              <span className="hidden sm:inline">{isSaving ? 'Saving…' : 'Save'}</span>
+            </button>
+          )}
+          <button type="button" onClick={() => setIframeKey(k => k + 1)} className={iconButton} aria-label="Restart the game" title="Restart">
+            <RefreshCw className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={toggleFullscreen} className={iconButton} aria-pressed={isFullscreen} aria-label="Fullscreen" title="Fullscreen">
+            {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+          </button>
+          <button type="button" onClick={() => setIsCrtMode(!isCrtMode)} className={`${iconButton} hidden sm:inline-flex`} aria-pressed={isCrtMode} aria-label="CRT scanlines" title="CRT scanlines">
+            <Tv className="h-4 w-4" />
+          </button>
+          <button type="button" onClick={() => setShow404Panel(!show404Panel)} className={`${iconButton} hidden sm:inline-flex`} aria-pressed={show404Panel} aria-label="Diagnostics" title="Diagnostics">
+            <AlertTriangle className="h-4 w-4" />
+          </button>
+          <a href={currentEmbedUrl || game.embedUrl} target="_blank" rel="noopener noreferrer" className={`${iconButton} hidden sm:inline-flex`} aria-label="Open in a new tab" title="Open in a new tab">
+            <ExternalLink className="h-4 w-4" />
+          </a>
+          <button type="button" onClick={() => setPanelOpen(!panelOpen)} className={iconButton} aria-pressed={panelOpen} aria-label="Runtimes and saves" title="Runtimes and saves">
+            <PanelRight className="h-4 w-4" />
+          </button>
+        </div>
+      </header>
+
+      <div className="relative flex min-h-0 flex-1">
+        {/* The stage: the game is the only lit thing on screen */}
+        <div ref={stageRef} className="relative flex min-w-0 flex-1 items-center justify-center overflow-hidden bg-black">
+          {show404Panel ? (
+            <div className="h-full w-full overflow-y-auto bg-ground p-4 sm:p-6">
+              <NotFoundPanel
+                errorTitle={`Diagnostics: ${game.title}`}
+                errorMessage="If the game does not start, switch to another way of running it in the side panel, or open it in a new tab."
+                targetId={game.id}
+                onGoHome={() => setShow404Panel(false)}
+                onRandomGame={() => {
+                  setShow404Panel(false);
+                  onClose(0);
+                }}
+                onRetry={() => {
+                  setShow404Panel(false);
+                  setIframeKey(k => k + 1);
+                }}
+              />
+            </div>
+          ) : (
+            <>
+              {isCrtMode && <div className="crt-overlay pointer-events-none absolute inset-0 z-10 opacity-30 mix-blend-overlay" />}
+              {isCrtMode && <div className="scanlines pointer-events-none absolute inset-0 z-20 opacity-20" />}
+              <iframe
+                key={iframeKey}
+                ref={frameRef}
+                src={frameSrc}
+                frameBorder="0"
+                allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
+                /*
+                 * Isolation comes from gameOrigin being a different origin than the hub, not
+                 * from dropping allow-same-origin: an opaque sandbox stops the game's own
+                 * scripts from running at all.
+                 */
+                sandbox={
+                  useIsolatedOrigin
+                    ? 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock'
+                    : 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
+                }
+                className="h-full w-full"
+                title={game.title}
+              />
+            </>
+          )}
+          {saveMessage && (
+            <p role="status" className="absolute bottom-3 left-3 z-30 max-w-[320px] truncate bg-shade px-3 py-2 text-[13px] text-ink">
+              {saveMessage}
+            </p>
+          )}
+        </div>
+
+        {/* Side panel: how the game runs, and its saves. Over the stage on small screens. */}
+        {panelOpen && (
+          <aside
+            aria-label="Runtimes and saves"
+            className="absolute inset-y-0 right-0 z-40 w-full max-w-[340px] overflow-y-auto border-l border-hair bg-paper shadow-[-16px_0_40px_rgba(0,0,0,0.45)] lg:static lg:w-[320px] lg:shadow-none"
+          >
+            <div className="flex items-center justify-between px-5 pb-1 pt-4 lg:hidden">
+              <p className="text-[14px] font-semibold">Runtimes and saves</p>
+              <button type="button" onClick={() => setPanelOpen(false)} className="btn-quiet h-9 w-9" aria-label="Close panel">
+                <X className="h-4 w-4" />
               </button>
             </div>
-          </div>
 
-          {/* Stage + sidecar */}
-          <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-[1fr_300px]">
-            {/* Stage */}
-            <div className="flex flex-col min-h-0 border-r-0 lg:border-r-2 border-rule-lit p-4 sm:p-5 gap-3.5">
-              <div ref={stageRef} className="relative flex-1 min-h-[240px] bg-black flex items-center justify-center overflow-hidden">
-                {show404Panel ? (
-                  <div className="w-full h-full overflow-y-auto bg-ground p-4">
-                    <NotFoundPanel
-                      errorTitle={`Port diagnostics: ${game.title}`}
-                      errorMessage="If this cartridge fails to boot in the player window, switch runtimes in the rail or drag your own SWF file directly."
-                      targetId={game.id}
-                      onGoHome={() => setShow404Panel(false)}
-                      onRandomGame={() => {
-                        setShow404Panel(false);
-                        onClose(0);
-                      }}
-                      onRetry={() => {
-                        setShow404Panel(false);
-                        setIframeKey(k => k + 1);
-                      }}
-                    />
-                  </div>
-                ) : (
-                  <>
-                    {isCrtMode && <div className="absolute inset-0 pointer-events-none z-10 crt-overlay mix-blend-overlay opacity-30" />}
-                    {isCrtMode && <div className="absolute inset-0 pointer-events-none z-20 scanlines opacity-10" />}
-                    {game.source === 'steam' ? (
-                      <iframe
-                        key={iframeKey}
-                        src={frameSrc}
-                        frameBorder="0"
-                        width="646"
-                        height="190"
-                        allow="autoplay; fullscreen"
-                        sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox"
-                        className="max-w-full"
-                        title={`${game.title} Steam Widget`}
-                      />
-                    ) : (
-                      <iframe
-                        key={iframeKey}
-                        ref={frameRef}
-                        src={frameSrc}
-                        frameBorder="0"
-                        allow="autoplay; fullscreen; gamepad; clipboard-read; clipboard-write"
-                        /*
-                         * Isolation comes from gameOrigin being a different origin than the
-                         * hub, not from dropping allow-same-origin: an opaque sandbox stops
-                         * the game's own scripts from running at all.
-                         */
-                        sandbox={
-                          useIsolatedOrigin
-                            ? 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-popups-to-escape-sandbox allow-presentation allow-orientation-lock'
-                            : 'allow-scripts allow-same-origin allow-pointer-lock allow-forms allow-modals allow-popups allow-presentation allow-orientation-lock'
-                        }
-                        className="w-full h-full"
-                        title={`${game.title} Embed`}
-                      />
-                    )}
-                  </>
-                )}
+            <section className="border-b border-hair px-5 py-4" aria-labelledby="runtime-heading">
+              <h2 id="runtime-heading" className="text-[14px] font-semibold">How it runs</h2>
+              <div className="mt-3 flex flex-col gap-1">
+                {availableMirrors.map(m => {
+                  const isActive = selectedMirrorId === m.id || currentEmbedUrl === m.url;
+                  return (
+                    <button
+                      key={m.id}
+                      type="button"
+                      onClick={() => handleSelectMirror(m)}
+                      aria-pressed={isActive}
+                      className={`flex h-10 items-center justify-between gap-3 px-3 text-left text-[13px] transition-colors duration-150 ${
+                        isActive ? 'bg-shade text-ink' : 'text-muted hover:bg-shade hover:text-ink'
+                      }`}
+                    >
+                      <span className="truncate">{m.name}</span>
+                      {isActive && <span className="flex-none text-[12px] text-accent-lit">Running</span>}
+                    </button>
+                  );
+                })}
               </div>
-
-              {/* Transport. The accent lands on the one action that writes something. */}
-              <div className="flex items-center gap-2 flex-wrap flex-shrink-0">
-                {canSave && (
-                  <button
-                    onClick={handleCreateSave}
-                    disabled={isSaving}
-                    className="btn-primary h-9 px-3.5 text-[12px]"
-                    title="Commit a save slot for this title"
-                  >
-                    <Save className="w-3.5 h-3.5" />
-                    {isSaving ? 'Saving…' : 'Save state'}
-                  </button>
-                )}
+              {isCurrentArchive && (
                 <button
-                  onClick={() => setIframeKey(k => k + 1)}
-                  className="btn-ghost btn-ghost-lit h-9 px-3 text-[12px]"
-                  title="Reload the cartridge"
+                  type="button"
+                  onClick={() => {
+                    const nonArchive = availableMirrors.find(m => m.isArchiveIndependent);
+                    if (nonArchive) handleSelectMirror(nonArchive);
+                  }}
+                  className="mt-3 text-[13px] font-semibold text-accent-lit hover:text-ink"
                 >
-                  <RefreshCw className="w-3.5 h-3.5" />
-                  Restart
+                  Try a different runtime
                 </button>
-                <button
-                  onClick={toggleFullscreen}
-                  className={`h-9 px-3 text-[12px] ${isFullscreen ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
-                >
-                  {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-                  <span className="hidden sm:inline">Fullscreen</span>
-                </button>
-                <button
-                  onClick={() => setIsCrtMode(!isCrtMode)}
-                  className={`h-9 px-3 text-[12px] ${isCrtMode ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
-                  title="Toggle retro CRT scanlines"
-                >
-                  <Tv className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">CRT</span>
-                </button>
-                <button
-                  onClick={() => setIsTheaterMode(!isTheaterMode)}
-                  className={`h-9 px-3 text-[12px] ${isTheaterMode ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
-                  title="Toggle theater mode"
-                >
-                  <MonitorPlay className="w-3.5 h-3.5" />
-                  <span className="hidden sm:inline">Theater</span>
-                </button>
-                <button
-                  onClick={() => setShow404Panel(!show404Panel)}
-                  className={`h-9 w-9 justify-center ${show404Panel ? 'btn-primary' : 'btn-ghost btn-ghost-lit'}`}
-                  title="Port diagnostics"
-                >
-                  <AlertTriangle className="w-3.5 h-3.5" />
-                </button>
-                <a
-                  href={currentEmbedUrl || game.embedUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost btn-ghost-lit h-9 w-9 justify-center"
-                  title="Open in a new tab"
-                >
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-
-                {saveMessage && (
-                  <span className="ml-auto font-mono text-[11px] text-accent-lit truncate max-w-[240px]">
-                    {saveMessage}
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Sidecar rail */}
-            <aside className="overflow-y-auto border-t-2 lg:border-t-0 border-rule-lit">
-              {/* Runtime & mirrors */}
-              <div className="px-5 py-4 border-b border-hair-lit">
-                <div className="eyebrow eyebrow-lit mb-2.5">Runtime</div>
-                <div className="flex flex-col gap-2">
-                  {availableMirrors.map((m) => {
-                    const isActive = selectedMirrorId === m.id || currentEmbedUrl === m.url;
-                    return (
-                      <button
-                        key={m.id}
-                        onClick={() => handleSelectMirror(m)}
-                        className={`flex items-center gap-2.5 px-2.5 py-2 text-left transition-colors ${
-                          isActive
-                            ? 'border border-rule-lit'
-                            : 'border border-hair-lit hover:bg-paper/10'
-                        }`}
-                      >
-                        {isActive ? (
-                          <span className="chip chip-accent flex-shrink-0">Active</span>
-                        ) : (
-                          <span className="font-mono text-[11px] text-paper/45 flex-shrink-0">ALT</span>
-                        )}
-                        <span className={`text-[12px] truncate ${isActive ? 'font-semibold' : 'text-paper/75'}`}>
-                          {m.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-                {isCurrentArchive && (
-                  <button
-                    onClick={() => {
-                      const nonArchive = availableMirrors.find(m => m.isArchiveIndependent);
-                      if (nonArchive) handleSelectMirror(nonArchive);
-                    }}
-                    className="mt-2.5 font-display text-[11px] font-extrabold text-accent-lit hover:text-paper transition-colors"
-                  >
-                    Try a different runtime →
-                  </button>
-                )}
-                {isolationBlocked && (
-                  <p className="mt-2.5 font-mono text-[10px] leading-relaxed text-paper/45">
-                    This browser refused a separate game origin; running on the hub's origin.
-                  </p>
-                )}
-                {frameError && (
-                  <p className="mt-2.5 font-mono text-[10px] leading-relaxed text-accent-lit">
-                    {frameError}
-                  </p>
-                )}
-              </div>
-
-              {canSave ? (
-                <>
-                  {/* Cloud saves */}
-                  <div className="px-5 py-4 border-b border-hair-lit">
-                    <div className="eyebrow eyebrow-lit mb-2.5">
-                      Saves · {gameSaves.length} slot{gameSaves.length === 1 ? '' : 's'}
-                    </div>
-                    {gameSaves.length === 0 ? (
-                      <p className="text-[12px] text-paper/45">No save states stored for this cartridge.</p>
-                    ) : (
-                      <div className="flex flex-col">
-                        {gameSaves.map(s => {
-                          const loadable = readSlotState(s) !== null;
-                          return (
-                            <div
-                              key={s.id}
-                              className="flex items-center justify-between gap-2 py-2 border-b border-hair-lit last:border-b-0"
-                            >
-                              <div className="min-w-0">
-                                <div className="text-[12px] font-semibold truncate">{s.slotName}</div>
-                                <div className="text-[11px] text-paper/45 truncate">
-                                  {new Date(s.timestamp).toLocaleDateString()}
-                                  {s.notes ? ` · ${s.notes}` : ''}
-                                  {!loadable && ' · no state'}
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1.5 flex-shrink-0">
-                                <button
-                                  onClick={() => handleLoadSave(s)}
-                                  disabled={!loadable}
-                                  className="font-display text-[11px] font-extrabold text-accent-lit hover:text-paper disabled:text-paper/25 disabled:cursor-not-allowed transition-colors"
-                                  title={
-                                    loadable
-                                      ? 'Restart the game from this slot'
-                                      : 'This slot was written before saves captured game state'
-                                  }
-                                >
-                                  LOAD
-                                </button>
-                                <button
-                                  onClick={() => {
-                                    const blob = new Blob([s.saveData], { type: 'application/json' });
-                                    const url = URL.createObjectURL(blob);
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `${game.title}_${s.slotName}.json`;
-                                    a.click();
-                                    URL.revokeObjectURL(url);
-                                  }}
-                                  className="text-paper/50 hover:text-paper transition-colors"
-                                  title="Download JSON save"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </button>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-
-                  {/* New slot */}
-                  <form onSubmit={handleCreateSave} className="px-5 py-4">
-                    <div className="eyebrow eyebrow-lit mb-2.5">New slot</div>
-                    <div className="flex flex-col gap-2">
-                      <input
-                        type="text"
-                        placeholder="Slot name"
-                        value={slotName}
-                        onChange={e => setSlotName(e.target.value)}
-                        className="w-full bg-transparent border border-rule-lit px-2.5 py-2 text-[12px] text-paper placeholder:text-paper/40 outline-none focus:border-accent-lit"
-                      />
-                      <input
-                        type="number"
-                        placeholder="Score / checkpoint"
-                        value={saveScore}
-                        onChange={e => setSaveScore(e.target.value)}
-                        className="w-full bg-transparent border border-rule-lit px-2.5 py-2 text-[12px] text-paper placeholder:text-paper/40 outline-none focus:border-accent-lit"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Notes"
-                        value={saveNotes}
-                        onChange={e => setSaveNotes(e.target.value)}
-                        className="w-full bg-transparent border border-rule-lit px-2.5 py-2 text-[12px] text-paper placeholder:text-paper/40 outline-none focus:border-accent-lit"
-                      />
-                      <button type="submit" disabled={isSaving} className="btn-primary h-9 px-3.5 text-[12px]">
-                        <Plus className="w-3.5 h-3.5" />
-                        {isSaving ? 'Committing…' : 'Commit slot'}
-                      </button>
-                    </div>
-                    {!currentUser && (
-                      <p className="mt-2.5 font-mono text-[10px] leading-relaxed text-paper/45">
-                        Signed out — slots stay in this browser.
-                      </p>
-                    )}
-                  </form>
-                </>
-              ) : (
-                /* Ruffle titles are the ones this hub can snapshot and restore, so a
-                   webport says so plainly rather than offering a slot that would not
-                   survive a reload. */
-                <div className="px-5 py-4">
-                  <div className="eyebrow eyebrow-lit mb-2.5">Saves</div>
-                  <p className="text-[12px] leading-relaxed text-paper/45">
-                    Save slots are available on Flash titles only. This game keeps its own
-                    progress in this browser while you play, but it cannot be committed to a
-                    slot or carried to another machine.
-                  </p>
-                </div>
               )}
-            </aside>
-          </div>
-        </motion.div>
-      </motion.div>
-    </AnimatePresence>
+              {isolationBlocked && (
+                <p className="mt-3 text-[12px] leading-relaxed text-faint">
+                  This browser refused a separate game origin, so the game runs on the hub's own origin.
+                </p>
+              )}
+              {frameError && <p className="mt-3 text-[12px] leading-relaxed text-accent-lit">{frameError}</p>}
+            </section>
+
+            {canSave ? (
+              <>
+                <section className="border-b border-hair px-5 py-4" aria-labelledby="saves-heading">
+                  <h2 id="saves-heading" className="text-[14px] font-semibold">
+                    Save slots <span className="font-normal text-faint">{gameSaves.length}</span>
+                  </h2>
+                  {gameSaves.length === 0 ? (
+                    <p className="mt-2 text-[13px] text-muted">No saves for this game yet.</p>
+                  ) : (
+                    <ul className="mt-2">
+                      {gameSaves.map(s => {
+                        const loadable = readSlotState(s) !== null;
+                        return (
+                          <li key={s.id} className="flex items-center justify-between gap-2 border-b border-hair py-2.5 last:border-b-0">
+                            <div className="min-w-0">
+                              <p className="truncate text-[13px] font-semibold">{s.slotName}</p>
+                              <p className="truncate text-[12px] text-faint">
+                                {new Date(s.timestamp).toLocaleDateString()}
+                                {s.notes ? ` · ${s.notes}` : ''}
+                                {!loadable && ' · no game state'}
+                              </p>
+                            </div>
+                            <div className="flex flex-none items-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleLoadSave(s)}
+                                disabled={!loadable}
+                                className="btn-ghost h-8 px-3 text-[12px]"
+                                title={loadable ? 'Restart the game from this slot' : 'This slot was written before saves captured game state'}
+                              >
+                                Load
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const blob = new Blob([s.saveData], { type: 'application/json' });
+                                  const url = URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${game.title}_${s.slotName}.json`;
+                                  a.click();
+                                  URL.revokeObjectURL(url);
+                                }}
+                                className="btn-quiet h-8 w-8"
+                                aria-label={`Download ${s.slotName} as JSON`}
+                              >
+                                <Download className="h-4 w-4" />
+                              </button>
+                            </div>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </section>
+
+                <form onSubmit={handleCreateSave} className="px-5 py-4" aria-labelledby="new-slot-heading">
+                  <h2 id="new-slot-heading" className="text-[14px] font-semibold">New slot</h2>
+                  <div className="mt-3 flex flex-col gap-3">
+                    <label className="flex flex-col gap-1.5 text-[13px] text-muted">
+                      Name
+                      <input type="text" value={slotName} onChange={e => setSlotName(e.target.value)} className="field h-9 px-3 text-[13px]" />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-[13px] text-muted">
+                      Score or checkpoint
+                      <input type="number" value={saveScore} onChange={e => setSaveScore(e.target.value)} className="field h-9 px-3 text-[13px]" />
+                    </label>
+                    <label className="flex flex-col gap-1.5 text-[13px] text-muted">
+                      Notes
+                      <input type="text" value={saveNotes} onChange={e => setSaveNotes(e.target.value)} className="field h-9 px-3 text-[13px]" />
+                    </label>
+                    <button type="submit" disabled={isSaving} className="btn-ghost h-9 px-4 text-[13px]">
+                      <Plus className="h-4 w-4" aria-hidden />
+                      {isSaving ? 'Saving…' : 'Save to a new slot'}
+                    </button>
+                  </div>
+                  {!currentUser && <p className="mt-3 text-[12px] leading-relaxed text-faint">Signed out: slots stay in this browser.</p>}
+                </form>
+              </>
+            ) : (
+              <section className="px-5 py-4" aria-labelledby="saves-heading">
+                <h2 id="saves-heading" className="text-[14px] font-semibold">Saves</h2>
+                <p className="mt-2 text-[13px] leading-relaxed text-muted">
+                  Save slots are for Flash games. This game keeps its own progress in this browser while you play, but it cannot be written to a slot or carried to another computer.
+                </p>
+              </section>
+            )}
+          </aside>
+        )}
+      </div>
+    </motion.div>
   );
 }

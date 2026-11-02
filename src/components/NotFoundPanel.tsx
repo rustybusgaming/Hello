@@ -19,10 +19,10 @@ export function NotFoundPanel({
   onRetry
 }: NotFoundPanelProps) {
   return (
-    <div className="max-w-3xl border-2 border-rule bg-paper">
+    <div className="max-w-3xl border border-rule bg-paper">
       {/* The accent runs as a field here — this is the page's one poster statement. */}
       <div className="bg-accent text-paper px-7 py-8">
-        <div className="font-mono text-[10px] tracking-[0.18em] uppercase opacity-85 mb-3">
+        <div className="tabular-nums text-[12px] opacity-85 mb-3">
           System error 404 · page fault
         </div>
         <h2 className="font-display text-[34px] leading-[1.02] font-extrabold tracking-[-0.03em]">
@@ -30,12 +30,12 @@ export function NotFoundPanel({
         </h2>
       </div>
 
-      <div className="px-7 py-6 border-b-2 border-rule">
+      <div className="px-7 py-6 border-b border-rule">
         <p className="text-[14px] leading-relaxed max-w-[62ch]">{errorMessage}</p>
         {targetId && (
           <div className="mt-5 flex items-baseline gap-3 border border-hair bg-shade px-3 py-2.5">
             <span className="eyebrow flex-shrink-0">Queried identifier</span>
-            <code className="font-mono text-[12px] text-accent-deep truncate">{targetId}</code>
+            <code className="tabular-nums text-[12px] text-accent-deep truncate">{targetId}</code>
           </div>
         )}
       </div>
@@ -59,7 +59,7 @@ export function NotFoundPanel({
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 px-7 py-5 border-t-2 border-rule">
+      <div className="flex flex-wrap items-center gap-2 px-7 py-5 border-t border-rule">
         <button onClick={onGoHome} className="btn-ghost h-9 px-3.5 text-[12px]">
           <ArrowLeft className="w-4 h-4" />
           Back to the catalogue
